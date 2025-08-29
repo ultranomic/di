@@ -40,7 +40,16 @@ jobs:
 
           # If no push event range, try to get last release commit
           echo "No push event range available, checking for last release..."
-          LAST_RELEASE_COMMIT=$(gh api repos/${{ github.repository }}/releases/latest --jq '.target_commitish' 2>/dev/null || echo "")
+          LAST_RELEASE_COMMIT=""
+
+          # Try to get latest release, handling 404 for first release gracefully
+          if RELEASE_RESPONSE=$(gh api repos/${{ github.repository }}/releases/latest 2>/dev/null); then
+            LAST_RELEASE_COMMIT=$(echo "$RELEASE_RESPONSE" | jq -r '.target_commitish // ""')
+            echo "Found latest release with commit: $LAST_RELEASE_COMMIT"
+          else
+            echo "No releases found (this may be the first release) - using fallback diff range"
+            LAST_RELEASE_COMMIT=""
+          fi
 
           if [ -n "$LAST_RELEASE_COMMIT" ]; then
             DIFF_RANGE="${LAST_RELEASE_COMMIT}..${{ github.sha }}"
