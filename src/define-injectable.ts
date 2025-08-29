@@ -1,0 +1,113 @@
+import { onApplicationStart, onApplicationStop } from './define-app.ts';
+
+/**
+ * Base type for all dependency injectable components.
+ * This is a generic wrapper type that preserves the underlying type structure.
+ * 
+ * @template T - The type of the injectable component
+ * @example
+ * ```typescript
+ * type MyService = Injectable<{ getData: () => string }>;
+ * ```
+ */
+export type Injectable<T = unknown> = T;
+
+/**
+ * Main interface for the defineInjectable utility.
+ * Provides methods for creating injectable components with or without dependencies.
+ */
+type DefineInjectable = {
+  /**
+   * Creates an injectable component without dependencies.
+   * 
+   * @template S - The return type of the component (must be object or void)
+   * @param fn - Factory function that returns the component instance
+   * @returns A factory function that creates the injectable component
+   */
+  handler<S extends object | void>(fn: () => S): () => Injectable<S>;
+
+  /**
+   * Creates a builder for injectable components that require dependencies.
+   * 
+   * @template T - Record type defining the required dependencies
+   * @returns An InjectableBuilder instance for configuring the component
+   */
+  inject<T extends Record<string, Injectable<unknown>>>(): InjectableBuilder<T>;
+};
+
+/**
+ * Builder interface for creating injectable components with dependencies.
+ * Provides access to dependency injection and application lifecycle hooks.
+ * 
+ * @template T - Record type defining the required dependencies
+ */
+type InjectableBuilder<T> = {
+  /**
+   * Defines the handler function for the injectable component with dependencies.
+   * 
+   * @template S - The return type of the component (must be object or void)
+   * @param fn - Factory function that receives injector and lifecycle hooks
+   * @param fn.injector - Function that provides access to injected dependencies
+   * @param fn.appHooks - Object containing application lifecycle hook registrars
+   * @param fn.appHooks.onApplicationStart - Register callback for application start event
+   * @param fn.appHooks.onApplicationStop - Register callback for application stop event
+   * @returns A factory function that accepts an injector and creates the component
+   */
+  handler<S extends object | void>(
+    fn: (
+      injector: () => T,
+      appHooks: {
+        onApplicationStart: (callback: () => unknown, executionOrder?: number) => void;
+        onApplicationStop: (callback: () => unknown, executionOrder?: number) => void;
+      },
+    ) => S,
+  ): (injector: () => T) => Injectable<S>;
+};
+
+/**
+ * Core utility for creating type-safe injectable components with dependency injection support.
+ * This is the foundational building block for all other layers (Service, Module, Router, App).
+ * 
+ * Features:
+ * - Type-safe dependency injection
+ * - Application lifecycle hook integration
+ * - Support for components with and without dependencies
+ * - Functional composition patterns
+ * 
+ * @example
+ * ```typescript
+ * // Without dependencies
+ * const simpleComponent = defineInjectable.handler(() => ({
+ *   getValue: () => 'hello world'
+ * }));
+ * 
+ * // With dependencies
+ * const complexComponent = defineInjectable
+ *   .inject<{ logger: Injectable<{ log: (msg: string) => void }> }>()
+ *   .handler((injector, { onApplicationStart }) => {
+ *     const { logger } = injector();
+ *     
+ *     onApplicationStart(() => {
+ *       logger.log('Component started');
+ *     });
+ *     
+ *     return {
+ *       process: (data: string) => {
+ *         logger.log(`Processing: ${data}`);
+ *         return data.toUpperCase();
+ *       }
+ *     };
+ *   });
+ * ```
+ */
+export const defineInjectable: DefineInjectable = {
+  handler: (fn) => () => fn(),
+  inject: () => ({
+    handler: (fn) => {
+      return (injector) => {
+        const result = fn(injector, { onApplicationStart, onApplicationStop });
+        return result;
+      };
+    },
+  }),
+};

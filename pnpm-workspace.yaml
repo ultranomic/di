@@ -1,0 +1,2 @@
+useNodeVersion: 24.7.0
+nodeLinker: hoisted

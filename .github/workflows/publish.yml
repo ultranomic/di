@@ -1,0 +1,188 @@
+name: Publish to npm
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine diff range for version analysis
+        id: diff-range
+        run: |
+          # First try to use the push event's before/after
+          if [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            DIFF_RANGE="${{ github.event.before }}..${{ github.sha }}"
+            echo "Using push event range: $DIFF_RANGE"
+            echo "diff-range=$DIFF_RANGE" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # If no push event range, try to get last release commit
+          echo "No push event range available, checking for last release..."
+          LAST_RELEASE_COMMIT=$(gh api repos/${{ github.repository }}/releases/latest --jq '.target_commitish' 2>/dev/null || echo "")
+
+          if [ -n "$LAST_RELEASE_COMMIT" ]; then
+            DIFF_RANGE="${LAST_RELEASE_COMMIT}..${{ github.sha }}"
+            echo "Using last release commit as base: $DIFF_RANGE"
+            echo "diff-range=$DIFF_RANGE" >> $GITHUB_OUTPUT
+          else
+            echo "No releases found, using default: HEAD~1..HEAD"
+            echo "diff-range=HEAD~1..HEAD" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Auto-bump version if needed
+        id: auto-version
+        uses: ./.github/actions/auto-version
+        with:
+          gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
+          diff-range: ${{ steps.diff-range.outputs.diff-range }}
+          auto-push: 'true'
+
+      - name: Check if version needs publishing
+        id: version-check
+        run: |
+          # Use the potentially new version after auto-bump
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
+          echo "version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+
+          # Check if this version is already published (early exit)
+          if npm view $PACKAGE_NAME@$PACKAGE_VERSION version 2>/dev/null; then
+            echo "Version $PACKAGE_VERSION already published, skipping..." | tee -a $GITHUB_STEP_SUMMARY
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "## 📦 Publishing Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "Version \`$PACKAGE_VERSION\` is already published to npm." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Version $PACKAGE_VERSION not published, proceeding..." | tee -a $GITHUB_STEP_SUMMARY
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "## 🚀 Publishing Version $PACKAGE_VERSION" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Setup Node.js
+        if: steps.version-check.outputs.skip == 'false'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup pnpm
+        if: steps.version-check.outputs.skip == 'false'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+
+      - name: Get pnpm store directory
+        if: steps.version-check.outputs.skip == 'false'
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        if: steps.version-check.outputs.skip == 'false'
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        if: steps.version-check.outputs.skip == 'false'
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Run full pipeline
+        if: steps.version-check.outputs.skip == 'false'
+        run: pnpm run prepublishOnly
+
+      - name: Create GitHub Release
+        if: steps.version-check.outputs.skip == 'false'
+        run: |
+          VERSION="${{ steps.version-check.outputs.version }}"
+          CURRENT_VERSION="${{ steps.auto-version.outputs.current-version }}"
+
+          # Create release notes using a temporary file to handle special characters safely
+          cat > release_notes.md << 'RELEASE_EOF'
+          Version ${{ steps.version-check.outputs.version }} of ${{ steps.version-check.outputs.name }} is now available!
+
+          ## What's Changed
+
+          ${{ steps.auto-version.outputs.changelog || '- Various improvements and fixes' }}
+
+          ## Installation
+
+          ```bash
+          pnpm add ${{ steps.version-check.outputs.name }}@${{ steps.version-check.outputs.version }}
+          npm install ${{ steps.version-check.outputs.name }}@${{ steps.version-check.outputs.version }}
+          ```
+
+          ---
+
+          **Full Changelog**: https://github.com/${{ github.repository }}/compare/v${{ steps.auto-version.outputs.current-version }}...v${{ steps.version-check.outputs.version }}
+          RELEASE_EOF
+
+          gh release create "v$VERSION" \
+            --title "v$VERSION" \
+            --notes-file release_notes.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to npm
+        if: steps.version-check.outputs.skip == 'false'
+        run: |
+          # Verify package contents before publishing
+          pnpm pack
+
+          # Publish with retry logic
+          for i in {1..3}; do
+            if pnpm publish --access public --no-git-checks; then
+              echo "✅ Successfully published version ${{ steps.version-check.outputs.version }} to npm" | tee -a $GITHUB_STEP_SUMMARY
+              echo "📋 Install with: \`pnpm add ${{ steps.version-check.outputs.name }}@${{ steps.version-check.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+              break
+            else
+              echo "Publish attempt $i failed, retrying..."
+              sleep 5
+              if [ $i -eq 3 ]; then
+                echo "❌ Failed to publish after 3 attempts" | tee -a $GITHUB_STEP_SUMMARY
+                exit 1
+              fi
+            fi
+          done
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Update workflow summary
+        if: steps.version-check.outputs.skip == 'false'
+        run: |
+          echo "🏷️ Created GitHub release: [v${{ steps.version-check.outputs.version }}](https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version-check.outputs.version }})" >> $GITHUB_STEP_SUMMARY
+          echo "📦 Published to npm: [${{ steps.version-check.outputs.name }}@${{ steps.version-check.outputs.version }}](https://www.npmjs.com/package/${{ steps.version-check.outputs.name }}/v/${{ steps.version-check.outputs.version }})" >> $GITHUB_STEP_SUMMARY
+
+          # Add changelog to summary if available
+          if [ -n "${{ steps.auto-version.outputs.changelog }}" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## 📋 What's Changed" >> $GITHUB_STEP_SUMMARY
+            echo "${{ steps.auto-version.outputs.changelog }}" >> $GITHUB_STEP_SUMMARY
+          fi

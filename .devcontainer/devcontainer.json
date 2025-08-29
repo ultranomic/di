@@ -1,0 +1,25 @@
+{
+  "name": "dev environment",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "features": {
+    "ghcr.io/devcontainers/features/node": {
+      "version": "24.7.0"
+    },
+    "ghcr.io/devcontainers/features/github-cli": "latest",
+    "ghcr.io/joshuanianji/devcontainer-features/mount-pnpm-store": "true"
+  },
+  "postCreateCommand": "npm install -g @anthropic-ai/claude-code",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "eamodio.gitlens",
+        "TypeScriptTeam.native-preview",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  },
+  "remoteUser": "root"
+}

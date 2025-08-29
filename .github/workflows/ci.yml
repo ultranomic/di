@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  merge_group:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Type check
+        run: |
+          pnpm run typecheck
+          echo "🔍 Type check passed on Node.js 24" >> $GITHUB_STEP_SUMMARY
+
+      - name: Run full pipeline
+        run: |
+          pnpm run prepublishOnly
+          echo "✅ Full pipeline passed on Node.js 24" >> $GITHUB_STEP_SUMMARY
+
+      - name: Run tests with coverage verification
+        run: |
+          # Extract coverage percentage from test output
+          COVERAGE_OUTPUT=$(pnpm run test:coverage 2>&1)
+          echo "$COVERAGE_OUTPUT"
+
+          # Check if coverage is 100% for all metrics (line, branch, funcs)
+          if echo "$COVERAGE_OUTPUT" | grep -q "all files.*| 100\.00 |.*100\.00 |.*100\.00 |"; then
+            echo "✅ 100% test coverage achieved!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Test coverage is not 100%. All files must have 100% coverage." >> $GITHUB_STEP_SUMMARY
+            echo "Coverage output:"
+            echo "$COVERAGE_OUTPUT"
+            exit 1
+          fi
+
+      - name: Verify package contents
+        run: |
+          pnpm pack
+          echo "📦 Package contents verified on Node.js 24" >> $GITHUB_STEP_SUMMARY

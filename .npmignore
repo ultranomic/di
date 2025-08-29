@@ -1,0 +1,37 @@
+# Source files
+src/**/*.test.ts
+src/**/*.spec.ts
+
+# Development files
+.devcontainer/
+.github/
+.vscode/
+*.log
+*.tsbuildinfo
+
+# Configuration files
+tsconfig.json
+tsgo.json
+prettier.config.js
+.prettierrc*
+.eslintrc*
+
+# Documentation source
+docs/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.idea/
+
+# Build artifacts that shouldn't be published
+*.map
