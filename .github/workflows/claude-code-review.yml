@@ -1,0 +1,59 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    # Optional: Only run on specific file changes
+    # paths:
+    #   - "src/**/*.ts"
+    #   - "src/**/*.tsx"
+    #   - "src/**/*.js"
+    #   - "src/**/*.jsx"
+
+jobs:
+  claude-review:
+    # Optional: Filter by PR author
+    if: |
+      !endsWith(github.actor, '[bot]')
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code Review
+        id: claude-review
+        uses: anthropics/claude-code-action@v1.0.2
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          # Unified prompt for automated review
+          prompt: |
+            Please review this pull request and provide feedback on:
+            - Code quality and best practices
+            - Potential bugs or issues
+            - Performance considerations
+            - Security concerns
+            - Test coverage
+
+            Be constructive and helpful in your feedback.
+
+          # Optional: Use sticky comments to make Claude reuse the same comment on subsequent pushes to the same PR
+          use_sticky_comment: true
+
+          # Optional: Advanced configuration via claude_args
+          # claude_args: "--model claude-opus-4-1-20250805 --allowedTools 'Bash(pnpm run test),Bash(pnpm run typecheck)'"
+
+          # Optional: Skip review for certain conditions
+          # if: |
+          #   !contains(github.event.pull_request.title, '[skip-review]') &&
+          #   !contains(github.event.pull_request.title, '[WIP]')

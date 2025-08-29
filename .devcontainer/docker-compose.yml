@@ -1,0 +1,13 @@
+services:
+  app:
+    image: mcr.microsoft.com/devcontainers/javascript-node:24
+    volumes:
+      - root:/root
+      - npm-global:/usr/local/share/npm-global
+      - ../..:/workspaces:delegated
+      - ~/.ssh:/root/.ssh:ro,cached
+    command: sleep infinity
+
+volumes:
+  root:
+  npm-global:
