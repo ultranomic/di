@@ -64,7 +64,7 @@ jobs:
 
       - name: Auto-bump version if needed
         id: auto-version
-        uses: ./.github/actions/auto-version
+        uses: ultranomic/auto-version-action@v1
         with:
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
           diff-range: ${{ steps.diff-range.outputs.diff-range }}
