@@ -1,9 +1,9 @@
-import { defineInjectable, type Injectable } from './define-injectable.ts';
+import { defineInjectableFactory, type Injectable } from './define-injectable.ts';
 
 /**
  * Type alias for service components built on the Injectable foundation.
  * Services represent the business logic and data access layer of the application.
- * 
+ *
  * @template T - The type of the service component
  * @example
  * ```typescript
@@ -19,11 +19,11 @@ export type Service<T = unknown> = Injectable<T>;
  * Main interface for the defineService utility.
  * Builds on defineInjectable with service-specific constraints and semantics.
  */
-type DefineService = {
+type DefineServiceFactory = {
   /**
    * Creates a service without dependencies.
    * Services must return object or void types (no primitive types).
-   * 
+   *
    * @template S - The return type of the service (must be object or void)
    * @param fn - Factory function that returns the service implementation
    * @returns A factory function that creates the service instance
@@ -32,23 +32,23 @@ type DefineService = {
 
   /**
    * Creates a builder for services that require dependencies.
-   * 
+   *
    * @template T - Record type defining the required injectable dependencies
    * @returns A ServiceBuilder instance for configuring the service
    */
-  inject<T extends Record<string, Injectable<unknown>>>(): ServiceBuilder<T>;
+  inject<T extends Record<string, Injectable<unknown>>>(): ServiceFactoryBuilder<T>;
 };
 
 /**
  * Builder interface for creating services with dependencies.
  * Services can depend on any injectable components and have access to lifecycle hooks.
- * 
+ *
  * @template T - Record type defining the required dependencies
  */
-type ServiceBuilder<T> = {
+type ServiceFactoryBuilder<T> = {
   /**
    * Defines the handler function for the service with dependencies.
-   * 
+   *
    * @template S - The return type of the service (must be object or void)
    * @param fn - Factory function that receives injector and lifecycle hooks
    * @param fn.injector - Function that provides access to injected dependencies
@@ -71,20 +71,20 @@ type ServiceBuilder<T> = {
 /**
  * Utility for creating type-safe service components with dependency injection support.
  * Services represent the business logic and data access layer of your application.
- * 
+ *
  * Services are ideal for:
  * - Business logic implementation
  * - Data access and persistence
  * - External API integration
  * - Domain-specific operations
  * - Stateful components that need lifecycle management
- * 
+ *
  * Key characteristics:
  * - Must return object or void types (enforced by type system)
  * - Can depend on other injectable components
  * - Have access to application lifecycle hooks
  * - Support both synchronous and asynchronous operations
- * 
+ *
  * @example
  * ```typescript
  * // Simple service without dependencies
@@ -92,33 +92,33 @@ type ServiceBuilder<T> = {
  *   add: (a: number, b: number) => a + b,
  *   multiply: (a: number, b: number) => a * b
  * }));
- * 
+ *
  * // Service with dependencies and lifecycle management
  * type Dependencies = {
  *   database: Service<{ query: (sql: string) => Promise<any[]> }>;
  *   logger: Service<{ log: (message: string) => void }>;
  * };
- * 
+ *
  * const userService = defineService
  *   .inject<Dependencies>()
  *   .handler((injector, { onApplicationStart, onApplicationStop }) => {
  *     const { database, logger } = injector();
- *     
+ *
  *     onApplicationStart(() => {
  *       logger.log('User service initialized');
  *     });
- *     
+ *
  *     onApplicationStop(() => {
  *       logger.log('User service shutting down');
  *     });
- *     
+ *
  *     return {
  *       async getUser(id: string) {
  *         logger.log(`Fetching user ${id}`);
  *         const results = await database.query(`SELECT * FROM users WHERE id = ?`, [id]);
  *         return results[0] || null;
  *       },
- *       
+ *
  *       async createUser(userData: { name: string; email: string }) {
  *         logger.log(`Creating user ${userData.email}`);
  *         await database.query(`INSERT INTO users (name, email) VALUES (?, ?)`, [userData.name, userData.email]);
@@ -128,12 +128,12 @@ type ServiceBuilder<T> = {
  *   });
  * ```
  */
-export const defineService: DefineService = {
-  handler: (fn) => () => defineInjectable.handler(fn)(),
+export const defineServiceFactory: DefineServiceFactory = {
+  handler: (fn) => () => defineInjectableFactory.handler(fn)(),
   inject: () => ({
     handler: (fn) => {
       return (injector) => {
-        const injectable = defineInjectable.inject().handler(fn as any)(injector);
+        const injectable = defineInjectableFactory.inject().handler(fn as any)(injector);
         return injectable as any;
       };
     },

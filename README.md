@@ -27,26 +27,29 @@ The framework provides a layered architecture with clear separation of concerns:
 
 ```
 ┌─────────────────┐
-│   Application   │  ← defineApp (lifecycle orchestration)
+│   Application   │  ← defineApp (creates app instances)
 ├─────────────────┤
-│     Module      │  ← defineModule (feature grouping)
+│     Module      │  ← defineModuleFactoryFactory (creates module factories)
 ├─────────────────┤
-│     Router      │  ← defineRouter
+│     Router      │  ← defineRouterFactoryFactory (creates router factories)
 ├─────────────────┤
-│     Service     │  ← defineService (business logic)
+│     Service     │  ← defineServiceFactoryFactory (creates service factories)
 ├─────────────────┤
-│   Injectable    │  ← defineInjectable (base DI layer)
+│   Injectable    │  ← defineInjectableFactoryFactory (creates injectable factories)
 └─────────────────┘
 ```
+
+**Key Distinction**: `defineInjectableFactoryFactory`, `defineModuleFactoryFactory`, `defineRouterFactoryFactory`, and `defineServiceFactoryFactory` are **factory creator functions** that return factory functions. Only `defineApp` creates the actual application instance.
 
 ## Quick Start
 
 ### 1. Basic Service (Business Logic)
 
 ```typescript
-import { defineService } from '@ultranomic/di';
+import { defineServiceFactoryFactory } from '@ultranomic/di';
 
-const userService = defineService.handler(() => ({
+// Creates a service factory function
+const defineUserService = defineServiceFactoryFactory.handler(() => ({
   getUser: (id: string) => ({ id, name: `User ${id}` }),
   createUser: (name: string) => ({ id: crypto.randomUUID(), name }),
 }));
@@ -55,14 +58,15 @@ const userService = defineService.handler(() => ({
 ### 2. Service with Dependencies
 
 ```typescript
-import { defineService, type Service } from '@ultranomic/di';
+import { defineServiceFactoryFactory, type Service } from '@ultranomic/di';
 
 type Dependencies = {
   database: Service<{ query: (sql: string) => any[] }>;
   logger: Service<{ log: (msg: string) => void }>;
 };
 
-const userService = defineService
+// Creates a service factory function with dependencies
+const defineUserService = defineServiceFactoryFactory
   .inject<Dependencies>()
   .handler((injector, { onApplicationStart, onApplicationStop }) => {
     const { database, logger } = injector();
@@ -83,14 +87,15 @@ const userService = defineService
 ### 3. Module (Feature Grouping)
 
 ```typescript
-import { defineModule, type Service } from '@ultranomic/di';
+import { defineModuleFactory, type Service } from '@ultranomic/di';
 
 type Dependencies = {
   userService: Service<{ getUser: (id: string) => any }>;
   postService: Service<{ getPostsByUser: (userId: string) => any[] }>;
 };
 
-const userModule = defineModule.inject<Dependencies>().handler((injector) => {
+// Creates a module factory function
+const defineUserModule = defineModuleFactory.inject<Dependencies>().handler((injector) => {
   const { userService, postService } = injector();
 
   return {
@@ -106,13 +111,14 @@ const userModule = defineModule.inject<Dependencies>().handler((injector) => {
 ### 4. Router
 
 ```typescript
-import { defineRouter, type Module } from '@ultranomic/di';
+import { defineRouterFactory, type Module } from '@ultranomic/di';
 
 type Dependencies = {
   userModule: Module<{ getUserWithPosts: (id: string) => any }>;
 };
 
-const userRouter = defineRouter.inject<Dependencies>().handler((injector) => {
+// Creates a router factory function
+const defineUserRouter = defineRouterFactory.inject<Dependencies>().handler((injector) => {
   const { userModule } = injector();
 
   return {
@@ -128,28 +134,20 @@ const userRouter = defineRouter.inject<Dependencies>().handler((injector) => {
 ### 5. Application (Lifecycle Management)
 
 ```typescript
-import { defineApp } from '@ultranomic/di';
+import { defineApp, defineModuleFactory } from '@ultranomic/di';
 
-const app = await defineApp(({ onApplicationStart, onApplicationStop, onApplicationInitialized }) => {
-  // Setup services, modules, routers here
-  const services = {
-    /* your services */
-  };
-
-  onApplicationInitialized(() => {
-    console.log('App initialized');
-  });
-
+// Create module factory
+const defineAppModule = defineModuleFactory.handler(() => {
+  const userModule = defineUserModule(); // Creates module instance
+  const userRouter = defineUserRouter(); // Creates router instance
   return {
-    services,
-    // Your app API
+    userRouter,
   };
 });
 
-// Start the application
+// Create actual app instance using the module factory
+const app = await defineApp(defineAppModule);
 await app.start();
-
-// Later, stop the application
 await app.stop();
 ```
 
@@ -157,64 +155,78 @@ await app.stop();
 
 ### Core Utilities
 
-#### `defineInjectable`
+#### `defineInjectableFactory`
 
-Base dependency injection utility - foundation for all other layers.
+Base dependency injection factory creator - foundation for all other layers. Returns injectable factory functions.
 
 ```typescript
-// Without dependencies
-const basic = defineInjectable.handler(() => ({ value: 42 }));
+// Without dependencies - creates injectable factory
+const defineBasic = defineInjectableFactory.handler(() => ({ value: 42 }));
 
-// With dependencies
-const withDeps = defineInjectable
+// With dependencies - creates injectable factory with dependencies
+const defineWithDeps = defineInjectableFactory
   .inject<{ dep: Injectable<SomeType> }>()
   .handler((injector, { onApplicationStart, onApplicationStop }) => {
     // Implementation
   });
 ```
 
-#### `defineService`
+#### `defineServiceFactory`
 
-Business logic and data access layer. Enforces `object | void` return types.
+Business logic and data access factory creator. Returns service factory functions that enforce `object | void` return types.
 
 ```typescript
-const service = defineService.handler(() => ({
+// Creates a service factory function
+const defineMyService = defineServiceFactory.handler(() => ({
   doSomething: () => 'result',
 }));
 ```
 
-#### `defineModule`
+#### `defineModuleFactory`
 
-Feature grouping layer. Allows `Record<string | symbol, unknown> | void` return types.
+Feature grouping factory creator. Returns module factory functions that allow `Record<string | symbol, unknown> | void` return types.
 
 ```typescript
-const module = defineModule.handler(() => ({
+// Creates a module factory function
+const defineMyModule = defineModuleFactory.handler(() => ({
   feature1: () => 'value1',
   feature2: () => 'value2',
 }));
 ```
 
-#### `defineRouter`
+#### `defineRouterFactory`
 
-HTTP endpoint definitions. Same constraints as modules.
+HTTP endpoint factory creator. Returns router factory functions with same constraints as modules.
 
 ```typescript
-const router = defineRouter.handler(() => ({
+// Creates a router factory function
+const defineMyRouter = defineRouterFactory.handler(() => ({
   '/api/users': { GET: () => users },
 }));
 ```
 
 #### `defineApp`
 
-Application lifecycle orchestration with async hook management.
+Application lifecycle orchestration with async hook management. Takes a module factory and creates the actual application instance with lifecycle control.
 
 ```typescript
-const app = await defineApp(({ onApplicationInitialized, onApplicationStart, onApplicationStop }) => {
-  // App setup
+// Create module factory
+const defineAppModule = defineModuleFactory.handler(() => {
+  const userModule = defineUserModule(); // Creates module instance
+  const userRouter = defineUserRouter(); // Creates router instance
   return {
-    /* app API */
+    userRouter,
   };
 });
+
+// Create actual app instance (can pass factory directly or as function)
+const app = await defineApp(defineAppModule);
+// OR
+const app = await defineApp(() => defineAppModule);
+
+// App object contains only start() and stop() methods
+await app.start(); // Triggers onApplicationStart hooks
+await app.stop(); // Triggers onApplicationStop hooks
 ```
 
 ### Lifecycle Hooks
@@ -229,7 +241,7 @@ All inject-enabled utilities provide lifecycle hooks:
 
 ## Requirements
 
-- Node.js >= 24.0.0  
+- Node.js >= 24.0.0
 - TypeScript compilation via `tsgo` (modern TypeScript toolchain)
 - PNPM package manager (v10.15.0)
 - Node.js native test runner (no external testing framework dependencies)
