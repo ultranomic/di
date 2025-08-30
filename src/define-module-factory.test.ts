@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { defineModuleFactory, type Module } from './define-module.ts';
-import { type Service } from './define-service.ts';
+import { defineModuleFactory, type Module } from './define-module-factory.ts';
+import { type Service } from './define-service-factory.ts';
 
 describe('defineModuleFactory', () => {
   describe('handler without dependencies', () => {

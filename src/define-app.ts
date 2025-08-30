@@ -1,5 +1,5 @@
 import { createAsyncHooks } from '@ultranomic/hook';
-import type { Module } from './define-module.ts';
+import type { Module } from './define-module-factory.ts';
 
 /**
  * Global application hooks instance that manages the three-phase application lifecycle.

@@ -62,13 +62,13 @@
 export * from './define-app.ts';
 
 // Base layer - Core dependency injection foundation
-export * from './define-injectable.ts';
+export * from './define-injectable-factory.ts';
 
 // Feature organization layer - Grouping and module boundaries
-export * from './define-module.ts';
+export * from './define-module-factory.ts';
 
 // HTTP routing layer - Endpoint definitions and request handling
-export * from './define-router.ts';
+export * from './define-router-factory.ts';
 
 // Business logic layer - Services and data access
-export * from './define-service.ts';
+export * from './define-service-factory.ts';

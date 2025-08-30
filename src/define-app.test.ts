@@ -1,7 +1,7 @@
 import { describe, it, afterEach } from 'node:test';
 import assert from 'node:assert';
 import { defineApp, onApplicationStart, onApplicationStop, onApplicationInitialized, appHooks } from './define-app.ts';
-import { defineModuleFactory } from './define-module.ts';
+import { defineModuleFactory } from './define-module-factory.ts';
 
 describe('defineApp', () => {
   afterEach(() => {
