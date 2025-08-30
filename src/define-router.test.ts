@@ -1,13 +1,13 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { defineRouter, type Router } from './define-router.ts';
+import { defineRouterFactory, type Router } from './define-router.ts';
 import { type Service } from './define-service.ts';
 import { type Module } from './define-module.ts';
 
-describe('defineRouter', () => {
+describe('defineRouterFactory', () => {
   describe('handler without dependencies', () => {
-    it('should create router returning object', () => {
-      const router = defineRouter.handler(() => ({
+    it('should create router factory returning object', () => {
+      const defineRouter = defineRouterFactory.handler(() => ({
         '/api/health': {
           GET: () => ({ status: 'ok' }),
         },
@@ -16,7 +16,7 @@ describe('defineRouter', () => {
         },
       }));
 
-      const result = router();
+      const result = defineRouter();
       const healthResponse = result['/api/health'].GET();
       const pingResponse = result['/api/ping'].GET();
 
@@ -24,17 +24,17 @@ describe('defineRouter', () => {
       assert.deepStrictEqual(pingResponse, { message: 'pong' });
     });
 
-    it('should create router returning void', () => {
-      const router = defineRouter.handler(() => {
+    it('should create router factory returning void', () => {
+      const defineRouter = defineRouterFactory.handler(() => {
         // void router for side effects only
       });
 
-      const result = router();
+      const result = defineRouter();
       assert.strictEqual(result, undefined);
     });
 
     it('should support multiple HTTP methods', () => {
-      const router = defineRouter.handler(() => ({
+      const defineRouter = defineRouterFactory.handler(() => ({
         '/api/users': {
           GET: () => ({ users: [] }),
           POST: (data: { name: string }) => ({ id: '123', ...data }),
@@ -43,7 +43,7 @@ describe('defineRouter', () => {
         },
       }));
 
-      const result = router();
+      const result = defineRouter();
       const endpoints = result['/api/users'];
 
       assert.deepStrictEqual(endpoints.GET(), { users: [] });
@@ -66,7 +66,7 @@ describe('defineRouter', () => {
         }>;
       };
 
-      const userRouter = defineRouter.inject<Dependencies>().handler((injector) => {
+      const defineUserRouter = defineRouterFactory.inject<Dependencies>().handler((injector) => {
         const { userService, authService } = injector();
 
         return {
@@ -111,7 +111,7 @@ describe('defineRouter', () => {
         },
       };
 
-      const router = userRouter(() => mockDeps);
+      const router = defineUserRouter(() => mockDeps);
 
       // Test authenticated request
       const getUserResponse = router['/api/users/:id'].GET({
@@ -143,7 +143,7 @@ describe('defineRouter', () => {
         userModule: UserModule;
       };
 
-      const apiRouter = defineRouter.inject<Dependencies>().handler((injector) => {
+      const defineApiRouter = defineRouterFactory.inject<Dependencies>().handler((injector) => {
         const { userModule } = injector();
 
         return {
@@ -171,7 +171,7 @@ describe('defineRouter', () => {
         },
       };
 
-      const router = apiRouter(() => mockDeps);
+      const router = defineApiRouter(() => mockDeps);
       const response = router['/api/users/:id/complete'].GET({ params: { id: '123' } });
 
       assert.strictEqual(response.user.name, 'User 123');
@@ -182,23 +182,25 @@ describe('defineRouter', () => {
     it('should support lifecycle hooks', () => {
       const routerEvents: string[] = [];
 
-      const router = defineRouter.inject<{}>().handler((injector, { onApplicationStart, onApplicationStop }) => {
-        onApplicationStart(() => {
-          routerEvents.push('router-started');
-        }, 2);
+      const defineRouter = defineRouterFactory
+        .inject<{}>()
+        .handler((injector, { onApplicationStart, onApplicationStop }) => {
+          onApplicationStart(() => {
+            routerEvents.push('router-started');
+          }, 2);
 
-        onApplicationStop(() => {
-          routerEvents.push('router-stopped');
-        }, 2);
+          onApplicationStop(() => {
+            routerEvents.push('router-stopped');
+          }, 2);
 
-        return {
-          '/api/events': {
-            GET: () => ({ events: [...routerEvents] }),
-          },
-        };
-      });
+          return {
+            '/api/events': {
+              GET: () => ({ events: [...routerEvents] }),
+            },
+          };
+        });
 
-      const result = router(() => ({}));
+      const result = defineRouter(() => ({}));
       const response = result['/api/events'].GET();
 
       assert.deepStrictEqual(response.events, []);
@@ -216,7 +218,7 @@ describe('defineRouter', () => {
         middleware: MiddlewareService;
       };
 
-      const router = defineRouter.inject<Dependencies>().handler((injector) => {
+      const defineRouter = defineRouterFactory.inject<Dependencies>().handler((injector) => {
         const { middleware } = injector();
 
         const withMiddleware = (handler: Function) => {
@@ -247,7 +249,7 @@ describe('defineRouter', () => {
         },
       };
 
-      const result = router(() => mockDeps);
+      const result = defineRouter(() => mockDeps);
       const response = result['/api/protected'].GET({ user: { id: 'test-user' } });
 
       assert.strictEqual(response.message, 'Hello test-user');
@@ -258,23 +260,23 @@ describe('defineRouter', () => {
   describe('router type constraints', () => {
     it('should enforce Record or void return types', () => {
       // These should compile successfully
-      const recordRouter = defineRouter.handler(() => ({
+      const defineRecordRouter = defineRouterFactory.handler(() => ({
         '/route': { GET: () => 'response' },
       }));
-      const voidRouter = defineRouter.handler(() => {});
+      const defineVoidRouter = defineRouterFactory.handler(() => {});
 
       // Verify they work as expected
-      assert.strictEqual(recordRouter()['/route'].GET(), 'response');
-      assert.strictEqual(voidRouter(), undefined);
+      assert.strictEqual(defineRecordRouter()['/route'].GET(), 'response');
+      assert.strictEqual(defineVoidRouter(), undefined);
     });
 
     it('should maintain Router type wrapper', () => {
-      const router = defineRouter.handler(() => ({
+      const defineRouter = defineRouterFactory.handler(() => ({
         '/test': { GET: () => 'test' },
       }));
 
       // The return should be assignable to Router type
-      const typedRouter: () => Router<{ '/test': { GET: () => string } }> = router;
+      const typedRouter: () => Router<{ '/test': { GET: () => string } }> = defineRouter;
       assert.strictEqual(typedRouter()['/test'].GET(), 'test');
     });
   });
@@ -287,7 +289,7 @@ describe('defineRouter', () => {
         email: string;
       }
 
-      const restRouter = defineRouter.handler(() => {
+      const defineRestRouter = defineRouterFactory.handler(() => {
         const users = new Map<string, User>();
 
         return {
@@ -325,7 +327,7 @@ describe('defineRouter', () => {
         };
       });
 
-      const router = restRouter();
+      const router = defineRestRouter();
 
       // Create user
       const createResponse = router['/api/users'].POST({

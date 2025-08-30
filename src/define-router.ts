@@ -1,9 +1,9 @@
-import { defineInjectable, type Injectable } from './define-injectable.ts';
+import { defineInjectableFactory, type Injectable } from './define-injectable.ts';
 
 /**
  * Type alias for router components built on the Injectable foundation.
  * Routers define HTTP endpoint handlers and API routing logic.
- * 
+ *
  * @template T - The type of the router component
  * @example
  * ```typescript
@@ -16,14 +16,14 @@ import { defineInjectable, type Injectable } from './define-injectable.ts';
 export type Router<T = unknown> = Injectable<T>;
 
 /**
- * Main interface for the defineRouter utility.
- * Builds on defineInjectable with router-specific constraints for HTTP endpoint definitions.
+ * Main interface for the defineRouterFactory utility.
+ * Builds on defineInjectableFactory with router-specific constraints for HTTP endpoint definitions.
  */
-type DefineRouter = {
+type DefineRouterFactory = {
   /**
-   * Creates a router without dependencies.
+   * Creates a router factory function without dependencies.
    * Routers must return Record types with string or symbol keys, or void.
-   * 
+   *
    * @template S - The return type of the router (must be Record<string | symbol, unknown> or void)
    * @param fn - Factory function that returns the router implementation
    * @returns A factory function that creates the router instance
@@ -31,24 +31,24 @@ type DefineRouter = {
   handler<S extends Record<string | symbol, unknown> | void>(fn: () => S): () => Router<S>;
 
   /**
-   * Creates a builder for routers that require dependencies.
-   * 
+   * Creates a builder for router factory functions that require dependencies.
+   *
    * @template T - Record type defining the required injectable dependencies
-   * @returns A RouterBuilder instance for configuring the router
+   * @returns A RouterFactoryBuilder instance for configuring the router factory
    */
-  inject<T extends Record<string, Injectable<unknown>>>(): RouterBuilder<T>;
+  inject<T extends Record<string, Injectable<unknown>>>(): RouterFactoryBuilder<T>;
 };
 
 /**
- * Builder interface for creating routers with dependencies.
+ * Builder interface for creating router factory functions with dependencies.
  * Routers can depend on services, modules, middleware, and other injectable components.
- * 
+ *
  * @template T - Record type defining the required dependencies
  */
-type RouterBuilder<T> = {
+type RouterFactoryBuilder<T> = {
   /**
    * Defines the handler function for the router with dependencies.
-   * 
+   *
    * @template S - The return type of the router (must be Record<string | symbol, unknown> or void)
    * @param fn - Factory function that receives injector and lifecycle hooks
    * @param fn.injector - Function that provides access to injected dependencies
@@ -69,10 +69,10 @@ type RouterBuilder<T> = {
 };
 
 /**
- * Utility for creating type-safe router components that define HTTP endpoints and API routing logic.
- * Routers provide a generic foundation for organizing endpoint handlers and can be used with any HTTP framework.
+ * Utility for creating type-safe router factory functions that define HTTP endpoints and API routing logic.
+ * Router factories provide a generic foundation for organizing endpoint handlers and can be used with any HTTP framework.
  * 
- * Routers are ideal for:
+ * Router factories are ideal for:
  * - HTTP endpoint definitions
  * - API route handlers
  * - Request/response processing
@@ -91,8 +91,8 @@ type RouterBuilder<T> = {
  * 
  * @example
  * ```typescript
- * // Simple router without dependencies
- * const healthRouter = defineRouter.handler(() => ({
+ * // Simple router factory without dependencies
+ * const defineHealthRouter = defineRouterFactory.handler(() => ({
  *   '/health': {
  *     GET: () => ({ status: 'ok', timestamp: new Date().toISOString() })
  *   },
@@ -101,7 +101,7 @@ type RouterBuilder<T> = {
  *   }
  * }));
  * 
- * // Complex router with dependencies and full CRUD operations
+ * // Complex router factory with dependencies and full CRUD operations
  * type Dependencies = {
  *   userService: Service<{
  *     getUser: (id: string) => Promise<User>;
@@ -116,7 +116,7 @@ type RouterBuilder<T> = {
  *   logger: Service<{ log: (message: string) => void }>;
  * };
  * 
- * const userRouter = defineRouter
+ * const defineUserRouter = defineRouterFactory
  *   .inject<Dependencies>()
  *   .handler((injector, { onApplicationStart }) => {
  *     const { userService, authMiddleware, logger } = injector();
@@ -181,16 +181,16 @@ type RouterBuilder<T> = {
  *           return { message: 'User deleted', status: 204 };
  *         }
  *       }
- *     };
- *   });
+     };
+   });
  * ```
  */
-export const defineRouter: DefineRouter = {
-  handler: (fn) => () => defineInjectable.handler(fn)(),
+export const defineRouterFactory: DefineRouterFactory = {
+  handler: (fn) => () => defineInjectableFactory.handler(fn)(),
   inject: () => ({
     handler: (fn) => {
       return (injector) => {
-        const injectable = defineInjectable.inject().handler(fn as any)(injector);
+        const injectable = defineInjectableFactory.inject().handler(fn as any)(injector);
         return injectable as any;
       };
     },
