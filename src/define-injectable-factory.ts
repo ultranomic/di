@@ -1,4 +1,4 @@
-import { onApplicationStart, onApplicationStop } from './define-app.ts';
+import { onApplicationInitialized, onApplicationStart, onApplicationStop } from './define-app.ts';
 
 /**
  * Base type for all dependency injectable components.
@@ -49,6 +49,7 @@ type InjectableFactoryBuilder<T> = {
    * @param fn - Factory function that receives injector and lifecycle hooks
    * @param fn.injector - Function that provides access to injected dependencies
    * @param fn.appHooks - Object containing application lifecycle hook registrars
+   * @param fn.appHooks.onApplicationInitialized - Register callback for application initialization event
    * @param fn.appHooks.onApplicationStart - Register callback for application start event
    * @param fn.appHooks.onApplicationStop - Register callback for application stop event
    * @returns A factory function that accepts an injector and creates the component
@@ -57,6 +58,7 @@ type InjectableFactoryBuilder<T> = {
     fn: (
       injector: () => T,
       appHooks: {
+        onApplicationInitialized: (callback: () => unknown, executionOrder?: number) => void;
         onApplicationStart: (callback: () => unknown, executionOrder?: number) => void;
         onApplicationStop: (callback: () => unknown, executionOrder?: number) => void;
       },
@@ -84,8 +86,12 @@ type InjectableFactoryBuilder<T> = {
  * // With dependencies - creates injectable factory with dependencies
  * const defineComplexComponent = defineInjectableFactory
  *   .inject<{ logger: Injectable<{ log: (msg: string) => void }> }>()
- *   .handler((injector, { onApplicationStart }) => {
+ *   .handler((injector, { onApplicationInitialized, onApplicationStart }) => {
  *     const { logger } = injector();
+ *
+ *     onApplicationInitialized(() => {
+ *       logger.log('Component initialized');
+ *     });
  *
  *     onApplicationStart(() => {
  *       logger.log('Component started');
@@ -105,7 +111,7 @@ export const defineInjectableFactory: DefineInjectableFactory = {
   inject: () => ({
     handler: (fn) => {
       return (injector) => {
-        const result = fn(injector, { onApplicationStart, onApplicationStop });
+        const result = fn(injector, { onApplicationInitialized, onApplicationStart, onApplicationStop });
         return result;
       };
     },

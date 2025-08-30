@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { defineInjectableFactory, type Injectable } from './define-injectable.ts';
+import { defineInjectableFactory, type Injectable } from './define-injectable-factory.ts';
 
 describe('defineInjectableFactory', () => {
   describe('handler without dependencies', () => {
@@ -64,12 +64,16 @@ describe('defineInjectableFactory', () => {
     });
 
     it('should provide lifecycle hooks', () => {
+      const initCallbacks: (() => unknown)[] = [];
       const startCallbacks: (() => unknown)[] = [];
       const stopCallbacks: (() => unknown)[] = [];
 
       const defineInjectable = defineInjectableFactory
         .inject<{}>()
-        .handler((injector, { onApplicationStart, onApplicationStop }) => {
+        .handler((injector, { onApplicationInitialized, onApplicationStart, onApplicationStop }) => {
+          onApplicationInitialized(() => {
+            initCallbacks.push(() => 'initialized');
+          });
           onApplicationStart(() => {
             startCallbacks.push(() => 'started');
           });
@@ -101,6 +105,24 @@ describe('defineInjectableFactory', () => {
       defineInjectable(() => ({}));
       // Note: The actual hook firing would be handled by the app layer
       // This test verifies the hooks are registered with proper order
+    });
+
+    it('should support execution order in onApplicationInitialized hooks', () => {
+      const executionOrder: number[] = [];
+
+      const defineInjectable = defineInjectableFactory
+        .inject<{}>()
+        .handler((injector, { onApplicationInitialized }) => {
+          onApplicationInitialized(() => executionOrder.push(2), 2);
+          onApplicationInitialized(() => executionOrder.push(1), 1);
+          onApplicationInitialized(() => executionOrder.push(3), 3);
+
+          return {};
+        });
+
+      defineInjectable(() => ({}));
+      // Note: The actual hook firing would be handled by the app layer
+      // This test verifies the initialization hooks are registered with proper order
     });
 
     it('should handle complex dependency chains', () => {

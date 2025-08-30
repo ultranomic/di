@@ -1,4 +1,4 @@
-import { defineInjectableFactory, type Injectable } from './define-injectable.ts';
+import { defineInjectableFactory, type Injectable } from './define-injectable-factory.ts';
 
 /**
  * Type alias for module components built on the Injectable foundation.
@@ -54,6 +54,7 @@ type ModuleFactoryBuilder<T> = {
    * @param fn - Factory function that receives injector and lifecycle hooks
    * @param fn.injector - Function that provides access to injected dependencies
    * @param fn.appHooks - Object containing application lifecycle hook registrars
+   * @param fn.appHooks.onApplicationInitialized - Register callback for application initialization event
    * @param fn.appHooks.onApplicationStart - Register callback for application start event
    * @param fn.appHooks.onApplicationStop - Register callback for application stop event
    * @returns A factory function that accepts an injector and creates the module
@@ -62,6 +63,7 @@ type ModuleFactoryBuilder<T> = {
     fn: (
       injector: () => T,
       appHooks: {
+        onApplicationInitialized: (callback: () => unknown, executionOrder?: number) => void;
         onApplicationStart: (callback: () => unknown, executionOrder?: number) => void;
         onApplicationStop: (callback: () => unknown, executionOrder?: number) => void;
       },
@@ -110,11 +112,15 @@ type ModuleFactoryBuilder<T> = {
  *
  * const defineUserModule = defineModuleFactory
  *   .inject<Dependencies>()
- *   .handler((injector, { onApplicationStart }) => {
+ *   .handler((injector, { onApplicationInitialized, onApplicationStart }) => {
  *     const { userService, authService, logger } = injector();
  *
+ *     onApplicationInitialized(() => {
+ *       logger.log('User module initialized during app creation');
+ *     });
+ *
  *     onApplicationStart(() => {
- *       logger.log('User module initialized');
+ *       logger.log('User module started');
  *     });
  *
  *     return {

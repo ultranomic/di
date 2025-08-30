@@ -1,8 +1,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { defineRouterFactory, type Router } from './define-router.ts';
-import { type Service } from './define-service.ts';
-import { type Module } from './define-module.ts';
+import { defineRouterFactory, type Router } from './define-router-factory.ts';
+import { type Service } from './define-service-factory.ts';
+import { type Module } from './define-module-factory.ts';
 
 describe('defineRouterFactory', () => {
   describe('handler without dependencies', () => {

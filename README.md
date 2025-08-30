@@ -68,11 +68,15 @@ type Dependencies = {
 // Creates a service factory function with dependencies
 const defineUserService = defineServiceFactoryFactory
   .inject<Dependencies>()
-  .handler((injector, { onApplicationStart, onApplicationStop }) => {
+  .handler((injector, { onApplicationInitialized, onApplicationStart, onApplicationStop }) => {
     const { database, logger } = injector();
 
+    onApplicationInitialized(() => {
+      logger.log('User service initialized during app creation');
+    });
+
     onApplicationStart(() => {
-      logger.log('User service initialized');
+      logger.log('User service started');
     });
 
     return {
@@ -166,7 +170,7 @@ const defineBasic = defineInjectableFactory.handler(() => ({ value: 42 }));
 // With dependencies - creates injectable factory with dependencies
 const defineWithDeps = defineInjectableFactory
   .inject<{ dep: Injectable<SomeType> }>()
-  .handler((injector, { onApplicationStart, onApplicationStop }) => {
+  .handler((injector, { onApplicationInitialized, onApplicationStart, onApplicationStop }) => {
     // Implementation
   });
 ```
@@ -233,9 +237,9 @@ await app.stop(); // Triggers onApplicationStop hooks
 
 All inject-enabled utilities provide lifecycle hooks:
 
-- **`onApplicationInitialized(callback, order?)`** - Fired after app creation
-- **`onApplicationStart(callback, order?)`** - Register startup callback
-- **`onApplicationStop(callback, order?)`** - Register shutdown callback
+- **`onApplicationInitialized(callback, order?)`** - Fired during app creation, after user setup but before returning app instance
+- **`onApplicationStart(callback, order?)`** - Register startup callback, fired when `app.start()` is called
+- **`onApplicationStop(callback, order?)`** - Register shutdown callback, fired when `app.stop()` is called
 
 **Execution Order**: Lower numbers execute first (default: 0)
 
@@ -284,6 +288,7 @@ type BasicHandler<S> = () => S;
 type InjectHandler<T, S> = (
   injector: () => T,
   hooks: {
+    onApplicationInitialized: (callback: () => unknown, order?: number) => void;
     onApplicationStart: (callback: () => unknown, order?: number) => void;
     onApplicationStop: (callback: () => unknown, order?: number) => void;
   },

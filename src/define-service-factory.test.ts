@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { defineServiceFactory, type Service } from './define-service.ts';
+import { defineServiceFactory, type Service } from './define-service-factory.ts';
 
 describe('defineServiceFactory', () => {
   describe('handler without dependencies', () => {
@@ -91,7 +91,11 @@ describe('defineServiceFactory', () => {
 
       const defineService = defineServiceFactory
         .inject<{}>()
-        .handler((injector, { onApplicationStart, onApplicationStop }) => {
+        .handler((injector, { onApplicationInitialized, onApplicationStart, onApplicationStop }) => {
+          onApplicationInitialized(() => {
+            lifecycleEvents.push('service-initialized');
+          });
+
           onApplicationStart(() => {
             lifecycleEvents.push('service-started');
           });
