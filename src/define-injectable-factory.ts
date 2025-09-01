@@ -1,4 +1,4 @@
-import { onApplicationInitialized, onApplicationStart, onApplicationStop } from './define-app.ts';
+import { onApplicationInitialized, onApplicationStart, onApplicationStop } from './app-hooks.ts';
 
 /**
  * Represents an injectable dependency that can be provided to other components.
