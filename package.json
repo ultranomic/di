@@ -1,6 +1,6 @@
 {
   "name": "@ultranomic/di",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "A lightweight, type-safe dependency injection framework for TypeScript applications with comprehensive lifecycle management and layered architecture support",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
