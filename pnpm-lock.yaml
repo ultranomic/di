@@ -5,7 +5,6 @@ settings:
   excludeLinksFromLockfile: false
 
 importers:
-
   .:
     dependencies:
       '@ultranomic/hook':
@@ -20,65 +19,73 @@ importers:
         version: 3.6.2
 
 packages:
-
   '@typescript/native-preview-darwin-arm64@7.0.0-dev.20250829.3':
-    resolution: {integrity: sha512-XAJabSvF5xnd2qad91mm+9AWmdOMagOMYz2a3mM33XLJJVg4ZP38XC9/YBJ6nWnTD/XGNPHvuw66UMmwi9BJAQ==}
-    engines: {node: '>=20.6.0'}
+    resolution:
+      { integrity: sha512-XAJabSvF5xnd2qad91mm+9AWmdOMagOMYz2a3mM33XLJJVg4ZP38XC9/YBJ6nWnTD/XGNPHvuw66UMmwi9BJAQ== }
+    engines: { node: '>=20.6.0' }
     cpu: [arm64]
     os: [darwin]
 
   '@typescript/native-preview-darwin-x64@7.0.0-dev.20250829.3':
-    resolution: {integrity: sha512-B1EhjIMwZBcK9IWISttMMlwxxIau+AC/71yOSFYTJqmxN1aJx5irCZRKurcHb8a7wMfzKAByuRBSMgQX+ngKQQ==}
-    engines: {node: '>=20.6.0'}
+    resolution:
+      { integrity: sha512-B1EhjIMwZBcK9IWISttMMlwxxIau+AC/71yOSFYTJqmxN1aJx5irCZRKurcHb8a7wMfzKAByuRBSMgQX+ngKQQ== }
+    engines: { node: '>=20.6.0' }
     cpu: [x64]
     os: [darwin]
 
   '@typescript/native-preview-linux-arm64@7.0.0-dev.20250829.3':
-    resolution: {integrity: sha512-R05bMp0beRcInM/F5RoOP/7jqMnR70maA+OJ2IGTntpMYoNxEWXlPA+Zh3j+gdZy4HzXvSoKcTF0eqQKVDkSUQ==}
-    engines: {node: '>=20.6.0'}
+    resolution:
+      { integrity: sha512-R05bMp0beRcInM/F5RoOP/7jqMnR70maA+OJ2IGTntpMYoNxEWXlPA+Zh3j+gdZy4HzXvSoKcTF0eqQKVDkSUQ== }
+    engines: { node: '>=20.6.0' }
     cpu: [arm64]
     os: [linux]
 
   '@typescript/native-preview-linux-arm@7.0.0-dev.20250829.3':
-    resolution: {integrity: sha512-ZSvHFtKVRfh3iviyIsfFr6rLR5tNuLu+VpHPy/JthpJexUkGF9l7tTD1YzRjOhLOD6TVgqpk79mf/BFC0S8KPw==}
-    engines: {node: '>=20.6.0'}
+    resolution:
+      { integrity: sha512-ZSvHFtKVRfh3iviyIsfFr6rLR5tNuLu+VpHPy/JthpJexUkGF9l7tTD1YzRjOhLOD6TVgqpk79mf/BFC0S8KPw== }
+    engines: { node: '>=20.6.0' }
     cpu: [arm]
     os: [linux]
 
   '@typescript/native-preview-linux-x64@7.0.0-dev.20250829.3':
-    resolution: {integrity: sha512-PEtFxGh/yIjrEKWK7BGFkDn/yCEo5RlXNlJSvvjlItf3OlnxINkmVHvJ8zbGAhPHLY0he2lmAewUkD/ZLeRyvg==}
-    engines: {node: '>=20.6.0'}
+    resolution:
+      { integrity: sha512-PEtFxGh/yIjrEKWK7BGFkDn/yCEo5RlXNlJSvvjlItf3OlnxINkmVHvJ8zbGAhPHLY0he2lmAewUkD/ZLeRyvg== }
+    engines: { node: '>=20.6.0' }
     cpu: [x64]
     os: [linux]
 
   '@typescript/native-preview-win32-arm64@7.0.0-dev.20250829.3':
-    resolution: {integrity: sha512-i5WWAATEbbjolh5Qm3E+jPq0SVWh6aXAJ+o3Mj5VaXVK744YcVDdSN30GhHzbgFyTpz8LxugrPqvTdE1d9wRAA==}
-    engines: {node: '>=20.6.0'}
+    resolution:
+      { integrity: sha512-i5WWAATEbbjolh5Qm3E+jPq0SVWh6aXAJ+o3Mj5VaXVK744YcVDdSN30GhHzbgFyTpz8LxugrPqvTdE1d9wRAA== }
+    engines: { node: '>=20.6.0' }
     cpu: [arm64]
     os: [win32]
 
   '@typescript/native-preview-win32-x64@7.0.0-dev.20250829.3':
-    resolution: {integrity: sha512-oLs79J+Wfq1LvOrc5cNW9N3pbdA3uMDXkXpQbhSIfYMYfB4skN9kBuRHCBf1ilmr/pspEpt0VfX+JHqjpX1tNA==}
-    engines: {node: '>=20.6.0'}
+    resolution:
+      { integrity: sha512-oLs79J+Wfq1LvOrc5cNW9N3pbdA3uMDXkXpQbhSIfYMYfB4skN9kBuRHCBf1ilmr/pspEpt0VfX+JHqjpX1tNA== }
+    engines: { node: '>=20.6.0' }
     cpu: [x64]
     os: [win32]
 
   '@typescript/native-preview@7.0.0-dev.20250829.3':
-    resolution: {integrity: sha512-75Oy75fwyjnKiwRaLpXzn7E6BXBbQXcKD+MD+XVespnp832fAHfAtFklMhHXdOfSdj2aMlvg633gqyyugKldrQ==}
-    engines: {node: '>=20.6.0'}
+    resolution:
+      { integrity: sha512-75Oy75fwyjnKiwRaLpXzn7E6BXBbQXcKD+MD+XVespnp832fAHfAtFklMhHXdOfSdj2aMlvg633gqyyugKldrQ== }
+    engines: { node: '>=20.6.0' }
     hasBin: true
 
   '@ultranomic/hook@1.3.5':
-    resolution: {integrity: sha512-Pf+pEFiqfCWwf1ZFeYNk5w+ExvIAVyVzGO3kk18FGwofkjdEGPS9kw24ABlSFOkDdgy2p/MKcwQdfVJJN5ObmA==}
-    engines: {node: '>=24.0.0'}
+    resolution:
+      { integrity: sha512-Pf+pEFiqfCWwf1ZFeYNk5w+ExvIAVyVzGO3kk18FGwofkjdEGPS9kw24ABlSFOkDdgy2p/MKcwQdfVJJN5ObmA== }
+    engines: { node: '>=24.0.0' }
 
   prettier@3.6.2:
-    resolution: {integrity: sha512-I7AIg5boAr5R0FFtJ6rCfD+LFsWHp81dolrFD8S79U9tb8Az2nGrJncnMSnys+bpQJfRUzqs9hnA81OAA3hCuQ==}
-    engines: {node: '>=14'}
+    resolution:
+      { integrity: sha512-I7AIg5boAr5R0FFtJ6rCfD+LFsWHp81dolrFD8S79U9tb8Az2nGrJncnMSnys+bpQJfRUzqs9hnA81OAA3hCuQ== }
+    engines: { node: '>=14' }
     hasBin: true
 
 snapshots:
-
   '@typescript/native-preview-darwin-arm64@7.0.0-dev.20250829.3':
     optional: true
 

@@ -10,6 +10,62 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **REQUIRED: Ensure 100% test coverage for all code changes. Every new method, function, and code path must have corresponding tests. Use `npm run test:coverage` to verify coverage.**
 
+## Current API Pattern
+
+**ALL FACTORY CREATORS USE THE MANDATORY FLUENT API PATTERN:**
+
+### Injectable Layer (Injectable, Service, Router)
+
+```typescript
+// Without dependencies
+defineXFactory
+  .name('InjectableName')
+  .inject()
+  .handler(({ name, appHooks }) => ({
+    /* implementation */
+  }));
+
+// With dependencies
+defineXFactory
+  .name('InjectableName')
+  .inject<Dependencies>()
+  .handler(({ name, injector, appHooks }) => {
+    const deps = injector();
+    return {
+      /* implementation */
+    };
+  });
+```
+
+### Module Layer
+
+```typescript
+// Without dependencies
+defineModuleFactory
+  .name('ModuleName')
+  .inject()
+  .handler(({ name, appHooks }) => ({
+    /* composition */
+  }));
+
+// With dependencies (injectables and other modules)
+defineModuleFactory
+  .name('ModuleName')
+  .inject<Dependencies>()
+  .handler(({ name, injector, appHooks }) => {
+    const deps = injector();
+    return {
+      /* composition */
+    };
+  });
+```
+
+**Handler functions receive a single object parameter with `{ name, injector?, appHooks }`**
+
+- `name`: The injectable/module name (literal string type)
+- `injector`: Function returning dependencies (only present when dependencies are specified)
+- `appHooks`: Lifecycle hooks object with `onApplicationInitialized`, `onApplicationStart`, `onApplicationStop`
+
 ## Core Commands
 
 **Building & Development:**
@@ -38,19 +94,39 @@ pnpm install           # Install dependencies (required package manager)
 
 ## Architecture Overview
 
-This is a **layered dependency injection framework** with a strict hierarchy from bottom to top:
+This is a **layered dependency injection framework** with a clear separation between injectables, composition, and orchestration:
 
-1. **Injectable** (`define-injectable.ts`) - Core DI factory creator foundation
-2. **Service** (`define-service.ts`) - Business logic factory creator layer
-3. **Module** (`define-module.ts`) - Feature grouping factory creator layer
-4. **Router** (`define-router.ts`) - HTTP endpoint factory creator definitions
-5. **App** (`define-app.ts`) - Application instance creation and lifecycle orchestration
+```
+┌─────────────────┐
+│   Application   │  ← defineApp (orchestrates all modules)
+├─────────────────┤
+│     Module      │  ← defineModuleFactory (composes injectables)
+├─────────────────┤
+│   Injectable    │  ← defineInjectableFactory, defineServiceFactory, defineRouterFactory
+│                 │    (individual injectables that can be injected)
+└─────────────────┘
+```
+
+### Layer Responsibilities
+
+1. **Injectable Layer** - Individual building blocks:
+   - **Injectable** (`define-injectable-factory.ts`) - Core dependency injection foundation
+   - **Service** (`define-service-factory.ts`) - Business logic and data access
+   - **Router** (`define-router-factory.ts`) - HTTP endpoint definitions
+
+2. **Module Layer** - Feature composition:
+   - **Module** (`define-module-factory.ts`) - Groups related injectables into features
+
+3. **Application Layer** - Lifecycle orchestration:
+   - **App** (`define-app.ts`) - Manages application lifecycle and coordinates modules
 
 ### Key Architectural Concepts
 
-**Factory Pattern:** `defineInjectableFactory`, `defineServiceFactory`, `defineModuleFactory`, and `defineRouterFactory` are **factory creator functions** that return factory functions. Only `defineApp` creates actual instances.
+**Factory Pattern:** Injectable factories (`defineInjectableFactory`, `defineServiceFactory`, `defineRouterFactory`) and module factory (`defineModuleFactory`) return factory functions. Only `defineApp` creates actual instances.
 
-**Dependency Flow:** Factory creators can only depend on same-level or lower-level factories. All layers build on `defineInjectableFactory` as the foundation.
+**Mandatory Naming:** All factory creators require explicit naming via `.name('InjectableName')` or `.name('ModuleName')` as the first step for better debugging and identification.
+
+**Dependency Flow:** Injectables can depend on other injectables. Modules compose injectables and can depend on other modules. The application orchestrates all modules.
 
 **Lifecycle Management:** The framework uses `@ultranomic/hook` for three-phase async lifecycle:
 
@@ -58,14 +134,38 @@ This is a **layered dependency injection framework** with a strict hierarchy fro
 - `onApplicationStart` - Fires when `app.start()` called
 - `onApplicationStop` - Fires when `app.stop()` called
 
-**Type Constraints:** Each factory creator enforces specific return types:
+**Type Constraints:** Each layer enforces specific return types:
+
+**Injectable Layer:**
 
 - Injectable: `object | void`
 - Service: `object | void`
-- Module: `Record<string | symbol, unknown> | void`
 - Router: `Record<string | symbol, unknown> | void`
 
-**Injection Pattern:** Factory creators use `.inject<Dependencies>().handler()` for dependency injection, where Dependencies is a Record type mapping string keys to Injectable factory types.
+**Module Layer:**
+
+- Module: `Record<string | symbol, unknown> | void` (composes injectables)
+
+**Application Layer:**
+
+- App: Returns application instance with `start()` and `stop()` methods
+
+**Injection Pattern:** All factory creators use the mandatory fluent API pattern:
+
+**Injectable Layer:**
+
+- `.name('InjectableName').inject().handler(({ name, appHooks }) => ...)` for no dependencies
+- `.name('InjectableName').inject<Dependencies>().handler(({ name, injector, appHooks }) => ...)` for dependencies
+
+**Module Layer:**
+
+- `.name('ModuleName').inject().handler(({ name, appHooks }) => ...)` for no dependencies
+- `.name('ModuleName').inject<Dependencies>().handler(({ name, injector, appHooks }) => ...)` for dependencies
+
+**Dependencies Types:**
+
+- Injectable dependencies: `Record<string, Injectable<unknown>>`
+- Module dependencies: Can include other injectables and modules: `Record<string, Injectable<unknown>>`
 
 ## Build System
 
