@@ -2,13 +2,41 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { defineServiceFactory, type Service } from './define-service-factory.ts';
 
+/**
+ * Test Plan for defineServiceFactory
+ *
+ * BASIC FUNCTIONALITY:
+ * 1. ✅ Should create service factory returning object
+ * 2. ✅ Should create service factory returning void
+ * 3. ✅ Should support business logic patterns
+ *
+ * DEPENDENCY INJECTION:
+ * 4. ✅ Should create service with dependency injection
+ *
+ * LIFECYCLE HOOKS:
+ * 5. ✅ Should support lifecycle hooks in services
+ *
+ * SERVICE PATTERNS:
+ * 6. ✅ Should support service composition
+ *
+ * TYPE CONSTRAINTS:
+ * 7. ✅ Should enforce object or void return types
+ * 8. ✅ Should maintain Service type wrapper
+ *
+ * REAL-WORLD PATTERNS:
+ * 9. ✅ Should support repository pattern
+ */
+
 describe('defineServiceFactory', () => {
   describe('handler without dependencies', () => {
     it('should create service factory returning object', () => {
-      const defineService = defineServiceFactory.handler(() => ({
-        getData: () => 'service data',
-        processData: (input: string) => `processed: ${input}`,
-      }));
+      const defineService = defineServiceFactory
+        .name('DataService')
+        .inject()
+        .handler(() => ({
+          getData: () => 'service data',
+          processData: (input: string) => `processed: ${input}`,
+        }));
 
       const result = defineService();
       assert.strictEqual(result.getData(), 'service data');
@@ -16,33 +44,39 @@ describe('defineServiceFactory', () => {
     });
 
     it('should create service factory returning void', () => {
-      const defineService = defineServiceFactory.handler(() => {
-        // void service for side effects only
-      });
+      const defineService = defineServiceFactory
+        .name('VoidService')
+        .inject()
+        .handler(() => {
+          // void service for side effects only
+        });
 
       const result = defineService();
       assert.strictEqual(result, undefined);
     });
 
     it('should support business logic patterns', () => {
-      const defineUserService = defineServiceFactory.handler(() => ({
-        users: new Map<string, { id: string; name: string }>(),
+      const defineUserService = defineServiceFactory
+        .name('UserService')
+        .inject()
+        .handler(() => ({
+          users: new Map<string, { id: string; name: string }>(),
 
-        createUser: function (name: string) {
-          const id = crypto.randomUUID();
-          const user = { id, name };
-          this.users.set(id, user);
-          return user;
-        },
+          createUser: function (name: string) {
+            const id = crypto.randomUUID();
+            const user = { id, name };
+            this.users.set(id, user);
+            return user;
+          },
 
-        getUser: function (id: string) {
-          return this.users.get(id) || null;
-        },
+          getUser: function (id: string) {
+            return this.users.get(id) || null;
+          },
 
-        getAllUsers: function () {
-          return Array.from(this.users.values());
-        },
-      }));
+          getAllUsers: function () {
+            return Array.from(this.users.values());
+          },
+        }));
 
       const serviceInstance = defineUserService();
       const user1 = serviceInstance.createUser('Alice');
@@ -61,16 +95,19 @@ describe('defineServiceFactory', () => {
         config: Service<{ apiUrl: string; timeout: number }>;
       };
 
-      const defineApiService = defineServiceFactory.inject<Dependencies>().handler((injector) => {
-        const { logger, config } = injector();
+      const defineApiService = defineServiceFactory
+        .name('ApiService')
+        .inject<Dependencies>()
+        .handler(({ injector }) => {
+          const { logger, config } = injector();
 
-        return {
-          fetchData: async (endpoint: string) => {
-            logger.log(`Fetching from ${config.apiUrl}${endpoint}`);
-            return { data: `mock data from ${endpoint}`, timeout: config.timeout };
-          },
-        };
-      });
+          return {
+            fetchData: async (endpoint: string) => {
+              logger.log(`Fetching from ${config.apiUrl}${endpoint}`);
+              return { data: `mock data from ${endpoint}`, timeout: config.timeout };
+            },
+          };
+        });
 
       const mockDeps = {
         logger: { log: () => {} },
@@ -90,8 +127,9 @@ describe('defineServiceFactory', () => {
       const lifecycleEvents: string[] = [];
 
       const defineService = defineServiceFactory
+        .name('LifecycleService')
         .inject<{}>()
-        .handler((injector, { onApplicationInitialized, onApplicationStart, onApplicationStop }) => {
+        .handler(({ injector, appHooks: { onApplicationInitialized, onApplicationStart, onApplicationStop } }) => {
           onApplicationInitialized(() => {
             lifecycleEvents.push('service-initialized');
           });
@@ -132,29 +170,32 @@ describe('defineServiceFactory', () => {
         logger: LoggerService;
       };
 
-      const defineUserService = defineServiceFactory.inject<Dependencies>().handler((injector) => {
-        const { db, logger } = injector();
+      const defineUserService = defineServiceFactory
+        .name('UserService')
+        .inject<Dependencies>()
+        .handler(({ injector }) => {
+          const { db, logger } = injector();
 
-        return {
-          createUser: (userData: { name: string; email: string }) => {
-            try {
-              logger.log(`Creating user: ${userData.name}`);
-              const id = db.insert('users', userData);
-              logger.log(`User created with ID: ${id}`);
-              return { id, ...userData };
-            } catch (error) {
-              logger.error(`Failed to create user: ${error}`);
-              throw error;
-            }
-          },
+          return {
+            createUser: (userData: { name: string; email: string }) => {
+              try {
+                logger.log(`Creating user: ${userData.name}`);
+                const id = db.insert('users', userData);
+                logger.log(`User created with ID: ${id}`);
+                return { id, ...userData };
+              } catch (error) {
+                logger.error(`Failed to create user: ${error}`);
+                throw error;
+              }
+            },
 
-          findUser: (id: string) => {
-            logger.log(`Looking up user: ${id}`);
-            const results = db.query(`SELECT * FROM users WHERE id = '${id}'`);
-            return results[0] || null;
-          },
-        };
-      });
+            findUser: (id: string) => {
+              logger.log(`Looking up user: ${id}`);
+              const results = db.query(`SELECT * FROM users WHERE id = '${id}'`);
+              return results[0] || null;
+            },
+          };
+        });
 
       const mockDeps = {
         db: {
@@ -179,8 +220,14 @@ describe('defineServiceFactory', () => {
   describe('service type constraints', () => {
     it('should enforce object or void return types', () => {
       // These should compile successfully
-      const defineObjectService = defineServiceFactory.handler(() => ({ value: 1 }));
-      const defineVoidService = defineServiceFactory.handler(() => {});
+      const defineObjectService = defineServiceFactory
+        .name('ObjectService')
+        .inject()
+        .handler(() => ({ value: 1 }));
+      const defineVoidService = defineServiceFactory
+        .name('VoidService')
+        .inject()
+        .handler(() => {});
 
       // Verify they work as expected
       assert.deepStrictEqual(defineObjectService(), { value: 1 });
@@ -188,9 +235,12 @@ describe('defineServiceFactory', () => {
     });
 
     it('should maintain Service type wrapper', () => {
-      const defineService = defineServiceFactory.handler(() => ({
-        method: () => 'result',
-      }));
+      const defineService = defineServiceFactory
+        .name('TestService')
+        .inject()
+        .handler(() => ({
+          method: () => 'result',
+        }));
 
       // The return should be assignable to Service type
       const typedService: () => Service<{ method: () => string }> = defineService;
@@ -206,33 +256,36 @@ describe('defineServiceFactory', () => {
         email: string;
       }
 
-      const defineUserRepository = defineServiceFactory.handler(() => {
-        const users = new Map<string, User>();
+      const defineUserRepository = defineServiceFactory
+        .name('UserRepository')
+        .inject()
+        .handler(() => {
+          const users = new Map<string, User>();
 
-        return {
-          save: (user: User): User => {
-            users.set(user.id, user);
-            return user;
-          },
+          return {
+            save: (user: User): User => {
+              users.set(user.id, user);
+              return user;
+            },
 
-          findById: (id: string): User | null => {
-            return users.get(id) || null;
-          },
+            findById: (id: string): User | null => {
+              return users.get(id) || null;
+            },
 
-          findByEmail: (email: string): User | null => {
-            for (const user of users.values()) {
-              if (user.email === email) return user;
-            }
-            return null;
-          },
+            findByEmail: (email: string): User | null => {
+              for (const user of users.values()) {
+                if (user.email === email) return user;
+              }
+              return null;
+            },
 
-          delete: (id: string): boolean => {
-            return users.delete(id);
-          },
+            delete: (id: string): boolean => {
+              return users.delete(id);
+            },
 
-          count: (): number => users.size,
-        };
-      });
+            count: (): number => users.size,
+          };
+        });
 
       const repo = defineUserRepository();
       const user: User = { id: '1', name: 'Alice', email: 'alice@example.com' };

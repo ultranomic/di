@@ -3,6 +3,39 @@ import assert from 'node:assert';
 import { defineApp, onApplicationStart, onApplicationStop, onApplicationInitialized, appHooks } from './define-app.ts';
 import { defineModuleFactory } from './define-module-factory.ts';
 
+/**
+ * Test Plan for defineApp
+ *
+ * BASIC APP CREATION:
+ * 1. ✅ Should create app with basic functionality
+ * 2. ✅ Should fire onApplicationInitialized during creation
+ * 3. ✅ Should support async initialization
+ * 4. ✅ Should handle empty module gracefully
+ *
+ * LIFECYCLE MANAGEMENT:
+ * 5. ✅ Should handle start lifecycle
+ * 6. ✅ Should handle stop lifecycle
+ * 7. ✅ Should support execution order in lifecycle hooks
+ * 8. ✅ Should handle async lifecycle hooks
+ *
+ * COMPLETE APPLICATION LIFECYCLE:
+ * 9. ✅ Should handle full lifecycle: init -> start -> stop
+ * 10. ✅ Should support multiple start/stop cycles
+ *
+ * GLOBAL HOOK REGISTRATION:
+ * 11. ✅ Should support global onApplicationStart registration
+ * 12. ✅ Should support global onApplicationStop registration
+ * 13. ✅ Should support global onApplicationInitialized registration
+ *
+ * ERROR HANDLING:
+ * 14. ✅ Should handle errors in start hooks
+ * 15. ✅ Should handle errors in stop hooks
+ *
+ * REAL-WORLD APPLICATION PATTERNS:
+ * 16. ✅ Should support complex application with services and modules
+ * 17. ✅ Should support dependency injection in app context
+ */
+
 describe('defineApp', () => {
   afterEach(() => {
     // Clear all hooks after each test to prevent global state interference
@@ -10,11 +43,14 @@ describe('defineApp', () => {
   });
   describe('basic app creation', () => {
     it('should create app with basic functionality', async () => {
-      const testModule = defineModuleFactory.handler(() => ({
-        name: 'Test App',
-        version: '1.0.0',
-        getMessage: () => 'Hello from app',
-      }));
+      const testModule = defineModuleFactory
+        .name('TestApp')
+        .inject()
+        .handler(() => ({
+          name: 'Test App',
+          version: '1.0.0',
+          getMessage: () => 'Hello from app',
+        }));
 
       const app = await defineApp(testModule);
 
@@ -29,9 +65,12 @@ describe('defineApp', () => {
         initialized = true;
       });
 
-      const testModule = defineModuleFactory.handler(() => {
-        return { ready: true };
-      });
+      const testModule = defineModuleFactory
+        .name('InitModule')
+        .inject()
+        .handler(() => {
+          return { ready: true };
+        });
 
       const app = await defineApp(() => testModule);
 
@@ -52,9 +91,12 @@ describe('defineApp', () => {
         initResults.push('sync-init-2');
       });
 
-      const testModule = defineModuleFactory.handler(() => {
-        return { initResults };
-      });
+      const testModule = defineModuleFactory
+        .name('AsyncModule')
+        .inject()
+        .handler(() => {
+          return { initResults };
+        });
 
       const app = await defineApp(() => testModule);
 
@@ -76,9 +118,12 @@ describe('defineApp', () => {
         events.push('start-2');
       });
 
-      const testModule = defineModuleFactory.handler(() => {
-        return { events };
-      });
+      const testModule = defineModuleFactory
+        .name('StartModule')
+        .inject()
+        .handler(() => {
+          return { events };
+        });
 
       const app = await defineApp(() => testModule);
       await app.start();
@@ -98,9 +143,12 @@ describe('defineApp', () => {
         events.push('stop-2');
       });
 
-      const testModule = defineModuleFactory.handler(() => {
-        return { events };
-      });
+      const testModule = defineModuleFactory
+        .name('StopModule')
+        .inject()
+        .handler(() => {
+          return { events };
+        });
 
       const app = await defineApp(() => testModule);
       await app.stop();
@@ -116,9 +164,12 @@ describe('defineApp', () => {
       onApplicationStart(() => executionOrder.push(1), 1);
       onApplicationStart(() => executionOrder.push(2), 2);
 
-      const testModule = defineModuleFactory.handler(() => {
-        return { getOrder: () => [...executionOrder] };
-      });
+      const testModule = defineModuleFactory
+        .name('OrderModule')
+        .inject()
+        .handler(() => {
+          return { getOrder: () => [...executionOrder] };
+        });
 
       const app = await defineApp(() => testModule);
       await app.start();
@@ -140,9 +191,12 @@ describe('defineApp', () => {
         events.push('async-stop');
       });
 
-      const testModule = defineModuleFactory.handler(() => {
-        return { events };
-      });
+      const testModule = defineModuleFactory
+        .name('AsyncModule')
+        .inject()
+        .handler(() => {
+          return { events };
+        });
 
       const app = await defineApp(() => testModule);
       await app.start();
@@ -169,12 +223,15 @@ describe('defineApp', () => {
         lifecycle.push('stopped');
       });
 
-      const testModule = defineModuleFactory.handler(() => {
-        return {
-          getLifecycle: () => [...lifecycle],
-          addEvent: (event: string) => lifecycle.push(event),
-        };
-      });
+      const testModule = defineModuleFactory
+        .name('FullLifecycleModule')
+        .inject()
+        .handler(() => {
+          return {
+            getLifecycle: () => [...lifecycle],
+            addEvent: (event: string) => lifecycle.push(event),
+          };
+        });
 
       const app = await defineApp(() => testModule);
 
@@ -204,9 +261,12 @@ describe('defineApp', () => {
         cycles.push('stop');
       });
 
-      const testModule = defineModuleFactory.handler(() => {
-        return { getCycles: () => [...cycles] };
-      });
+      const testModule = defineModuleFactory
+        .name('CycleModule')
+        .inject()
+        .handler(() => {
+          return { getCycles: () => [...cycles] };
+        });
 
       const app = await defineApp(() => testModule);
 
@@ -231,9 +291,12 @@ describe('defineApp', () => {
         globalEvents.push('global-start');
       });
 
-      const testModule = defineModuleFactory.handler(() => {
-        return { globalEvents };
-      });
+      const testModule = defineModuleFactory
+        .name('GlobalModule')
+        .inject()
+        .handler(() => {
+          return { globalEvents };
+        });
 
       const app = await defineApp(() => testModule);
       await app.start();
@@ -249,9 +312,12 @@ describe('defineApp', () => {
         globalEvents.push('global-stop');
       });
 
-      const testModule = defineModuleFactory.handler(() => {
-        return { globalEvents };
-      });
+      const testModule = defineModuleFactory
+        .name('GlobalStopModule')
+        .inject()
+        .handler(() => {
+          return { globalEvents };
+        });
 
       const app = await defineApp(() => testModule);
       await app.stop();
@@ -267,9 +333,12 @@ describe('defineApp', () => {
         globalEvents.push('global-init');
       });
 
-      const testModule = defineModuleFactory.handler(() => {
-        return { globalEvents };
-      });
+      const testModule = defineModuleFactory
+        .name('GlobalInitModule')
+        .inject()
+        .handler(() => {
+          return { globalEvents };
+        });
 
       const app = await defineApp(() => testModule);
 
@@ -284,9 +353,12 @@ describe('defineApp', () => {
         throw new Error('Start error');
       });
 
-      const testModule = defineModuleFactory.handler(() => {
-        return { test: true };
-      });
+      const testModule = defineModuleFactory
+        .name('ErrorModule')
+        .inject()
+        .handler(() => {
+          return { test: true };
+        });
 
       const app = await defineApp(() => testModule);
 
@@ -307,9 +379,12 @@ describe('defineApp', () => {
         throw new Error('Stop error');
       });
 
-      const testModule = defineModuleFactory.handler(() => {
-        return { test: true };
-      });
+      const testModule = defineModuleFactory
+        .name('StopErrorModule')
+        .inject()
+        .handler(() => {
+          return { test: true };
+        });
 
       const app = await defineApp(() => testModule);
 
@@ -379,16 +454,19 @@ describe('defineApp', () => {
         await database.disconnect();
       }, 101);
 
-      const testModule = defineModuleFactory.handler(() => {
-        return {
-          database,
-          server,
-          getStatus: () => ({
-            database: database.isConnected,
-            server: server.isRunning,
-          }),
-        };
-      });
+      const testModule = defineModuleFactory
+        .name('ComplexAppModule')
+        .inject()
+        .handler(() => {
+          return {
+            database,
+            server,
+            getStatus: () => ({
+              database: database.isConnected,
+              server: server.isRunning,
+            }),
+          };
+        });
 
       const app = await defineApp(() => testModule);
 
@@ -432,16 +510,19 @@ describe('defineApp', () => {
         logger.info('Stopping application');
       }, 200);
 
-      const testModule = defineModuleFactory.handler(() => {
-        return {
-          services: {
-            logger,
-            config,
-          },
-          getPort: () => config.port,
-          log: (message: string) => logger.info(message),
-        };
-      });
+      const testModule = defineModuleFactory
+        .name('DependencyInjectionModule')
+        .inject()
+        .handler(() => {
+          return {
+            services: {
+              logger,
+              config,
+            },
+            getPort: () => config.port,
+            log: (message: string) => logger.info(message),
+          };
+        });
 
       const app = await defineApp(() => testModule);
 

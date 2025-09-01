@@ -4,14 +4,16 @@ A lightweight, type-safe dependency injection framework for TypeScript applicati
 
 ## Features
 
-- **🏗️ Layered Architecture** - Injectable → Service → Module → Router → App layers
+- **🏗️ Layered Architecture** - Injectable, Service, Router → Module → App layers
 - **🔒 Type-safe dependency injection** - Full TypeScript support with compile-time type checking
 - **⚡ Lifecycle management** - Three-phase application hooks (initialized, start, stop)
 - **📦 Minimal footprint** - Only depends on `@ultranomic/hook`
 - **🚀 ES modules support** - Modern JavaScript module system
-- **🔌 Flexible definitions** - Support for components with and without dependencies
+- **🔌 Flexible definitions** - Support for injectables with and without dependencies
 - **📖 Complete JSDoc documentation** - Comprehensive API documentation with usage examples
-- **✅ Comprehensive test suite** - 6 test files covering all core functionality with Node.js native test runner
+- **✅ Comprehensive test suite** - 6 test files with 78 total tests covering all core functionality with Node.js native test runner
+- **🏷️ Mandatory naming** - All factory functions require explicit naming for better debugging
+- **🎯 Fluent API pattern** - Consistent `.name().inject().handler()` pattern across all factories
 
 ## Installation
 
@@ -29,130 +31,180 @@ The framework provides a layered architecture with clear separation of concerns:
 ┌─────────────────┐
 │   Application   │  ← defineApp (creates app instances)
 ├─────────────────┤
-│     Module      │  ← defineModuleFactoryFactory (creates module factories)
+│     Module      │  ← defineModuleFactory (composes injectables)
 ├─────────────────┤
-│     Router      │  ← defineRouterFactoryFactory (creates router factories)
-├─────────────────┤
-│     Service     │  ← defineServiceFactoryFactory (creates service factories)
-├─────────────────┤
-│   Injectable    │  ← defineInjectableFactoryFactory (creates injectable factories)
+│   Injectable    │  ← defineInjectableFactory, defineServiceFactory, defineRouterFactory
+│                 │    (creates individual injectables that can be injected)
 └─────────────────┘
 ```
 
-**Key Distinction**: `defineInjectableFactoryFactory`, `defineModuleFactoryFactory`, `defineRouterFactoryFactory`, and `defineServiceFactoryFactory` are **factory creator functions** that return factory functions. Only `defineApp` creates the actual application instance.
+**Layer Responsibilities:**
+
+- **Injectable Layer**: `defineInjectableFactory`, `defineServiceFactory`, `defineRouterFactory` create individual injectables that can be injected and reused
+- **Module Layer**: `defineModuleFactory` composes related injectables into feature groups
+- **Application Layer**: `defineApp` orchestrates all modules and manages application lifecycle
+
+**Key Distinction**: Injectable factories (`defineInjectableFactory`, `defineServiceFactory`, `defineRouterFactory`) and module factory (`defineModuleFactory`) return factory functions. Only `defineApp` creates the actual application instance.
+
+**Mandatory Pattern**: All factory creators follow the consistent pattern: `.name('InjectableName').inject().handler(...)` or `.name('InjectableName').inject<Dependencies>().handler(...)`.
 
 ## Quick Start
 
-### 1. Basic Service (Business Logic)
+### 1. Injectable Layer - Individual Building Blocks
+
+#### Basic Injectable Component
 
 ```typescript
-import { defineServiceFactoryFactory } from '@ultranomic/di';
+import { defineInjectableFactory } from '@ultranomic/di';
 
-// Creates a service factory function
-const defineUserService = defineServiceFactoryFactory.handler(() => ({
-  getUser: (id: string) => ({ id, name: `User ${id}` }),
-  createUser: (name: string) => ({ id: crypto.randomUUID(), name }),
-}));
+// Creates a basic injectable component
+const defineConfig = defineInjectableFactory
+  .name('Config')
+  .inject()
+  .handler(() => ({
+    port: 3000,
+    databaseUrl: 'postgresql://localhost:5432/myapp',
+  }));
 ```
 
-### 2. Service with Dependencies
+#### Service Component with Business Logic
 
 ```typescript
-import { defineServiceFactoryFactory, type Service } from '@ultranomic/di';
+import { defineServiceFactory, type Injectable } from '@ultranomic/di';
+
+type Config = Injectable<{ port: number; databaseUrl: string }>;
 
 type Dependencies = {
-  database: Service<{ query: (sql: string) => any[] }>;
-  logger: Service<{ log: (msg: string) => void }>;
+  config: Config;
 };
 
-// Creates a service factory function with dependencies
-const defineUserService = defineServiceFactoryFactory
+// Creates a service component with dependencies
+const defineDatabaseService = defineServiceFactory
+  .name('DatabaseService')
   .inject<Dependencies>()
-  .handler((injector, { onApplicationInitialized, onApplicationStart, onApplicationStop }) => {
-    const { database, logger } = injector();
-
-    onApplicationInitialized(() => {
-      logger.log('User service initialized during app creation');
-    });
-
-    onApplicationStart(() => {
-      logger.log('User service started');
-    });
+  .handler(({ injector }) => {
+    const { config } = injector();
 
     return {
-      getUser: async (id: string) => {
-        logger.log(`Fetching user ${id}`);
-        return database.query(`SELECT * FROM users WHERE id = '${id}'`)[0];
+      connect: () => {
+        console.log(`Connecting to ${config.databaseUrl}`);
+        return { isConnected: true };
+      },
+      query: (sql: string) => {
+        // Database query logic
+        return [];
       },
     };
   });
 ```
 
-### 3. Module (Feature Grouping)
+#### Router Component for HTTP Endpoints
 
 ```typescript
-import { defineModuleFactory, type Service } from '@ultranomic/di';
+import { defineRouterFactory, type Service } from '@ultranomic/di';
+
+type DatabaseService = Service<{ query: (sql: string) => any[] }>;
 
 type Dependencies = {
-  userService: Service<{ getUser: (id: string) => any }>;
-  postService: Service<{ getPostsByUser: (userId: string) => any[] }>;
+  database: DatabaseService;
 };
 
-// Creates a module factory function
-const defineUserModule = defineModuleFactory.inject<Dependencies>().handler((injector) => {
-  const { userService, postService } = injector();
+// Creates a router component
+const defineApiRouter = defineRouterFactory
+  .name('ApiRouter')
+  .inject<Dependencies>()
+  .handler(({ injector }) => {
+    const { database } = injector();
 
-  return {
-    getUserWithPosts: async (userId: string) => {
-      const user = await userService.getUser(userId);
-      const posts = await postService.getPostsByUser(userId);
-      return { user, posts };
-    },
-  };
-});
-```
-
-### 4. Router
-
-```typescript
-import { defineRouterFactory, type Module } from '@ultranomic/di';
-
-type Dependencies = {
-  userModule: Module<{ getUserWithPosts: (id: string) => any }>;
-};
-
-// Creates a router factory function
-const defineUserRouter = defineRouterFactory.inject<Dependencies>().handler((injector) => {
-  const { userModule } = injector();
-
-  return {
-    '/users/:id': {
-      GET: async ({ params }: { params: { id: string } }) => {
-        return userModule.getUserWithPosts(params.id);
+    return {
+      '/api/health': {
+        GET: () => ({ status: 'ok', timestamp: new Date().toISOString() }),
       },
-    },
-  };
-});
+      '/api/users': {
+        GET: () => database.query('SELECT * FROM users'),
+      },
+    };
+  });
 ```
 
-### 5. Application (Lifecycle Management)
+### 2. Module Layer - Feature Composition
+
+```typescript
+import { defineModuleFactory, type Service, type Router } from '@ultranomic/di';
+
+type DatabaseService = Service<{ connect: () => any; query: (sql: string) => any[] }>;
+type ApiRouter = Router<Record<string, any>>;
+
+type Dependencies = {
+  database: DatabaseService;
+  apiRouter: ApiRouter;
+};
+
+// Creates a module that composes multiple injectables
+const defineApiModule = defineModuleFactory
+  .name('ApiModule')
+  .inject<Dependencies>()
+  .handler(({ injector, appHooks: { onApplicationStart, onApplicationStop } }) => {
+    const { database, apiRouter } = injector();
+
+    onApplicationStart(() => {
+      database.connect();
+      console.log('API Module started');
+    });
+
+    onApplicationStop(() => {
+      console.log('API Module stopped');
+    });
+
+    return {
+      // Expose the router for the application layer
+      router: apiRouter,
+
+      // Module-specific functionality
+      getStats: () => ({
+        connected: database.connect().isConnected,
+        endpoints: Object.keys(apiRouter),
+      }),
+    };
+  });
+```
+
+### 3. Application Layer - Lifecycle Orchestration
 
 ```typescript
 import { defineApp, defineModuleFactory } from '@ultranomic/di';
 
-// Create module factory
-const defineAppModule = defineModuleFactory.handler(() => {
-  const userModule = defineUserModule(); // Creates module instance
-  const userRouter = defineUserRouter(); // Creates router instance
-  return {
-    userRouter,
-  };
-});
+// Create the main application module
+const defineMainModule = defineModuleFactory
+  .name('MainModule')
+  .inject()
+  .handler(() => {
+    // Instantiate all modules
+    const apiModule = defineApiModule();
 
-// Create actual app instance using the module factory
-const app = await defineApp(defineAppModule);
-await app.start();
-await app.stop();
+    return {
+      // Expose modules and their injectables
+      api: apiModule,
+
+      // Application-level utilities
+      getHealth: () => ({
+        status: 'healthy',
+        modules: {
+          api: apiModule.getStats(),
+        },
+      }),
+    };
+  });
+
+// Create and run the application
+const app = await defineApp(defineMainModule);
+
+// Application lifecycle
+await app.start(); // Triggers all onApplicationStart hooks
+console.log('Application is running...');
+
+// Graceful shutdown
+await app.stop(); // Triggers all onApplicationStop hooks
 ```
 
 ## API Reference
@@ -165,12 +217,16 @@ Base dependency injection factory creator - foundation for all other layers. Ret
 
 ```typescript
 // Without dependencies - creates injectable factory
-const defineBasic = defineInjectableFactory.handler(() => ({ value: 42 }));
+const defineBasic = defineInjectableFactory
+  .name('BasicComponent')
+  .inject()
+  .handler(() => ({ value: 42 }));
 
 // With dependencies - creates injectable factory with dependencies
 const defineWithDeps = defineInjectableFactory
+  .name('ComponentWithDeps')
   .inject<{ dep: Injectable<SomeType> }>()
-  .handler((injector, { onApplicationInitialized, onApplicationStart, onApplicationStop }) => {
+  .handler(({ injector, appHooks: { onApplicationInitialized, onApplicationStart, onApplicationStop } }) => {
     // Implementation
   });
 ```
@@ -181,9 +237,12 @@ Business logic and data access factory creator. Returns service factory function
 
 ```typescript
 // Creates a service factory function
-const defineMyService = defineServiceFactory.handler(() => ({
-  doSomething: () => 'result',
-}));
+const defineMyService = defineServiceFactory
+  .name('MyService')
+  .inject()
+  .handler(() => ({
+    doSomething: () => 'result',
+  }));
 ```
 
 #### `defineModuleFactory`
@@ -192,10 +251,13 @@ Feature grouping factory creator. Returns module factory functions that allow `R
 
 ```typescript
 // Creates a module factory function
-const defineMyModule = defineModuleFactory.handler(() => ({
-  feature1: () => 'value1',
-  feature2: () => 'value2',
-}));
+const defineMyModule = defineModuleFactory
+  .name('MyModule')
+  .inject()
+  .handler(() => ({
+    feature1: () => 'value1',
+    feature2: () => 'value2',
+  }));
 ```
 
 #### `defineRouterFactory`
@@ -204,9 +266,12 @@ HTTP endpoint factory creator. Returns router factory functions with same constr
 
 ```typescript
 // Creates a router factory function
-const defineMyRouter = defineRouterFactory.handler(() => ({
-  '/api/users': { GET: () => users },
-}));
+const defineMyRouter = defineRouterFactory
+  .name('MyRouter')
+  .inject()
+  .handler(() => ({
+    '/api/users': { GET: () => users },
+  }));
 ```
 
 #### `defineApp`
@@ -215,13 +280,16 @@ Application lifecycle orchestration with async hook management. Takes a module f
 
 ```typescript
 // Create module factory
-const defineAppModule = defineModuleFactory.handler(() => {
-  const userModule = defineUserModule(); // Creates module instance
-  const userRouter = defineUserRouter(); // Creates router instance
-  return {
-    userRouter,
-  };
-});
+const defineAppModule = defineModuleFactory
+  .name('AppModule')
+  .inject()
+  .handler(() => {
+    const userModule = defineUserModule(); // Creates module instance
+    const userRouter = defineUserRouter(); // Creates router instance
+    return {
+      userRouter,
+    };
+  });
 
 // Create actual app instance (can pass factory directly or as function)
 const app = await defineApp(defineAppModule);
@@ -256,43 +324,60 @@ All inject-enabled utilities provide lifecycle hooks:
 
 ```
 src/
-├── index.ts              # Main entry point with comprehensive JSDoc examples
-├── define-app.ts         # Application lifecycle orchestration with async hooks
-├── define-injectable.ts  # Core dependency injection foundation
-├── define-service.ts     # Business logic and data access layer
-├── define-module.ts      # Feature organization and grouping layer
-├── define-router.ts      # HTTP endpoint definitions and routing logic
-├── *.test.ts            # Comprehensive test suites (6 files total)
+├── index.ts                    # Main entry point with comprehensive JSDoc examples
+├── define-app.ts               # Application lifecycle orchestration with async hooks
+├── define-injectable-factory.ts # Core dependency injection foundation
+├── define-service-factory.ts   # Business logic and data access layer
+├── define-module-factory.ts    # Feature organization and grouping layer
+├── define-router-factory.ts    # HTTP endpoint definitions and routing logic
+├── define-app.test.ts          # Application lifecycle tests (16 tests)
+├── define-injectable-factory.test.ts # Injectable factory tests (24 tests)
+├── define-service-factory.test.ts    # Service factory tests (9 tests)
+├── define-module-factory.test.ts     # Module factory tests (11 tests)
+├── define-router-factory.test.ts     # Router factory tests (10 tests)
 └── define-app-isolated.test.ts # Isolated application testing utilities
 
-dist/                     # Built output (ES modules with TypeScript declarations)
-├── *.js                 # Compiled JavaScript modules
-├── *.d.ts              # TypeScript declaration files
-└── *.js.map            # Source maps for debugging
+dist/                           # Built output (ES modules with TypeScript declarations)
+├── *.js                       # Compiled JavaScript modules
+├── *.d.ts                     # TypeScript declaration files
+└── *.js.map                   # Source maps for debugging
 ```
 
 ## TypeScript Types
 
 ```typescript
-// Core types
+// Core injectable types (all are injectables)
 type Injectable<T = unknown> = T;
 type Service<T = unknown> = Injectable<T>;
-type Module<T = unknown> = Injectable<T>;
 type Router<T = unknown> = Injectable<T>;
 
-// Dependency schemas
-type Dependencies = Record<string, Injectable<unknown>>;
+// Composition type
+type Module<T = unknown> = Injectable<T>;
 
-// Handler signatures
-type BasicHandler<S> = () => S;
-type InjectHandler<T, S> = (
-  injector: () => T,
-  hooks: {
+// Dependency injection schemas
+type ComponentDependencies = Record<string, Injectable<unknown>>;
+type ModuleDependencies = Record<string, Injectable<unknown>>;
+
+// Handler function signatures
+type ComponentHandler<S> = (params: {
+  name: string; // Component name (literal type)
+  injector?: () => ComponentDependencies; // Only present when dependencies exist
+  appHooks: {
     onApplicationInitialized: (callback: () => unknown, order?: number) => void;
     onApplicationStart: (callback: () => unknown, order?: number) => void;
     onApplicationStop: (callback: () => unknown, order?: number) => void;
-  },
-) => S;
+  };
+}) => S;
+
+type ModuleHandler<S> = (params: {
+  name: string; // Module name (literal type)
+  injector?: () => ModuleDependencies; // Only present when dependencies exist
+  appHooks: {
+    onApplicationInitialized: (callback: () => unknown, order?: number) => void;
+    onApplicationStart: (callback: () => unknown, order?: number) => void;
+    onApplicationStop: (callback: () => unknown, order?: number) => void;
+  };
+}) => S;
 ```
 
 ## Development

@@ -3,14 +3,42 @@ import assert from 'node:assert';
 import { defineModuleFactory, type Module } from './define-module-factory.ts';
 import { type Service } from './define-service-factory.ts';
 
+/**
+ * Test Plan for defineModuleFactory
+ *
+ * BASIC FUNCTIONALITY:
+ * 1. ✅ Should create module factory returning object
+ * 2. ✅ Should create module factory returning void
+ * 3. ✅ Should support symbol keys
+ * 4. ✅ Should group related functionality
+ *
+ * DEPENDENCY INJECTION:
+ * 5. ✅ Should create module with service dependencies
+ * 6. ✅ Should support module composition with other modules
+ *
+ * LIFECYCLE HOOKS:
+ * 7. ✅ Should support lifecycle hooks
+ *
+ * TYPE CONSTRAINTS:
+ * 8. ✅ Should enforce Record or void return types
+ * 9. ✅ Should maintain Module type wrapper
+ * 10. ✅ Should support complex record types
+ *
+ * REAL-WORLD PATTERNS:
+ * 11. ✅ Should support feature module pattern
+ */
+
 describe('defineModuleFactory', () => {
   describe('handler without dependencies', () => {
     it('should create module factory returning object', () => {
-      const defineModule = defineModuleFactory.handler(() => ({
-        feature1: () => 'feature1 result',
-        feature2: () => 'feature2 result',
-        sharedUtility: (input: string) => `processed: ${input}`,
-      }));
+      const defineModule = defineModuleFactory
+        .name('TestModule')
+        .inject()
+        .handler(() => ({
+          feature1: () => 'feature1 result',
+          feature2: () => 'feature2 result',
+          sharedUtility: (input: string) => `processed: ${input}`,
+        }));
 
       const result = defineModule();
       assert.strictEqual(result.feature1(), 'feature1 result');
@@ -19,9 +47,12 @@ describe('defineModuleFactory', () => {
     });
 
     it('should create module factory returning void', () => {
-      const defineModule = defineModuleFactory.handler(() => {
-        // void module for side effects only
-      });
+      const defineModule = defineModuleFactory
+        .name('VoidModule')
+        .inject()
+        .handler(() => {
+          // void module for side effects only
+        });
 
       const result = defineModule();
       assert.strictEqual(result, undefined);
@@ -30,10 +61,13 @@ describe('defineModuleFactory', () => {
     it('should support symbol keys', () => {
       const symbolKey = Symbol('feature');
 
-      const defineModule = defineModuleFactory.handler(() => ({
-        stringFeature: () => 'string result',
-        [symbolKey]: () => 'symbol result',
-      }));
+      const defineModule = defineModuleFactory
+        .name('SymbolModule')
+        .inject()
+        .handler(() => ({
+          stringFeature: () => 'string result',
+          [symbolKey]: () => 'symbol result',
+        }));
 
       const result = defineModule();
       assert.strictEqual(result.stringFeature(), 'string result');
@@ -41,18 +75,21 @@ describe('defineModuleFactory', () => {
     });
 
     it('should group related functionality', () => {
-      const defineAuthModule = defineModuleFactory.handler(() => ({
-        validateToken: (token: string) => token.length > 10,
-        generateToken: () => `token-${Date.now()}`,
-        parseToken: (token: string) => ({
-          valid: token.startsWith('token-'),
-          timestamp: token.split('-')[1],
-        }),
-        constants: {
-          TOKEN_PREFIX: 'token-',
-          TOKEN_EXPIRY: 3600000,
-        },
-      }));
+      const defineAuthModule = defineModuleFactory
+        .name('AuthModule')
+        .inject()
+        .handler(() => ({
+          validateToken: (token: string) => token.length > 10,
+          generateToken: () => `token-${Date.now()}`,
+          parseToken: (token: string) => ({
+            valid: token.startsWith('token-'),
+            timestamp: token.split('-')[1],
+          }),
+          constants: {
+            TOKEN_PREFIX: 'token-',
+            TOKEN_EXPIRY: 3600000,
+          },
+        }));
 
       const module = defineAuthModule();
       const token = module.generateToken();
@@ -70,27 +107,30 @@ describe('defineModuleFactory', () => {
         authService: Service<{ validateUser: (id: string) => boolean }>;
       };
 
-      const defineUserModule = defineModuleFactory.inject<Dependencies>().handler((injector) => {
-        const { userService, authService } = injector();
+      const defineUserModule = defineModuleFactory
+        .name('UserModule')
+        .inject<Dependencies>()
+        .handler(({ injector }) => {
+          const { userService, authService } = injector();
 
-        return {
-          getUserProfile: (id: string) => {
-            if (!authService.validateUser(id)) {
-              throw new Error('Unauthorized');
-            }
-            return userService.getUser(id);
-          },
+          return {
+            getUserProfile: (id: string) => {
+              if (!authService.validateUser(id)) {
+                throw new Error('Unauthorized');
+              }
+              return userService.getUser(id);
+            },
 
-          getUserSummary: (id: string) => {
-            const user = userService.getUser(id);
-            const isValid = authService.validateUser(id);
-            return {
-              ...user,
-              status: isValid ? 'active' : 'inactive',
-            };
-          },
-        };
-      });
+            getUserSummary: (id: string) => {
+              const user = userService.getUser(id);
+              const isValid = authService.validateUser(id);
+              return {
+                ...user,
+                status: isValid ? 'active' : 'inactive',
+              };
+            },
+          };
+        });
 
       const mockDeps = {
         userService: {
@@ -126,30 +166,33 @@ describe('defineModuleFactory', () => {
         postModule: PostModule;
       };
 
-      const defineContentModule = defineModuleFactory.inject<Dependencies>().handler((injector) => {
-        const { userModule, postModule } = injector();
+      const defineContentModule = defineModuleFactory
+        .name('ContentModule')
+        .inject<Dependencies>()
+        .handler(({ injector }) => {
+          const { userModule, postModule } = injector();
 
-        return {
-          getPostWithAuthor: (postId: string) => {
-            const post = postModule.getPost(postId);
-            const author = userModule.getUser(post.authorId);
-            return {
-              ...post,
-              author,
-            };
-          },
+          return {
+            getPostWithAuthor: (postId: string) => {
+              const post = postModule.getPost(postId);
+              const author = userModule.getUser(post.authorId);
+              return {
+                ...post,
+                author,
+              };
+            },
 
-          createPostWithValidation: (title: string, authorId: string) => {
-            // Validate author exists
-            const author = userModule.getUser(authorId);
-            if (!author) {
-              throw new Error('Author not found');
-            }
+            createPostWithValidation: (title: string, authorId: string) => {
+              // Validate author exists
+              const author = userModule.getUser(authorId);
+              if (!author) {
+                throw new Error('Author not found');
+              }
 
-            return postModule.createPost(title, authorId);
-          },
-        };
-      });
+              return postModule.createPost(title, authorId);
+            },
+          };
+        });
 
       const mockDeps = {
         userModule: {
@@ -177,8 +220,9 @@ describe('defineModuleFactory', () => {
       const moduleEvents: string[] = [];
 
       const defineModule = defineModuleFactory
+        .name('EventModule')
         .inject<{}>()
-        .handler((injector, { onApplicationStart, onApplicationStop }) => {
+        .handler(({ injector, appHooks: { onApplicationStart, onApplicationStop } }) => {
           onApplicationStart(() => {
             moduleEvents.push('module-started');
           }, 1);
@@ -204,8 +248,14 @@ describe('defineModuleFactory', () => {
   describe('module type constraints', () => {
     it('should enforce Record or void return types', () => {
       // These should compile successfully
-      const defineRecordModule = defineModuleFactory.handler(() => ({ key: 'value' }));
-      const defineVoidModule = defineModuleFactory.handler(() => {});
+      const defineRecordModule = defineModuleFactory
+        .name('RecordModule')
+        .inject()
+        .handler(() => ({ key: 'value' }));
+      const defineVoidModule = defineModuleFactory
+        .name('VoidModule')
+        .inject()
+        .handler(() => {});
 
       // Verify they work as expected
       assert.deepStrictEqual(defineRecordModule(), { key: 'value' });
@@ -213,9 +263,12 @@ describe('defineModuleFactory', () => {
     });
 
     it('should maintain Module type wrapper', () => {
-      const defineModule = defineModuleFactory.handler(() => ({
-        method: () => 'result',
-      }));
+      const defineModule = defineModuleFactory
+        .name('TestModule')
+        .inject()
+        .handler(() => ({
+          method: () => 'result',
+        }));
 
       // The return should be assignable to Module type
       const typedModule: () => Module<{ method: () => string }> = defineModule;
@@ -223,25 +276,28 @@ describe('defineModuleFactory', () => {
     });
 
     it('should support complex record types', () => {
-      const defineComplexModule = defineModuleFactory.handler(() => ({
-        strings: {
-          hello: 'world',
-          foo: 'bar',
-        },
-        numbers: {
-          count: 42,
-          pi: 3.14159,
-        },
-        functions: {
-          add: (a: number, b: number) => a + b,
-          concat: (a: string, b: string) => a + b,
-        },
-        nested: {
-          deep: {
-            value: 'deeply nested',
+      const defineComplexModule = defineModuleFactory
+        .name('ComplexModule')
+        .inject()
+        .handler(() => ({
+          strings: {
+            hello: 'world',
+            foo: 'bar',
           },
-        },
-      }));
+          numbers: {
+            count: 42,
+            pi: 3.14159,
+          },
+          functions: {
+            add: (a: number, b: number) => a + b,
+            concat: (a: string, b: string) => a + b,
+          },
+          nested: {
+            deep: {
+              value: 'deeply nested',
+            },
+          },
+        }));
 
       const module = defineComplexModule();
 
@@ -254,45 +310,48 @@ describe('defineModuleFactory', () => {
 
   describe('real-world module patterns', () => {
     it('should support feature module pattern', () => {
-      const defineEcommerceModule = defineModuleFactory.handler(() => ({
-        cart: {
-          items: [] as Array<{ id: string; quantity: number; price: number }>,
+      const defineEcommerceModule = defineModuleFactory
+        .name('EcommerceModule')
+        .inject()
+        .handler(() => ({
+          cart: {
+            items: [] as Array<{ id: string; quantity: number; price: number }>,
 
-          addItem: function (id: string, quantity: number, price: number) {
-            this.items.push({ id, quantity, price });
+            addItem: function (id: string, quantity: number, price: number) {
+              this.items.push({ id, quantity, price });
+            },
+
+            removeItem: function (id: string) {
+              this.items = this.items.filter((item) => item.id !== id);
+            },
+
+            getTotal: function () {
+              return this.items.reduce((sum, item) => sum + item.quantity * item.price, 0);
+            },
+
+            clear: function () {
+              this.items = [];
+            },
           },
 
-          removeItem: function (id: string) {
-            this.items = this.items.filter((item) => item.id !== id);
+          checkout: {
+            calculateTax: (subtotal: number) => subtotal * 0.08,
+            calculateShipping: (items: number) => (items > 5 ? 0 : 9.99),
+
+            processOrder: function (cartItems: Array<{ quantity: number; price: number }>) {
+              const subtotal = cartItems.reduce((sum, item) => sum + item.quantity * item.price, 0);
+              const tax = this.calculateTax(subtotal);
+              const shipping = this.calculateShipping(cartItems.length);
+
+              return {
+                subtotal,
+                tax,
+                shipping,
+                total: subtotal + tax + shipping,
+              };
+            },
           },
-
-          getTotal: function () {
-            return this.items.reduce((sum, item) => sum + item.quantity * item.price, 0);
-          },
-
-          clear: function () {
-            this.items = [];
-          },
-        },
-
-        checkout: {
-          calculateTax: (subtotal: number) => subtotal * 0.08,
-          calculateShipping: (items: number) => (items > 5 ? 0 : 9.99),
-
-          processOrder: function (cartItems: Array<{ quantity: number; price: number }>) {
-            const subtotal = cartItems.reduce((sum, item) => sum + item.quantity * item.price, 0);
-            const tax = this.calculateTax(subtotal);
-            const shipping = this.calculateShipping(cartItems.length);
-
-            return {
-              subtotal,
-              tax,
-              shipping,
-              total: subtotal + tax + shipping,
-            };
-          },
-        },
-      }));
+        }));
 
       const module = defineEcommerceModule();
 

@@ -1,119 +1,98 @@
 import { onApplicationInitialized, onApplicationStart, onApplicationStop } from './define-app.ts';
 
 /**
- * Base type for all dependency injectable components.
- * This is a generic wrapper type that preserves the underlying type structure.
- *
- * @template T - The type of the injectable component
- * @example
- * ```typescript
- * type MyService = Injectable<{ getData: () => string }>;
- * ```
+ * Represents an injectable dependency that can be provided to other components.
+ * This is a generic wrapper type that can hold any value that should be injectable.
+ * @template T - The type of the injectable value
  */
 export type Injectable<T = unknown> = T;
 
 /**
- * Main interface for the defineInjectableFactory utility.
- * Provides methods for creating injectable factory functions with or without dependencies.
+ * The main factory interface for creating injectable factories.
+ * Provides a fluent API for defining named injectables with optional dependencies.
  */
 type DefineInjectableFactory = {
-  /**
-   * Creates an injectable factory function without dependencies.
-   *
-   * @template S - The return type of the component (must be object or void)
-   * @param fn - Factory function that returns the component instance
-   * @returns A factory function that creates the injectable component
-   */
-  handler<S extends object | void>(fn: () => S): () => Injectable<S>;
-
-  /**
-   * Creates a builder for injectable factory functions that require dependencies.
-   *
-   * @template T - Record type defining the required dependencies
-   * @returns An InjectableFactoryBuilder instance for configuring the factory
-   */
-  inject<T extends Record<string, Injectable<unknown>>>(): InjectableFactoryBuilder<T>;
+  name<TName extends string>(name: TName): NamedInjectableFactoryBuilder<TName>;
 };
 
 /**
- * Builder interface for creating injectable factory functions with dependencies.
- * Provides access to dependency injection and application lifecycle hooks.
- *
- * @template T - Record type defining the required dependencies
+ * Builder for creating a named injectable factory.
+ * Allows specifying whether the injectable has dependencies or not.
+ * @template TName - The name of the injectable
  */
-type InjectableFactoryBuilder<T> = {
-  /**
-   * Defines the handler function for the injectable component with dependencies.
-   *
-   * @template S - The return type of the component (must be object or void)
-   * @param fn - Factory function that receives injector and lifecycle hooks
-   * @param fn.injector - Function that provides access to injected dependencies
-   * @param fn.appHooks - Object containing application lifecycle hook registrars
-   * @param fn.appHooks.onApplicationInitialized - Register callback for application initialization event
-   * @param fn.appHooks.onApplicationStart - Register callback for application start event
-   * @param fn.appHooks.onApplicationStop - Register callback for application stop event
-   * @returns A factory function that accepts an injector and creates the component
-   */
+type NamedInjectableFactoryBuilder<TName extends string> = {
+  inject(): InjectableFactoryBuilderNoDeps<TName>;
+  inject<TInject extends Record<string, Injectable<unknown>>>(): InjectableFactoryBuilderWithDeps<TName, TInject>;
+};
+
+/**
+ * Builder for injectables that don't have dependencies.
+ * @template TName - The name of the injectable
+ */
+type InjectableFactoryBuilderNoDeps<TName extends string> = {
   handler<S extends object | void>(
-    fn: (
-      injector: () => T,
+    fn: (params: {
+      name: TName;
+      injector: undefined;
       appHooks: {
         onApplicationInitialized: (callback: () => unknown, executionOrder?: number) => void;
         onApplicationStart: (callback: () => unknown, executionOrder?: number) => void;
         onApplicationStop: (callback: () => unknown, executionOrder?: number) => void;
-      },
-    ) => S,
-  ): (injector: () => T) => Injectable<S>;
+      };
+    }) => S,
+  ): () => Injectable<S>;
 };
 
 /**
- * Core utility for creating type-safe injectable factory functions with dependency injection support.
- * This is the foundational building block for all other layers (Service, Module, Router, App).
- *
- * Features:
- * - Type-safe dependency injection
- * - Application lifecycle hook integration
- * - Support for factory functions with and without dependencies
- * - Functional composition patterns
+ * Builder for injectables that have dependencies.
+ * @template TName - The name of the injectable
+ * @template TInject - Record of dependency names to their injectable types
+ */
+type InjectableFactoryBuilderWithDeps<TName extends string, TInject extends Record<string, Injectable<unknown>>> = {
+  handler<S extends object | void>(
+    fn: (params: {
+      name: TName;
+      injector: () => TInject;
+      appHooks: {
+        onApplicationInitialized: (callback: () => unknown, executionOrder?: number) => void;
+        onApplicationStart: (callback: () => unknown, executionOrder?: number) => void;
+        onApplicationStop: (callback: () => unknown, executionOrder?: number) => void;
+      };
+    }) => S,
+  ): (injector: () => TInject) => Injectable<S>;
+};
+
+/**
+ * Factory for creating injectable dependencies with optional dependency injection support.
+ * Provides a fluent API for defining named injectables that can be used throughout the application.
  *
  * @example
  * ```typescript
- * // Without dependencies - creates injectable factory
- * const defineSimpleComponent = defineInjectableFactory.handler(() => ({
- *   getValue: () => 'hello world'
- * }));
+ * // Injectable without dependencies
+ * const myService = defineInjectableFactory
+ *   .name('myService')
+ *   .inject()
+ *   .handler(() => ({ message: 'Hello World' }));
  *
- * // With dependencies - creates injectable factory with dependencies
- * const defineComplexComponent = defineInjectableFactory
- *   .inject<{ logger: Injectable<{ log: (msg: string) => void }> }>()
- *   .handler((injector, { onApplicationInitialized, onApplicationStart }) => {
- *     const { logger } = injector();
- *
- *     onApplicationInitialized(() => {
- *       logger.log('Component initialized');
- *     });
- *
- *     onApplicationStart(() => {
- *       logger.log('Component started');
- *     });
- *
- *     return {
- *       process: (data: string) => {
- *         logger.log(`Processing: ${data}`);
- *         return data.toUpperCase();
- *       }
- *     };
+ * // Injectable with dependencies
+ * const dependentService = defineInjectableFactory
+ *   .name('dependentService')
+ *   .inject<{ myService: Injectable<{ message: string }> }>()
+ *   .handler(({ injector }) => {
+ *     const deps = injector();
+ *     return { greeting: deps.myService.message };
  *   });
  * ```
  */
 export const defineInjectableFactory: DefineInjectableFactory = {
-  handler: (fn) => () => fn(),
-  inject: () => ({
-    handler: (fn) => {
-      return (injector) => {
-        const result = fn(injector, { onApplicationInitialized, onApplicationStart, onApplicationStop });
-        return result;
-      };
-    },
+  name: (name) => ({
+    inject: () => ({
+      handler: (fn: any) => (injectorOrNothing?: unknown) =>
+        fn({
+          name,
+          injector: injectorOrNothing as any,
+          appHooks: { onApplicationInitialized, onApplicationStart, onApplicationStop },
+        }),
+    }),
   }),
 };

@@ -8,44 +8,6 @@
     "deny": []
   },
   "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "git ls-files --modified | xargs -r pnpm prettier --write"
-          }
-        ]
-      },
-      {
-        "matcher": "MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "git ls-files --modified | xargs -r pnpm prettier --write"
-          }
-        ]
-      },
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "git ls-files --modified | xargs -r pnpm prettier --write"
-          }
-        ]
-      },
-      {
-        "matcher": "NotebookEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "git ls-files --modified | xargs -r pnpm prettier --write"
-          }
-        ]
-      }
-    ],
     "Stop": [
       {
         "hooks": [
