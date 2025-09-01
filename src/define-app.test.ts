@@ -1,6 +1,7 @@
 import { describe, it, afterEach } from 'node:test';
 import assert from 'node:assert';
-import { defineApp, onApplicationStart, onApplicationStop, onApplicationInitialized, appHooks } from './define-app.ts';
+import { defineApp } from './define-app.ts';
+import { appHooks, onApplicationStart, onApplicationStop, onApplicationInitialized } from './app-hooks.ts';
 import { defineModuleFactory } from './define-module-factory.ts';
 
 /**
@@ -11,29 +12,33 @@ import { defineModuleFactory } from './define-module-factory.ts';
  * 2. ✅ Should fire onApplicationInitialized during creation
  * 3. ✅ Should support async initialization
  * 4. ✅ Should handle empty module gracefully
+ * 5. ✅ Should accept custom logger option
+ * 6. ✅ Should handle empty options object
  *
  * LIFECYCLE MANAGEMENT:
- * 5. ✅ Should handle start lifecycle
- * 6. ✅ Should handle stop lifecycle
- * 7. ✅ Should support execution order in lifecycle hooks
- * 8. ✅ Should handle async lifecycle hooks
+ * 7. ✅ Should handle start lifecycle
+ * 8. ✅ Should handle stop lifecycle
+ * 9. ✅ Should support execution order in lifecycle hooks
+ * 10. ✅ Should handle async lifecycle hooks
  *
  * COMPLETE APPLICATION LIFECYCLE:
- * 9. ✅ Should handle full lifecycle: init -> start -> stop
- * 10. ✅ Should support multiple start/stop cycles
+ * 11. ✅ Should handle full lifecycle: init -> start -> stop
+ * 12. ✅ Should support multiple start/stop cycles
  *
  * GLOBAL HOOK REGISTRATION:
- * 11. ✅ Should support global onApplicationStart registration
- * 12. ✅ Should support global onApplicationStop registration
- * 13. ✅ Should support global onApplicationInitialized registration
+ * 13. ✅ Should support global onApplicationStart registration
+ * 14. ✅ Should support global onApplicationStop registration
+ * 15. ✅ Should support global onApplicationInitialized registration
  *
  * ERROR HANDLING:
- * 14. ✅ Should handle errors in start hooks
- * 15. ✅ Should handle errors in stop hooks
+ * 16. ✅ Should handle errors in start hooks
+ * 17. ✅ Should handle errors in stop hooks
+ * 18. ✅ Should handle errors in the main function parameter
+ * 19. ✅ Should handle async errors in the main function parameter
  *
  * REAL-WORLD APPLICATION PATTERNS:
- * 16. ✅ Should support complex application with services and modules
- * 17. ✅ Should support dependency injection in app context
+ * 20. ✅ Should support complex application with services and modules
+ * 21. ✅ Should support dependency injection in app context
  */
 
 describe('defineApp', () => {
@@ -103,6 +108,49 @@ describe('defineApp', () => {
       // All initialization should be complete
       assert.ok(initResults.includes('async-init-1'));
       assert.ok(initResults.includes('sync-init-2'));
+    });
+
+    it('should accept custom logger option', async () => {
+      const logMessages: string[] = [];
+      const customLogger = {
+        log: (message: string) => logMessages.push(`LOG: ${message}`),
+        error: (message: string) => logMessages.push(`ERROR: ${message}`),
+        debug: (message: string) => logMessages.push(`DEBUG: ${message}`),
+        warn: (message: string) => logMessages.push(`WARN: ${message}`),
+        info: (message: string) => logMessages.push(`INFO: ${message}`),
+        trace: (message: string) => logMessages.push(`TRACE: ${message}`),
+      };
+
+      const testModule = defineModuleFactory
+        .name('LoggerModule')
+        .inject()
+        .handler(() => ({
+          name: 'Logger Test Module',
+        }));
+
+      const app = await defineApp(() => testModule, { logger: customLogger });
+
+      // Verify app creation succeeds with logger
+      assert.ok(typeof app.start === 'function');
+      assert.ok(typeof app.stop === 'function');
+
+      // Logger should be set (though we can't directly verify without exposing internal state)
+      // The fact that no error is thrown indicates setLogger was called successfully
+    });
+
+    it('should handle empty options object', async () => {
+      const testModule = defineModuleFactory
+        .name('EmptyOptionsModule')
+        .inject()
+        .handler(() => ({
+          name: 'Empty Options Test',
+        }));
+
+      const app = await defineApp(() => testModule, {});
+
+      // Verify app creation succeeds with empty options
+      assert.ok(typeof app.start === 'function');
+      assert.ok(typeof app.stop === 'function');
     });
   });
 
@@ -398,6 +446,45 @@ describe('defineApp', () => {
       }
 
       assert.strictEqual(errorCaught, true);
+    });
+
+    it('should handle errors in the main function parameter', async () => {
+      let errorCaught = false;
+      let caughtError: Error | null = null;
+
+      try {
+        await defineApp(() => {
+          throw new Error('Function execution error');
+        });
+      } catch (error) {
+        errorCaught = true;
+        caughtError = error as Error;
+        assert.ok(error instanceof Error);
+        assert.strictEqual(error.message, 'Function execution error');
+      }
+
+      assert.strictEqual(errorCaught, true);
+      assert.ok(caughtError);
+    });
+
+    it('should handle async errors in the main function parameter', async () => {
+      let errorCaught = false;
+      let caughtError: Error | null = null;
+
+      try {
+        await defineApp(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          throw new Error('Async function execution error');
+        });
+      } catch (error) {
+        errorCaught = true;
+        caughtError = error as Error;
+        assert.ok(error instanceof Error);
+        assert.strictEqual(error.message, 'Async function execution error');
+      }
+
+      assert.strictEqual(errorCaught, true);
+      assert.ok(caughtError);
     });
   });
 
