@@ -2,7 +2,6 @@ import { appHooks } from './app-hooks.ts';
 import type { Module } from './define-module-factory.ts';
 
 export type Logger = {
-  log: (...args: any[]) => unknown;
   error: (...args: any[]) => unknown;
   debug: (...args: any[]) => unknown;
   warn: (...args: any[]) => unknown;
