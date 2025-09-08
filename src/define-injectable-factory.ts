@@ -1,4 +1,5 @@
 import { onApplicationInitialized, onApplicationStart, onApplicationStop } from './app-hooks.ts';
+import { appLogger } from './app-logger.ts';
 
 /**
  * Represents an injectable dependency that can be provided to other components.
@@ -87,12 +88,15 @@ type InjectableFactoryBuilderWithDeps<TName extends string, TInject extends Reco
 export const defineInjectableFactory: DefineInjectableFactory = {
   name: (name) => ({
     inject: () => ({
-      handler: (fn: any) => (injectorOrNothing?: unknown) =>
-        fn({
+      handler: (fn: any) => (injectorOrNothing?: unknown) => {
+        const injectable = fn({
           name,
           injector: injectorOrNothing as any,
           appHooks: { onApplicationInitialized, onApplicationStart, onApplicationStop },
-        }),
+        });
+        appLogger?.info(`${name} initialized`);
+        return injectable;
+      },
     }),
   }),
 };
