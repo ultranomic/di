@@ -36,10 +36,14 @@ import { defineInjectableFactory, type Injectable } from './define-injectable-fa
  * 20. ✅ Should support generic name types for better type safety
  * 21. ✅ Should provide literal string types for component names
  *
+ * LOGGER COVERAGE:
+ * 22. ✅ Should handle logger being undefined during initialization
+ * 23. ✅ Should handle logger being defined during initialization
+ *
  * INTEGRATION:
- * 22. ✅ Should work as building block for higher-level abstractions
- * 23. ✅ Should support functional composition patterns
- * 24. ✅ Should maintain consistent API with other factory functions
+ * 24. ✅ Should work as building block for higher-level abstractions
+ * 25. ✅ Should support functional composition patterns
+ * 26. ✅ Should maintain consistent API with other factory functions
  */
 
 describe('defineInjectableFactory', () => {
@@ -903,6 +907,66 @@ describe('defineInjectableFactory', () => {
       assert.strictEqual(namedInstance.name, 'NamedServiceWithDeps');
       const result = namedInstance.logWithName('test message');
       assert.strictEqual(result, 'NamedServiceWithDeps: test message');
+    });
+  });
+
+  describe('Logger Coverage', () => {
+    // Test 22: Should handle logger being undefined during initialization
+    it('should handle logger being undefined during initialization', async () => {
+      // Import the setAppLogger function to control the logger state
+      const { setAppLogger } = await import('./app-logger.ts');
+
+      // Ensure appLogger is undefined
+      setAppLogger(undefined);
+
+      const defineInjectable = defineInjectableFactory
+        .name('LoggerTestComponent')
+        .inject()
+        .handler(({ name }) => {
+          return { name, initialized: true };
+        });
+
+      // This should not throw even when appLogger is undefined
+      const instance = defineInjectable();
+
+      assert.strictEqual(instance.name, 'LoggerTestComponent');
+      assert.strictEqual(instance.initialized, true);
+    });
+
+    // Test 23: Should handle logger being defined during initialization
+    it('should handle logger being defined during initialization', async () => {
+      // Import the setAppLogger function to control the logger state
+      const { setAppLogger } = await import('./app-logger.ts');
+
+      const logs: string[] = [];
+      const mockLogger = {
+        info: (msg: string) => logs.push(msg),
+        error: () => {},
+        debug: () => {},
+        warn: () => {},
+        trace: () => {},
+      };
+
+      // Set appLogger to defined state
+      setAppLogger(mockLogger);
+
+      const defineInjectable = defineInjectableFactory
+        .name('LoggerWithLoggerTestComponent')
+        .inject()
+        .handler(({ name }) => {
+          return { name, initialized: true };
+        });
+
+      // This should log the initialization
+      const instance = defineInjectable();
+
+      assert.strictEqual(instance.name, 'LoggerWithLoggerTestComponent');
+      assert.strictEqual(instance.initialized, true);
+      assert.strictEqual(logs.length, 1);
+      assert.strictEqual(logs[0], 'LoggerWithLoggerTestComponent initialized');
+
+      // Clean up - reset logger to undefined
+      setAppLogger(undefined);
     });
   });
 
