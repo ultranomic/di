@@ -25,6 +25,12 @@ import { defineServiceFactory, type Service } from './define-service-factory.ts'
  *
  * REAL-WORLD PATTERNS:
  * 9. ✅ Should support repository pattern
+ *
+ * LOGGER INJECTION:
+ * 10. ✅ Should include logger in injector when no custom dependencies
+ * 11. ✅ Should include logger in injector alongside custom dependencies
+ * 12. ✅ Should handle logger factory returning undefined
+ * 13. ✅ Should pass service name to logger factory
  */
 
 describe('defineServiceFactory', () => {
@@ -297,6 +303,189 @@ describe('defineServiceFactory', () => {
 
       repo.delete('1');
       assert.strictEqual(repo.count(), 0);
+    });
+  });
+
+  describe('Logger Injection', () => {
+    // Test 10: Should include logger in injector when no custom dependencies
+    it('should include logger in injector when no custom dependencies', async () => {
+      const { setLoggerFactory } = await import('./app-logger.ts');
+
+      const logs: string[] = [];
+      const mockLoggerFactory = (name: string) => ({
+        info: (msg: string) => logs.push(`[${name}] ${msg}`),
+        error: () => {},
+        debug: () => {},
+        warn: () => {},
+        trace: () => {},
+      });
+
+      // Set logger factory
+      setLoggerFactory(mockLoggerFactory);
+
+      const defineService = defineServiceFactory
+        .name('LoggerService')
+        .inject()
+        .handler(({ name, injector }) => {
+          const deps = injector?.();
+          return {
+            name,
+            hasLogger: deps && 'logger' in deps,
+            logger: deps?.logger,
+          };
+        });
+
+      const instance = defineService();
+
+      assert.strictEqual(instance.name, 'LoggerService');
+      assert.strictEqual(instance.hasLogger, true);
+      assert.strictEqual(typeof instance.logger?.info, 'function');
+
+      // Test the logger works
+      instance.logger?.info('service test');
+      assert.strictEqual(logs.length, 1);
+      assert.strictEqual(logs[0], '[LoggerService] service test');
+
+      // Clean up
+      setLoggerFactory(undefined);
+    });
+
+    // Test 11: Should include logger in injector alongside custom dependencies
+    it('should include logger in injector alongside custom dependencies', async () => {
+      const { setLoggerFactory } = await import('./app-logger.ts');
+
+      const logs: string[] = [];
+      const mockLoggerFactory = (name: string) => ({
+        info: (msg: string) => logs.push(`[${name}] ${msg}`),
+        error: () => {},
+        debug: () => {},
+        warn: () => {},
+        trace: () => {},
+      });
+
+      setLoggerFactory(mockLoggerFactory);
+
+      type Dependencies = {
+        database: Service<{ query: (sql: string) => any[] }>;
+        cache: Service<{ get: (key: string) => any }>;
+      };
+
+      const defineService = defineServiceFactory
+        .name('MixedLoggerService')
+        .inject<Dependencies>()
+        .handler(({ name, injector }) => {
+          const deps = injector();
+          return {
+            name,
+            customDeps: {
+              hasDatabase: 'database' in deps,
+              hasCache: 'cache' in deps,
+            },
+            loggerDep: {
+              hasLogger: 'logger' in deps,
+              loggerInfo: typeof deps.logger?.info,
+            },
+            testLogger: () => {
+              deps.logger?.info('service component test');
+              return 'tested';
+            },
+          };
+        });
+
+      const mockInjector = () => ({
+        database: { query: () => [{ id: 1 }] },
+        cache: { get: () => 'cached-value' },
+      });
+
+      const instance = defineService(mockInjector);
+
+      assert.strictEqual(instance.name, 'MixedLoggerService');
+      assert.strictEqual(instance.customDeps.hasDatabase, true);
+      assert.strictEqual(instance.customDeps.hasCache, true);
+      assert.strictEqual(instance.loggerDep.hasLogger, true);
+      assert.strictEqual(instance.loggerDep.loggerInfo, 'function');
+
+      // Test that logger is properly configured
+      instance.testLogger();
+      assert.strictEqual(logs.length, 1);
+      assert.strictEqual(logs[0], '[MixedLoggerService] service component test');
+
+      // Clean up
+      setLoggerFactory(undefined);
+    });
+
+    // Test 12: Should handle logger factory returning undefined
+    it('should handle logger factory returning undefined', async () => {
+      const { setLoggerFactory } = await import('./app-logger.ts');
+
+      // Set logger factory that returns undefined
+      setLoggerFactory(() => undefined as any);
+
+      const defineService = defineServiceFactory
+        .name('UndefinedLoggerService')
+        .inject()
+        .handler(({ name, injector }) => {
+          const deps = injector?.();
+          return {
+            name,
+            hasLogger: deps && 'logger' in deps,
+            loggerValue: deps?.logger,
+          };
+        });
+
+      const instance = defineService();
+
+      assert.strictEqual(instance.name, 'UndefinedLoggerService');
+      assert.strictEqual(instance.hasLogger, true);
+      assert.strictEqual(instance.loggerValue, undefined);
+
+      // Clean up
+      setLoggerFactory(undefined);
+    });
+
+    // Test 13: Should pass service name to logger factory
+    it('should pass service name to logger factory', async () => {
+      const { setLoggerFactory } = await import('./app-logger.ts');
+
+      const createdLoggers: string[] = [];
+      const mockLoggerFactory = (name: string) => {
+        createdLoggers.push(name);
+        return {
+          info: () => {},
+          error: () => {},
+          debug: () => {},
+          warn: () => {},
+          trace: () => {},
+        };
+      };
+
+      setLoggerFactory(mockLoggerFactory);
+
+      const defineService1 = defineServiceFactory
+        .name('AuthService')
+        .inject()
+        .handler(({ injector }) => {
+          const deps = injector?.();
+          return { hasLogger: deps && 'logger' in deps };
+        });
+
+      const defineService2 = defineServiceFactory
+        .name('PaymentService')
+        .inject()
+        .handler(({ injector }) => {
+          const deps = injector?.();
+          return { hasLogger: deps && 'logger' in deps };
+        });
+
+      const instance1 = defineService1();
+      const instance2 = defineService2();
+
+      assert.strictEqual(instance1.hasLogger, true);
+      assert.strictEqual(instance2.hasLogger, true);
+      assert.deepStrictEqual(createdLoggers, ['AuthService', 'PaymentService']);
+
+      // Clean up
+      setLoggerFactory(undefined);
     });
   });
 });

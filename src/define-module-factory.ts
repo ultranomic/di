@@ -1,4 +1,5 @@
 import { defineInjectableFactory, type Injectable } from './define-injectable-factory.ts';
+import { type Logger, loggerFactory } from './app-logger.ts';
 
 /**
  * Represents a module that can be loaded into the application.
@@ -33,7 +34,7 @@ type ModuleFactoryBuilderNoDeps<TName extends string> = {
   handler<S extends Record<string | symbol, unknown> | void>(
     fn: (params: {
       name: TName;
-      injector: never;
+      injector: () => { logger?: Logger };
       appHooks: {
         onApplicationInitialized: (callback: () => unknown, executionOrder?: number) => void;
         onApplicationStart: (callback: () => unknown, executionOrder?: number) => void;
@@ -52,7 +53,7 @@ type ModuleFactoryBuilderWithDeps<TName extends string, TInject extends Record<s
   handler<S extends Record<string | symbol, unknown> | void>(
     fn: (params: {
       name: TName;
-      injector: () => TInject;
+      injector: () => { logger?: Logger } & TInject;
       appHooks: {
         onApplicationInitialized: (callback: () => unknown, executionOrder?: number) => void;
         onApplicationStart: (callback: () => unknown, executionOrder?: number) => void;
@@ -93,8 +94,13 @@ type ModuleFactoryBuilderWithDeps<TName extends string, TInject extends Record<s
 export const defineModuleFactory: DefineModuleFactory = {
   name: (name) => ({
     inject: () => ({
-      handler: (fn: any) => (injectorOrNothing?: unknown) =>
-        defineInjectableFactory.name(name).inject<any>().handler(fn)(injectorOrNothing as any) as any,
+      handler: (fn: any) => (injectorOrNothing?: Function) => {
+        const logger = loggerFactory?.(name);
+        return defineInjectableFactory.name(name).inject<any>().handler(fn)(() => ({
+          logger,
+          ...injectorOrNothing?.(),
+        })) as any;
+      },
     }),
   }),
 };

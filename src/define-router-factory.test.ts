@@ -28,6 +28,12 @@ import { type Module } from './define-module-factory.ts';
  *
  * REAL-WORLD PATTERNS:
  * 10. ✅ Should support REST API pattern
+ *
+ * LOGGER INJECTION:
+ * 11. ✅ Should include logger in injector when no custom dependencies
+ * 12. ✅ Should include logger in injector alongside custom dependencies
+ * 13. ✅ Should handle logger factory returning undefined
+ * 14. ✅ Should pass router name to logger factory
  */
 
 describe('defineRouterFactory', () => {
@@ -414,6 +420,189 @@ describe('defineRouterFactory', () => {
       // Verify deletion
       const notFoundResponse = router['/api/users/:id'].GET({ params: { id: userId } });
       assert.strictEqual(notFoundResponse.status, 404);
+    });
+  });
+
+  describe('Logger Injection', () => {
+    // Test 11: Should include logger in injector when no custom dependencies
+    it('should include logger in injector when no custom dependencies', async () => {
+      const { setLoggerFactory } = await import('./app-logger.ts');
+
+      const logs: string[] = [];
+      const mockLoggerFactory = (name: string) => ({
+        info: (msg: string) => logs.push(`[${name}] ${msg}`),
+        error: () => {},
+        debug: () => {},
+        warn: () => {},
+        trace: () => {},
+      });
+
+      // Set logger factory
+      setLoggerFactory(mockLoggerFactory);
+
+      const defineRouter = defineRouterFactory
+        .name('LoggerRouter')
+        .inject()
+        .handler(({ name, injector }) => {
+          const deps = injector?.();
+          return {
+            name,
+            hasLogger: deps && 'logger' in deps,
+            logger: deps?.logger,
+          };
+        });
+
+      const instance = defineRouter();
+
+      assert.strictEqual(instance.name, 'LoggerRouter');
+      assert.strictEqual(instance.hasLogger, true);
+      assert.strictEqual(typeof instance.logger?.info, 'function');
+
+      // Test the logger works
+      instance.logger?.info('router test');
+      assert.strictEqual(logs.length, 1);
+      assert.strictEqual(logs[0], '[LoggerRouter] router test');
+
+      // Clean up
+      setLoggerFactory(undefined);
+    });
+
+    // Test 12: Should include logger in injector alongside custom dependencies
+    it('should include logger in injector alongside custom dependencies', async () => {
+      const { setLoggerFactory } = await import('./app-logger.ts');
+
+      const logs: string[] = [];
+      const mockLoggerFactory = (name: string) => ({
+        info: (msg: string) => logs.push(`[${name}] ${msg}`),
+        error: () => {},
+        debug: () => {},
+        warn: () => {},
+        trace: () => {},
+      });
+
+      setLoggerFactory(mockLoggerFactory);
+
+      type Dependencies = {
+        authService: Service<{ validate: (token: string) => boolean }>;
+        userService: Service<{ getUser: (id: string) => any }>;
+      };
+
+      const defineRouter = defineRouterFactory
+        .name('MixedLoggerRouter')
+        .inject<Dependencies>()
+        .handler(({ name, injector }) => {
+          const deps = injector();
+          return {
+            name,
+            customDeps: {
+              hasAuthService: 'authService' in deps,
+              hasUserService: 'userService' in deps,
+            },
+            loggerDep: {
+              hasLogger: 'logger' in deps,
+              loggerInfo: typeof deps.logger?.info,
+            },
+            testLogger: () => {
+              deps.logger?.info('router component test');
+              return 'tested';
+            },
+          };
+        });
+
+      const mockInjector = () => ({
+        authService: { validate: () => true },
+        userService: { getUser: () => ({ id: '123' }) },
+      });
+
+      const instance = defineRouter(mockInjector);
+
+      assert.strictEqual(instance.name, 'MixedLoggerRouter');
+      assert.strictEqual(instance.customDeps.hasAuthService, true);
+      assert.strictEqual(instance.customDeps.hasUserService, true);
+      assert.strictEqual(instance.loggerDep.hasLogger, true);
+      assert.strictEqual(instance.loggerDep.loggerInfo, 'function');
+
+      // Test that logger is properly configured
+      instance.testLogger();
+      assert.strictEqual(logs.length, 1);
+      assert.strictEqual(logs[0], '[MixedLoggerRouter] router component test');
+
+      // Clean up
+      setLoggerFactory(undefined);
+    });
+
+    // Test 13: Should handle logger factory returning undefined
+    it('should handle logger factory returning undefined', async () => {
+      const { setLoggerFactory } = await import('./app-logger.ts');
+
+      // Set logger factory that returns undefined
+      setLoggerFactory(() => undefined as any);
+
+      const defineRouter = defineRouterFactory
+        .name('UndefinedLoggerRouter')
+        .inject()
+        .handler(({ name, injector }) => {
+          const deps = injector?.();
+          return {
+            name,
+            hasLogger: deps && 'logger' in deps,
+            loggerValue: deps?.logger,
+          };
+        });
+
+      const instance = defineRouter();
+
+      assert.strictEqual(instance.name, 'UndefinedLoggerRouter');
+      assert.strictEqual(instance.hasLogger, true);
+      assert.strictEqual(instance.loggerValue, undefined);
+
+      // Clean up
+      setLoggerFactory(undefined);
+    });
+
+    // Test 14: Should pass router name to logger factory
+    it('should pass router name to logger factory', async () => {
+      const { setLoggerFactory } = await import('./app-logger.ts');
+
+      const createdLoggers: string[] = [];
+      const mockLoggerFactory = (name: string) => {
+        createdLoggers.push(name);
+        return {
+          info: () => {},
+          error: () => {},
+          debug: () => {},
+          warn: () => {},
+          trace: () => {},
+        };
+      };
+
+      setLoggerFactory(mockLoggerFactory);
+
+      const defineRouter1 = defineRouterFactory
+        .name('ApiRouter')
+        .inject()
+        .handler(({ injector }) => {
+          const deps = injector?.();
+          return { hasLogger: deps && 'logger' in deps };
+        });
+
+      const defineRouter2 = defineRouterFactory
+        .name('AdminRouter')
+        .inject()
+        .handler(({ injector }) => {
+          const deps = injector?.();
+          return { hasLogger: deps && 'logger' in deps };
+        });
+
+      const instance1 = defineRouter1();
+      const instance2 = defineRouter2();
+
+      assert.strictEqual(instance1.hasLogger, true);
+      assert.strictEqual(instance2.hasLogger, true);
+      assert.deepStrictEqual(createdLoggers, ['ApiRouter', 'AdminRouter']);
+
+      // Clean up
+      setLoggerFactory(undefined);
     });
   });
 });
