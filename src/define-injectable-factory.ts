@@ -1,5 +1,5 @@
 import { onApplicationInitialized, onApplicationStart, onApplicationStop } from './app-hooks.ts';
-import { appLogger } from './app-logger.ts';
+import { appLogger, loggerFactory, type Logger } from './app-logger.ts';
 
 /**
  * Represents an injectable dependency that can be provided to other components.
@@ -34,7 +34,7 @@ type InjectableFactoryBuilderNoDeps<TName extends string> = {
   handler<S extends object | void>(
     fn: (params: {
       name: TName;
-      injector: undefined;
+      injector: () => { logger?: Logger };
       appHooks: {
         onApplicationInitialized: (callback: () => unknown, executionOrder?: number) => void;
         onApplicationStart: (callback: () => unknown, executionOrder?: number) => void;
@@ -53,7 +53,7 @@ type InjectableFactoryBuilderWithDeps<TName extends string, TInject extends Reco
   handler<S extends object | void>(
     fn: (params: {
       name: TName;
-      injector: () => TInject;
+      injector: () => { logger?: Logger } & TInject;
       appHooks: {
         onApplicationInitialized: (callback: () => unknown, executionOrder?: number) => void;
         onApplicationStart: (callback: () => unknown, executionOrder?: number) => void;
@@ -88,10 +88,11 @@ type InjectableFactoryBuilderWithDeps<TName extends string, TInject extends Reco
 export const defineInjectableFactory: DefineInjectableFactory = {
   name: (name) => ({
     inject: () => ({
-      handler: (fn: any) => (injectorOrNothing?: unknown) => {
+      handler: (fn: any) => (injectorOrNothing?: Function) => {
+        const logger = injectorOrNothing?.()?.logger ?? loggerFactory?.(name);
         const injectable = fn({
           name,
-          injector: injectorOrNothing as any,
+          injector: () => ({ logger, ...injectorOrNothing?.() }),
           appHooks: { onApplicationInitialized, onApplicationStart, onApplicationStop },
         });
         appLogger?.info(`${name} initialized`);

@@ -1,4 +1,5 @@
 import { defineInjectableFactory, type Injectable } from './define-injectable-factory.ts';
+import { type Logger, loggerFactory } from './app-logger.ts';
 
 /**
  * Represents a router component that handles routing logic and endpoint definitions.
@@ -33,7 +34,7 @@ type RouterFactoryBuilderNoDeps<TName extends string> = {
   handler<S extends Record<string | symbol, unknown> | void>(
     fn: (params: {
       name: TName;
-      injector: never;
+      injector: () => { logger?: Logger };
       appHooks: {
         onApplicationInitialized: (callback: () => unknown, executionOrder?: number) => void;
         onApplicationStart: (callback: () => unknown, executionOrder?: number) => void;
@@ -52,7 +53,7 @@ type RouterFactoryBuilderWithDeps<TName extends string, TInject extends Record<s
   handler<S extends Record<string | symbol, unknown> | void>(
     fn: (params: {
       name: TName;
-      injector: () => TInject;
+      injector: () => { logger?: Logger } & TInject;
       appHooks: {
         onApplicationInitialized: (callback: () => unknown, executionOrder?: number) => void;
         onApplicationStart: (callback: () => unknown, executionOrder?: number) => void;
@@ -98,8 +99,13 @@ type RouterFactoryBuilderWithDeps<TName extends string, TInject extends Record<s
 export const defineRouterFactory: DefineRouterFactory = {
   name: (name) => ({
     inject: () => ({
-      handler: (fn: any) => (injectorOrNothing?: unknown) =>
-        defineInjectableFactory.name(name).inject<any>().handler(fn)(injectorOrNothing as any) as any,
+      handler: (fn: any) => (injectorOrNothing?: Function) => {
+        const logger = loggerFactory?.(name);
+        return defineInjectableFactory.name(name).inject<any>().handler(fn)(() => ({
+          logger,
+          ...injectorOrNothing?.(),
+        })) as any;
+      },
     }),
   }),
 };

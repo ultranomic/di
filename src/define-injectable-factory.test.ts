@@ -39,11 +39,15 @@ import { defineInjectableFactory, type Injectable } from './define-injectable-fa
  * LOGGER COVERAGE:
  * 22. ✅ Should handle logger being undefined during initialization
  * 23. ✅ Should handle logger being defined during initialization
+ * 24. ✅ Should include logger in injector when no custom dependencies
+ * 25. ✅ Should include logger in injector alongside custom dependencies
+ * 26. ✅ Should handle logger factory returning undefined
+ * 27. ✅ Should pass component name to logger factory
  *
  * INTEGRATION:
- * 24. ✅ Should work as building block for higher-level abstractions
- * 25. ✅ Should support functional composition patterns
- * 26. ✅ Should maintain consistent API with other factory functions
+ * 28. ✅ Should work as building block for higher-level abstractions
+ * 29. ✅ Should support functional composition patterns
+ * 30. ✅ Should maintain consistent API with other factory functions
  */
 
 describe('defineInjectableFactory', () => {
@@ -566,8 +570,8 @@ describe('defineInjectableFactory', () => {
   });
 
   describe('Error Handling', () => {
-    // Test 14: Should handle injector being undefined when no dependencies specified
-    it('should handle injector being undefined when no dependencies specified', () => {
+    // Test 14: Should always provide injector function even when no custom dependencies
+    it('should always provide injector function even when no custom dependencies', () => {
       const defineInjectable = defineInjectableFactory
         .name('NoDepsComponent')
         .inject()
@@ -575,16 +579,21 @@ describe('defineInjectableFactory', () => {
           return {
             name,
             injectorType: typeof injector,
-            injectorValue: injector,
+            hasInjectorFunction: typeof injector === 'function',
+            getDeps: () => injector?.(),
           };
         });
 
       const instance = defineInjectable();
 
-      // When no dependencies are specified, injector should be undefined
+      // Now injector should always be a function
       assert.strictEqual(instance.name, 'NoDepsComponent');
-      assert.strictEqual(instance.injectorType, 'undefined');
-      assert.strictEqual(instance.injectorValue, undefined);
+      assert.strictEqual(instance.injectorType, 'function');
+      assert.strictEqual(instance.hasInjectorFunction, true);
+
+      const deps = instance.getDeps();
+      assert.strictEqual(typeof deps, 'object');
+      assert.strictEqual('logger' in deps, true);
     });
 
     // Test 15: Should provide meaningful error messages
@@ -593,7 +602,7 @@ describe('defineInjectableFactory', () => {
         .name('ErrorTestComponent')
         .inject()
         .handler(({ name, injector }) => {
-          // This should be safe - injector is undefined when no deps specified
+          // This should be safe - injector is always a function
           return {
             name,
             hasInjector: injector !== undefined,
@@ -604,8 +613,8 @@ describe('defineInjectableFactory', () => {
       const instance = defineInjectable();
 
       assert.strictEqual(instance.name, 'ErrorTestComponent');
-      assert.strictEqual(instance.hasInjector, false);
-      assert.strictEqual(instance.canCallInjector, false);
+      assert.strictEqual(instance.hasInjector, true);
+      assert.strictEqual(instance.canCallInjector, true);
     });
 
     // Test 16: Should handle invalid injector calls gracefully
@@ -967,6 +976,191 @@ describe('defineInjectableFactory', () => {
 
       // Clean up - reset logger to undefined
       setAppLogger(undefined);
+    });
+
+    // Test 24: Should include logger in injector when no custom dependencies
+    it('should include logger in injector when no custom dependencies', async () => {
+      const { setLoggerFactory } = await import('./app-logger.ts');
+
+      const logs: string[] = [];
+      const mockLoggerFactory = (name: string) => ({
+        info: (msg: string) => logs.push(`[${name}] ${msg}`),
+        error: () => {},
+        debug: () => {},
+        warn: () => {},
+        trace: () => {},
+      });
+
+      // Set logger factory
+      setLoggerFactory(mockLoggerFactory);
+
+      const defineInjectable = defineInjectableFactory
+        .name('LoggerInjectorComponent')
+        .inject()
+        .handler(({ name, injector }) => {
+          const deps = injector?.();
+          return {
+            name,
+            hasLogger: deps && 'logger' in deps,
+            logger: deps?.logger,
+          };
+        });
+
+      const instance = defineInjectable();
+
+      assert.strictEqual(instance.name, 'LoggerInjectorComponent');
+      assert.strictEqual(instance.hasLogger, true);
+      assert.strictEqual(typeof instance.logger.info, 'function');
+
+      // Test the logger works
+      instance.logger?.info('test message');
+      assert.strictEqual(logs.length, 1);
+      assert.strictEqual(logs[0], '[LoggerInjectorComponent] test message');
+
+      // Clean up
+      setLoggerFactory(undefined);
+    });
+
+    // Test 25: Should include logger in injector alongside custom dependencies
+    it('should include logger in injector alongside custom dependencies', async () => {
+      const { setLoggerFactory } = await import('./app-logger.ts');
+
+      const logs: string[] = [];
+      const mockLoggerFactory = (name: string) => ({
+        info: (msg: string) => logs.push(`[${name}] ${msg}`),
+        error: () => {},
+        debug: () => {},
+        warn: () => {},
+        trace: () => {},
+      });
+
+      setLoggerFactory(mockLoggerFactory);
+
+      type Dependencies = {
+        service: Injectable<{ getValue: () => string }>;
+        config: Injectable<{ setting: string }>;
+      };
+
+      const defineInjectable = defineInjectableFactory
+        .name('MixedLoggerComponent')
+        .inject<Dependencies>()
+        .handler(({ name, injector }) => {
+          const deps = injector();
+          return {
+            name,
+            customDeps: {
+              hasService: 'service' in deps,
+              hasConfig: 'config' in deps,
+              serviceValue: deps.service?.getValue(),
+              configValue: deps.config?.setting,
+            },
+            loggerDep: {
+              hasLogger: 'logger' in deps,
+              loggerInfo: typeof deps.logger?.info,
+            },
+            testLogger: () => {
+              deps.logger?.info('component test');
+              return 'tested';
+            },
+          };
+        });
+
+      const mockInjector = () => ({
+        service: { getValue: () => 'service-value' },
+        config: { setting: 'config-value' },
+      });
+
+      const instance = defineInjectable(mockInjector);
+
+      assert.strictEqual(instance.name, 'MixedLoggerComponent');
+      assert.strictEqual(instance.customDeps.hasService, true);
+      assert.strictEqual(instance.customDeps.hasConfig, true);
+      assert.strictEqual(instance.customDeps.serviceValue, 'service-value');
+      assert.strictEqual(instance.customDeps.configValue, 'config-value');
+      assert.strictEqual(instance.loggerDep.hasLogger, true);
+      assert.strictEqual(instance.loggerDep.loggerInfo, 'function');
+
+      // Test that logger is properly configured
+      instance.testLogger();
+      assert.strictEqual(logs.length, 1);
+      assert.strictEqual(logs[0], '[MixedLoggerComponent] component test');
+
+      // Clean up
+      setLoggerFactory(undefined);
+    });
+
+    // Test 26: Should handle logger factory returning undefined
+    it('should handle logger factory returning undefined', async () => {
+      const { setLoggerFactory } = await import('./app-logger.ts');
+
+      // Set logger factory that returns undefined
+      setLoggerFactory(() => undefined as any);
+
+      const defineInjectable = defineInjectableFactory
+        .name('UndefinedLoggerComponent')
+        .inject()
+        .handler(({ name, injector }) => {
+          const deps = injector?.();
+          return {
+            name,
+            hasLogger: deps && 'logger' in deps,
+            loggerValue: deps?.logger,
+          };
+        });
+
+      const instance = defineInjectable();
+
+      assert.strictEqual(instance.name, 'UndefinedLoggerComponent');
+      assert.strictEqual(instance.hasLogger, true);
+      assert.strictEqual(instance.loggerValue, undefined);
+
+      // Clean up
+      setLoggerFactory(undefined);
+    });
+
+    // Test 27: Should pass component name to logger factory
+    it('should pass component name to logger factory', async () => {
+      const { setLoggerFactory } = await import('./app-logger.ts');
+
+      const createdLoggers: string[] = [];
+      const mockLoggerFactory = (name: string) => {
+        createdLoggers.push(name);
+        return {
+          info: () => {},
+          error: () => {},
+          debug: () => {},
+          warn: () => {},
+          trace: () => {},
+        };
+      };
+
+      setLoggerFactory(mockLoggerFactory);
+
+      const defineInjectable1 = defineInjectableFactory
+        .name('ComponentOne')
+        .inject()
+        .handler(({ injector }) => {
+          const deps = injector?.();
+          return { hasLogger: deps && 'logger' in deps };
+        });
+
+      const defineInjectable2 = defineInjectableFactory
+        .name('ComponentTwo')
+        .inject()
+        .handler(({ injector }) => {
+          const deps = injector?.();
+          return { hasLogger: deps && 'logger' in deps };
+        });
+
+      const instance1 = defineInjectable1();
+      const instance2 = defineInjectable2();
+
+      assert.strictEqual(instance1.hasLogger, true);
+      assert.strictEqual(instance2.hasLogger, true);
+      assert.deepStrictEqual(createdLoggers, ['ComponentOne', 'ComponentTwo']);
+
+      // Clean up
+      setLoggerFactory(undefined);
     });
   });
 
