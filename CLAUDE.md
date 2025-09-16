@@ -63,8 +63,56 @@ defineModuleFactory
 **Handler functions receive a single object parameter with `{ name, injector?, appHooks }`**
 
 - `name`: The injectable/module name (literal string type)
-- `injector`: Function returning dependencies (only present when dependencies are specified)
+- `injector`: Function returning dependencies with automatic logger injection (always present)
 - `appHooks`: Lifecycle hooks object with `onApplicationInitialized`, `onApplicationStart`, `onApplicationStop`
+
+## Logger Injection System
+
+**AUTOMATIC LOGGER INJECTION: All factory creators automatically inject a component-specific logger derived from the app logger:**
+
+### Logger Setup with defineApp
+
+```typescript
+import pino from 'pino';
+
+// With logger
+const app = await defineApp(() => myModule(), {
+  logger: pino(), // Pass pino logger instance
+});
+
+// Without logger (logger will be undefined)
+const app = await defineApp(() => myModule());
+```
+
+### Accessing Logger in Components
+
+```typescript
+// Injectable/Service/Router/Module with automatic logger injection
+defineServiceFactory
+  .name('UserService')
+  .inject()
+  .handler(({ name, injector }) => {
+    const { logger } = injector();
+    logger?.info('Service initializing'); // Logs with [UserService] prefix
+
+    return {
+      createUser: (data) => {
+        logger?.info('Creating user', data);
+        // business logic
+      },
+    };
+  });
+
+// With dependencies - logger is automatically included
+defineServiceFactory
+  .name('PaymentService')
+  .inject<{ userService: Service<UserServiceType> }>()
+  .handler(({ name, injector }) => {
+    const { logger, userService } = injector();
+    logger?.info('Payment service starting');
+    // implementation
+  });
+```
 
 ## Core Commands
 

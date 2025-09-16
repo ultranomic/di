@@ -1,5 +1,6 @@
 import { onApplicationInitialized, onApplicationStart, onApplicationStop } from './app-hooks.ts';
-import { appLogger, loggerFactory, type Logger } from './app-logger.ts';
+import { appLogger } from './app-logger.ts';
+import type { Logger } from 'pino';
 
 /**
  * Represents an injectable dependency that can be provided to other components.
@@ -28,6 +29,7 @@ type NamedInjectableFactoryBuilder<TName extends string> = {
 
 /**
  * Builder for injectables that don't have dependencies.
+ * Automatically provides a logger instance specific to the named injectable.
  * @template TName - The name of the injectable
  */
 type InjectableFactoryBuilderNoDeps<TName extends string> = {
@@ -46,6 +48,7 @@ type InjectableFactoryBuilderNoDeps<TName extends string> = {
 
 /**
  * Builder for injectables that have dependencies.
+ * Automatically provides a logger instance specific to the named injectable along with the specified dependencies.
  * @template TName - The name of the injectable
  * @template TInject - Record of dependency names to their injectable types
  */
@@ -66,22 +69,28 @@ type InjectableFactoryBuilderWithDeps<TName extends string, TInject extends Reco
 /**
  * Factory for creating injectable dependencies with optional dependency injection support.
  * Provides a fluent API for defining named injectables that can be used throughout the application.
+ * Automatically injects a component-specific logger derived from the app logger.
  *
  * @example
  * ```typescript
- * // Injectable without dependencies
+ * // Injectable without dependencies (logger automatically injected)
  * const myService = defineInjectableFactory
  *   .name('myService')
  *   .inject()
- *   .handler(() => ({ message: 'Hello World' }));
+ *   .handler(({ injector }) => {
+ *     const { logger } = injector();
+ *     logger?.info('Service initializing');
+ *     return { message: 'Hello World' };
+ *   });
  *
- * // Injectable with dependencies
+ * // Injectable with dependencies (logger automatically included with dependencies)
  * const dependentService = defineInjectableFactory
  *   .name('dependentService')
  *   .inject<{ myService: Injectable<{ message: string }> }>()
  *   .handler(({ injector }) => {
- *     const deps = injector();
- *     return { greeting: deps.myService.message };
+ *     const { logger, myService } = injector();
+ *     logger?.info('Dependent service initializing');
+ *     return { greeting: myService.message };
  *   });
  * ```
  */
@@ -89,7 +98,7 @@ export const defineInjectableFactory: DefineInjectableFactory = {
   name: (name) => ({
     inject: () => ({
       handler: (fn: any) => (injectorOrNothing?: Function) => {
-        const logger = injectorOrNothing?.()?.logger ?? loggerFactory?.(name);
+        const logger = appLogger?.child({}, { msgPrefix: name ? `[${name}] ` : '' });
         const injectable = fn({
           name,
           injector: () => ({ logger, ...injectorOrNothing?.() }),
