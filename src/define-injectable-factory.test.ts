@@ -946,10 +946,10 @@ describe('defineInjectableFactory', () => {
     it('should handle logger being defined during initialization', async () => {
       // Import the setAppLogger function to control the logger state
       const { setAppLogger } = await import('./app-logger.ts');
-      const { createMockPinoLogger } = await import('./test-utils/mock-pino-logger.ts');
+      const { createMockLogger } = await import('./logger.mock.ts');
 
       // Create a mock pino logger
-      const mockLogger = createMockPinoLogger('test');
+      const mockLogger = createMockLogger('test');
 
       // Set appLogger to defined state
       setAppLogger(mockLogger);
@@ -979,10 +979,10 @@ describe('defineInjectableFactory', () => {
     // Test 24: Should include logger in injector when no custom dependencies
     it('should include logger in injector when no custom dependencies', async () => {
       const { setAppLogger } = await import('./app-logger.ts');
-      const { createMockPinoLogger } = await import('./test-utils/mock-pino-logger.ts');
+      const { createMockLogger } = await import('./logger.mock.ts');
 
       // Create a mock pino logger
-      const mockLogger = createMockPinoLogger('test');
+      const mockLogger = createMockLogger('test');
 
       // Set app logger
       setAppLogger(mockLogger);
@@ -1020,10 +1020,10 @@ describe('defineInjectableFactory', () => {
     // Test 25: Should include logger in injector alongside custom dependencies
     it('should include logger in injector alongside custom dependencies', async () => {
       const { setAppLogger } = await import('./app-logger.ts');
-      const { createMockPinoLogger } = await import('./test-utils/mock-pino-logger.ts');
+      const { createMockLogger } = await import('./logger.mock.ts');
 
       // Create a mock pino logger
-      const mockLogger = createMockPinoLogger('test');
+      const mockLogger = createMockLogger('test');
 
       setAppLogger(mockLogger);
 
@@ -1115,10 +1115,10 @@ describe('defineInjectableFactory', () => {
     // Test 27: Should pass component name to logger factory
     it('should pass component name to logger factory', async () => {
       const { setAppLogger } = await import('./app-logger.ts');
-      const { createMockPinoLogger } = await import('./test-utils/mock-pino-logger.ts');
+      const { createMockLogger } = await import('./logger.mock.ts');
 
       // Create a mock pino logger that tracks child logger creation
-      const mockLogger = createMockPinoLogger('test');
+      const mockLogger = createMockLogger('test');
 
       setAppLogger(mockLogger);
 

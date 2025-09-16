@@ -427,10 +427,10 @@ describe('defineRouterFactory', () => {
     // Test 11: Should include logger in injector when no custom dependencies
     it('should include logger in injector when no custom dependencies', async () => {
       const { setAppLogger } = await import('./app-logger.ts');
-      const { createMockPinoLogger } = await import('./test-utils/mock-pino-logger.ts');
+      const { createMockLogger } = await import('./logger.mock.ts');
 
       // Create a mock pino logger
-      const mockLogger = createMockPinoLogger('test');
+      const mockLogger = createMockLogger('test');
 
       // Set logger
       setAppLogger(mockLogger);
@@ -467,10 +467,10 @@ describe('defineRouterFactory', () => {
     // Test 12: Should include logger in injector alongside custom dependencies
     it('should include logger in injector alongside custom dependencies', async () => {
       const { setAppLogger } = await import('./app-logger.ts');
-      const { createMockPinoLogger } = await import('./test-utils/mock-pino-logger.ts');
+      const { createMockLogger } = await import('./logger.mock.ts');
 
       // Create a mock pino logger
-      const mockLogger = createMockPinoLogger('test');
+      const mockLogger = createMockLogger('test');
 
       setAppLogger(mockLogger);
 
@@ -558,8 +558,8 @@ describe('defineRouterFactory', () => {
     it('should pass router name to logger factory', async () => {
       const { setAppLogger } = await import('./app-logger.ts');
 
-      const { createMockPinoLogger } = await import('./test-utils/mock-pino-logger.ts');
-      const mockLogger = createMockPinoLogger('test');
+      const { createMockLogger } = await import('./logger.mock.ts');
+      const mockLogger = createMockLogger('test');
 
       setAppLogger(mockLogger);
 
