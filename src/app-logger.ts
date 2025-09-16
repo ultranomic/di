@@ -1,36 +1,18 @@
 import { appHooks } from './app-hooks.ts';
-/**
- * @internal
- */
-export type Logger = {
-  error: (...args: any[]) => unknown;
-  debug: (...args: any[]) => unknown;
-  warn: (...args: any[]) => unknown;
-  info: (...args: any[]) => unknown;
-  trace: (...args: any[]) => unknown;
-};
+import type { Logger } from 'pino';
 
 /**
  * @internal
  */
 export let appLogger: Logger | undefined = undefined;
 
+/**
+ * Sets the application-wide logger instance and configures it for app hooks.
+ * This logger will be used as the parent for all component-specific child loggers.
+ * @param logger - The pino logger instance to use for application logging, or undefined to disable logging
+ * @internal
+ */
 export const setAppLogger = (logger: Logger | undefined) => {
   appLogger = logger;
   appHooks.setLogger(logger);
-};
-
-/**
- * Logger factory function that creates named loggers for injectables.
- * @internal
- */
-export let loggerFactory: ((name: string) => Logger) | undefined = undefined;
-
-/**
- * Sets the logger factory function used to create named loggers for injectables.
- * @param factory - Optional function that creates a logger instance for a given component name
- * @internal
- */
-export const setLoggerFactory = (factory?: (name: string) => Logger) => {
-  loggerFactory = factory;
 };

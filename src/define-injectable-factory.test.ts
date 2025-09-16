@@ -946,15 +946,10 @@ describe('defineInjectableFactory', () => {
     it('should handle logger being defined during initialization', async () => {
       // Import the setAppLogger function to control the logger state
       const { setAppLogger } = await import('./app-logger.ts');
+      const { createMockPinoLogger } = await import('./test-utils/mock-pino-logger.ts');
 
-      const logs: string[] = [];
-      const mockLogger = {
-        info: (msg: string) => logs.push(msg),
-        error: () => {},
-        debug: () => {},
-        warn: () => {},
-        trace: () => {},
-      };
+      // Create a mock pino logger
+      const mockLogger = createMockPinoLogger('test');
 
       // Set appLogger to defined state
       setAppLogger(mockLogger);
@@ -971,8 +966,11 @@ describe('defineInjectableFactory', () => {
 
       assert.strictEqual(instance.name, 'LoggerWithLoggerTestComponent');
       assert.strictEqual(instance.initialized, true);
+
+      // Verify that the logger logged the initialization
+      const logs = (mockLogger as any).getLogs();
       assert.strictEqual(logs.length, 1);
-      assert.strictEqual(logs[0], 'LoggerWithLoggerTestComponent initialized');
+      assert.strictEqual(logs[0].msg, 'LoggerWithLoggerTestComponent initialized');
 
       // Clean up - reset logger to undefined
       setAppLogger(undefined);
@@ -980,19 +978,14 @@ describe('defineInjectableFactory', () => {
 
     // Test 24: Should include logger in injector when no custom dependencies
     it('should include logger in injector when no custom dependencies', async () => {
-      const { setLoggerFactory } = await import('./app-logger.ts');
+      const { setAppLogger } = await import('./app-logger.ts');
+      const { createMockPinoLogger } = await import('./test-utils/mock-pino-logger.ts');
 
-      const logs: string[] = [];
-      const mockLoggerFactory = (name: string) => ({
-        info: (msg: string) => logs.push(`[${name}] ${msg}`),
-        error: () => {},
-        debug: () => {},
-        warn: () => {},
-        trace: () => {},
-      });
+      // Create a mock pino logger
+      const mockLogger = createMockPinoLogger('test');
 
-      // Set logger factory
-      setLoggerFactory(mockLoggerFactory);
+      // Set app logger
+      setAppLogger(mockLogger);
 
       const defineInjectable = defineInjectableFactory
         .name('LoggerInjectorComponent')
@@ -1012,29 +1005,27 @@ describe('defineInjectableFactory', () => {
       assert.strictEqual(instance.hasLogger, true);
       assert.strictEqual(typeof instance.logger.info, 'function');
 
-      // Test the logger works
+      // Test the logger works - it should be a child logger with component prefix
       instance.logger?.info('test message');
-      assert.strictEqual(logs.length, 1);
-      assert.strictEqual(logs[0], '[LoggerInjectorComponent] test message');
+      const logs = (mockLogger as any).getLogs();
+      // Should have 2 logs: initialization + test message
+      assert.strictEqual(logs.length, 2);
+      assert.strictEqual(logs[1].msg, 'test message');
+      assert.strictEqual(logs[1].prefix, '[LoggerInjectorComponent] ');
 
       // Clean up
-      setLoggerFactory(undefined);
+      setAppLogger(undefined);
     });
 
     // Test 25: Should include logger in injector alongside custom dependencies
     it('should include logger in injector alongside custom dependencies', async () => {
-      const { setLoggerFactory } = await import('./app-logger.ts');
+      const { setAppLogger } = await import('./app-logger.ts');
+      const { createMockPinoLogger } = await import('./test-utils/mock-pino-logger.ts');
 
-      const logs: string[] = [];
-      const mockLoggerFactory = (name: string) => ({
-        info: (msg: string) => logs.push(`[${name}] ${msg}`),
-        error: () => {},
-        debug: () => {},
-        warn: () => {},
-        trace: () => {},
-      });
+      // Create a mock pino logger
+      const mockLogger = createMockPinoLogger('test');
 
-      setLoggerFactory(mockLoggerFactory);
+      setAppLogger(mockLogger);
 
       type Dependencies = {
         service: Injectable<{ getValue: () => string }>;
@@ -1082,19 +1073,22 @@ describe('defineInjectableFactory', () => {
 
       // Test that logger is properly configured
       instance.testLogger();
-      assert.strictEqual(logs.length, 1);
-      assert.strictEqual(logs[0], '[MixedLoggerComponent] component test');
+      const logs = (mockLogger as any).getLogs();
+      // Should have initialization log + test log
+      const testLogs = logs.filter((log: any) => log.msg === 'component test');
+      assert.strictEqual(testLogs.length, 1);
+      assert.strictEqual(testLogs[0].prefix, '[MixedLoggerComponent] ');
 
       // Clean up
-      setLoggerFactory(undefined);
+      setAppLogger(undefined);
     });
 
     // Test 26: Should handle logger factory returning undefined
     it('should handle logger factory returning undefined', async () => {
-      const { setLoggerFactory } = await import('./app-logger.ts');
+      const { setAppLogger } = await import('./app-logger.ts');
 
-      // Set logger factory that returns undefined
-      setLoggerFactory(() => undefined as any);
+      // Set app logger to undefined
+      setAppLogger(undefined);
 
       const defineInjectable = defineInjectableFactory
         .name('UndefinedLoggerComponent')
@@ -1115,26 +1109,18 @@ describe('defineInjectableFactory', () => {
       assert.strictEqual(instance.loggerValue, undefined);
 
       // Clean up
-      setLoggerFactory(undefined);
+      setAppLogger(undefined);
     });
 
     // Test 27: Should pass component name to logger factory
     it('should pass component name to logger factory', async () => {
-      const { setLoggerFactory } = await import('./app-logger.ts');
+      const { setAppLogger } = await import('./app-logger.ts');
+      const { createMockPinoLogger } = await import('./test-utils/mock-pino-logger.ts');
 
-      const createdLoggers: string[] = [];
-      const mockLoggerFactory = (name: string) => {
-        createdLoggers.push(name);
-        return {
-          info: () => {},
-          error: () => {},
-          debug: () => {},
-          warn: () => {},
-          trace: () => {},
-        };
-      };
+      // Create a mock pino logger that tracks child logger creation
+      const mockLogger = createMockPinoLogger('test');
 
-      setLoggerFactory(mockLoggerFactory);
+      setAppLogger(mockLogger);
 
       const defineInjectable1 = defineInjectableFactory
         .name('ComponentOne')
@@ -1157,10 +1143,16 @@ describe('defineInjectableFactory', () => {
 
       assert.strictEqual(instance1.hasLogger, true);
       assert.strictEqual(instance2.hasLogger, true);
-      assert.deepStrictEqual(createdLoggers, ['ComponentOne', 'ComponentTwo']);
+
+      // Verify that child loggers were created with component-specific prefixes
+      const logs = (mockLogger as any).getLogs();
+      const componentOneLogs = logs.filter((log: any) => log.msg.includes('ComponentOne'));
+      const componentTwoLogs = logs.filter((log: any) => log.msg.includes('ComponentTwo'));
+      assert.strictEqual(componentOneLogs.length, 1);
+      assert.strictEqual(componentTwoLogs.length, 1);
 
       // Clean up
-      setLoggerFactory(undefined);
+      setAppLogger(undefined);
     });
   });
 

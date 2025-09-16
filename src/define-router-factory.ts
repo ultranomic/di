@@ -1,5 +1,6 @@
 import { defineInjectableFactory, type Injectable } from './define-injectable-factory.ts';
-import { type Logger, loggerFactory } from './app-logger.ts';
+import { appLogger } from './app-logger.ts';
+import type { Logger } from 'pino';
 
 /**
  * Represents a router component that handles routing logic and endpoint definitions.
@@ -28,6 +29,7 @@ type NamedRouterFactoryBuilder<TName extends string> = {
 
 /**
  * Builder for routers that don't have dependencies.
+ * Automatically provides a logger instance specific to the named router.
  * @template TName - The name of the router
  */
 type RouterFactoryBuilderNoDeps<TName extends string> = {
@@ -46,6 +48,7 @@ type RouterFactoryBuilderNoDeps<TName extends string> = {
 
 /**
  * Builder for routers that have dependencies.
+ * Automatically provides a logger instance specific to the named router along with the specified dependencies.
  * @template TName - The name of the router
  * @template TInject - Record of dependency names to their injectable types
  */
@@ -66,30 +69,36 @@ type RouterFactoryBuilderWithDeps<TName extends string, TInject extends Record<s
 /**
  * Factory for creating router components with optional dependency injection support.
  * Routers handle HTTP routing, middleware, and endpoint definitions for web applications.
+ * Automatically injects a component-specific logger derived from the app logger.
  *
  * @example
  * ```typescript
- * // Router without dependencies
+ * // Router without dependencies (logger automatically injected)
  * const apiRouter = defineRouterFactory
  *   .name('apiRouter')
  *   .inject()
- *   .handler(() => ({
- *     routes: [
- *       { path: '/api/users', method: 'GET', handler: getUsersHandler },
- *       { path: '/api/users', method: 'POST', handler: createUserHandler },
- *     ],
- *     middleware: [authMiddleware, loggingMiddleware],
- *   }));
+ *   .handler(({ injector }) => {
+ *     const { logger } = injector();
+ *     logger?.info('API router initializing');
+ *     return {
+ *       routes: [
+ *         { path: '/api/users', method: 'GET', handler: getUsersHandler },
+ *         { path: '/api/users', method: 'POST', handler: createUserHandler },
+ *       ],
+ *       middleware: [authMiddleware, loggingMiddleware],
+ *     };
+ *   });
  *
- * // Router with dependencies
+ * // Router with dependencies (logger automatically included with dependencies)
  * const userRouter = defineRouterFactory
  *   .name('userRouter')
  *   .inject<{ userService: Injectable<{ getUsers: Function }> }>()
  *   .handler(({ injector }) => {
- *     const deps = injector();
+ *     const { logger, userService } = injector();
+ *     logger?.info('User router initializing');
  *     return {
  *       getUsers: (req: Request, res: Response) => {
- *         const users = deps.userService.getUsers();
+ *         const users = userService.getUsers();
  *         res.json(users);
  *       },
  *     };
@@ -100,7 +109,7 @@ export const defineRouterFactory: DefineRouterFactory = {
   name: (name) => ({
     inject: () => ({
       handler: (fn: any) => (injectorOrNothing?: Function) => {
-        const logger = loggerFactory?.(name);
+        const logger = appLogger?.child({}, { msgPrefix: name ? `[${name}] ` : '' });
         return defineInjectableFactory.name(name).inject<any>().handler(fn)(() => ({
           logger,
           ...injectorOrNothing?.(),

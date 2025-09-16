@@ -309,19 +309,14 @@ describe('defineServiceFactory', () => {
   describe('Logger Injection', () => {
     // Test 10: Should include logger in injector when no custom dependencies
     it('should include logger in injector when no custom dependencies', async () => {
-      const { setLoggerFactory } = await import('./app-logger.ts');
+      const { setAppLogger } = await import('./app-logger.ts');
+      const { createMockPinoLogger } = await import('./test-utils/mock-pino-logger.ts');
 
-      const logs: string[] = [];
-      const mockLoggerFactory = (name: string) => ({
-        info: (msg: string) => logs.push(`[${name}] ${msg}`),
-        error: () => {},
-        debug: () => {},
-        warn: () => {},
-        trace: () => {},
-      });
+      // Create a mock pino logger
+      const mockLogger = createMockPinoLogger('test');
 
-      // Set logger factory
-      setLoggerFactory(mockLoggerFactory);
+      // Set logger
+      setAppLogger(mockLogger);
 
       const defineService = defineServiceFactory
         .name('LoggerService')
@@ -343,27 +338,24 @@ describe('defineServiceFactory', () => {
 
       // Test the logger works
       instance.logger?.info('service test');
-      assert.strictEqual(logs.length, 1);
-      assert.strictEqual(logs[0], '[LoggerService] service test');
+      const logs = (mockLogger as any).getLogs();
+      const testLogs = logs.filter((log: any) => log.msg === 'service test');
+      assert.strictEqual(testLogs.length, 1);
+      assert.strictEqual(testLogs[0].prefix, '[LoggerService] ');
 
       // Clean up
-      setLoggerFactory(undefined);
+      setAppLogger(undefined);
     });
 
     // Test 11: Should include logger in injector alongside custom dependencies
     it('should include logger in injector alongside custom dependencies', async () => {
-      const { setLoggerFactory } = await import('./app-logger.ts');
+      const { setAppLogger } = await import('./app-logger.ts');
+      const { createMockPinoLogger } = await import('./test-utils/mock-pino-logger.ts');
 
-      const logs: string[] = [];
-      const mockLoggerFactory = (name: string) => ({
-        info: (msg: string) => logs.push(`[${name}] ${msg}`),
-        error: () => {},
-        debug: () => {},
-        warn: () => {},
-        trace: () => {},
-      });
+      // Create a mock pino logger
+      const mockLogger = createMockPinoLogger('test');
 
-      setLoggerFactory(mockLoggerFactory);
+      setAppLogger(mockLogger);
 
       type Dependencies = {
         database: Service<{ query: (sql: string) => any[] }>;
@@ -407,19 +399,21 @@ describe('defineServiceFactory', () => {
 
       // Test that logger is properly configured
       instance.testLogger();
-      assert.strictEqual(logs.length, 1);
-      assert.strictEqual(logs[0], '[MixedLoggerService] service component test');
+      const logs = (mockLogger as any).getLogs();
+      const testLogs = logs.filter((log: any) => log.msg === 'service component test');
+      assert.strictEqual(testLogs.length, 1);
+      assert.strictEqual(testLogs[0].prefix, '[MixedLoggerService] ');
 
       // Clean up
-      setLoggerFactory(undefined);
+      setAppLogger(undefined);
     });
 
     // Test 12: Should handle logger factory returning undefined
     it('should handle logger factory returning undefined', async () => {
-      const { setLoggerFactory } = await import('./app-logger.ts');
+      const { setAppLogger } = await import('./app-logger.ts');
 
-      // Set logger factory that returns undefined
-      setLoggerFactory(() => undefined as any);
+      // Set app logger to undefined
+      setAppLogger(undefined);
 
       const defineService = defineServiceFactory
         .name('UndefinedLoggerService')
@@ -440,26 +434,17 @@ describe('defineServiceFactory', () => {
       assert.strictEqual(instance.loggerValue, undefined);
 
       // Clean up
-      setLoggerFactory(undefined);
+      setAppLogger(undefined);
     });
 
     // Test 13: Should pass service name to logger factory
     it('should pass service name to logger factory', async () => {
-      const { setLoggerFactory } = await import('./app-logger.ts');
+      const { setAppLogger } = await import('./app-logger.ts');
 
-      const createdLoggers: string[] = [];
-      const mockLoggerFactory = (name: string) => {
-        createdLoggers.push(name);
-        return {
-          info: () => {},
-          error: () => {},
-          debug: () => {},
-          warn: () => {},
-          trace: () => {},
-        };
-      };
+      const { createMockPinoLogger } = await import('./test-utils/mock-pino-logger.ts');
+      const mockLogger = createMockPinoLogger('test');
 
-      setLoggerFactory(mockLoggerFactory);
+      setAppLogger(mockLogger);
 
       const defineService1 = defineServiceFactory
         .name('AuthService')
@@ -482,10 +467,12 @@ describe('defineServiceFactory', () => {
 
       assert.strictEqual(instance1.hasLogger, true);
       assert.strictEqual(instance2.hasLogger, true);
-      assert.deepStrictEqual(createdLoggers, ['AuthService', 'PaymentService']);
+      const logs = (mockLogger as any).getLogs();
+      const initLogs = logs.filter((log: any) => log.msg.includes('initialized'));
+      assert.strictEqual(initLogs.length, 2);
 
       // Clean up
-      setLoggerFactory(undefined);
+      setAppLogger(undefined);
     });
   });
 });

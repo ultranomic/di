@@ -7,11 +7,12 @@ A lightweight, type-safe dependency injection framework for TypeScript applicati
 - **🏗️ Layered Architecture** - Injectable, Service, Router → Module → App layers
 - **🔒 Type-safe dependency injection** - Full TypeScript support with compile-time type checking
 - **⚡ Lifecycle management** - Three-phase application hooks (initialized, start, stop)
+- **📝 Automatic Logger Injection** - Component-specific loggers with pino integration and automatic prefixes
 - **📦 Minimal footprint** - Only depends on `@ultranomic/hook`
 - **🚀 ES modules support** - Modern JavaScript module system
 - **🔌 Flexible definitions** - Support for injectables with and without dependencies
 - **📖 Complete JSDoc documentation** - Comprehensive API documentation with usage examples
-- **✅ Comprehensive test suite** - 6 test files with 78 total tests covering all core functionality with Node.js native test runner
+- **✅ Comprehensive test suite** - 6 test files with 88 total tests covering all core functionality with Node.js native test runner
 - **🏷️ Mandatory naming** - All factory functions require explicit naming for better debugging
 - **🎯 Fluent API pattern** - Consistent `.name().inject().handler()` pattern across all factories
 

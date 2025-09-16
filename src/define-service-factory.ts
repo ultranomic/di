@@ -1,5 +1,6 @@
 import { defineInjectableFactory, type Injectable } from './define-injectable-factory.ts';
-import { type Logger, loggerFactory } from './app-logger.ts';
+import { appLogger } from './app-logger.ts';
+import type { Logger } from 'pino';
 
 /**
  * Represents a service component that provides business logic and data operations.
@@ -28,6 +29,7 @@ type NamedServiceFactoryBuilder<TName extends string> = {
 
 /**
  * Builder for services that don't have dependencies.
+ * Automatically provides a logger instance specific to the named service.
  * @template TName - The name of the service
  */
 type ServiceFactoryBuilderNoDeps<TName extends string> = {
@@ -46,6 +48,7 @@ type ServiceFactoryBuilderNoDeps<TName extends string> = {
 
 /**
  * Builder for services that have dependencies.
+ * Automatically provides a logger instance specific to the named service along with the specified dependencies.
  * @template TName - The name of the service
  * @template TInject - Record of dependency names to their injectable types
  */
@@ -66,28 +69,34 @@ type ServiceFactoryBuilderWithDeps<TName extends string, TInject extends Record<
 /**
  * Factory for creating service components with optional dependency injection support.
  * Services provide business logic, data operations, and encapsulate application functionality.
+ * Automatically injects a component-specific logger derived from the app logger.
  *
  * @example
  * ```typescript
- * // Service without dependencies
+ * // Service without dependencies (logger automatically injected)
  * const userService = defineServiceFactory
  *   .name('userService')
  *   .inject()
- *   .handler(() => ({
- *     getUsers: () => [{ id: 1, name: 'John' }, { id: 2, name: 'Jane' }],
- *     createUser: (userData: any) => ({ id: Date.now(), ...userData }),
- *     validateUser: (user: any) => user.name && user.email,
- *   }));
+ *   .handler(({ injector }) => {
+ *     const { logger } = injector();
+ *     logger?.info('User service initializing');
+ *     return {
+ *       getUsers: () => [{ id: 1, name: 'John' }, { id: 2, name: 'Jane' }],
+ *       createUser: (userData: any) => ({ id: Date.now(), ...userData }),
+ *       validateUser: (user: any) => user.name && user.email,
+ *     };
+ *   });
  *
- * // Service with dependencies
+ * // Service with dependencies (logger automatically included with dependencies)
  * const emailService = defineServiceFactory
  *   .name('emailService')
  *   .inject<{ userService: Service<{ getUsers: Function }> }>()
  *   .handler(({ injector }) => {
- *     const deps = injector();
+ *     const { logger, userService } = injector();
+ *     logger?.info('Email service initializing');
  *     return {
  *       sendWelcomeEmail: (userId: number) => {
- *         const users = deps.userService.getUsers();
+ *         const users = userService.getUsers();
  *         const user = users.find(u => u.id === userId);
  *         // Send email logic here
  *         return { success: true, user };
@@ -100,7 +109,7 @@ export const defineServiceFactory: DefineServiceFactory = {
   name: (name) => ({
     inject: () => ({
       handler: (fn: any) => (injectorOrNothing?: Function) => {
-        const logger = loggerFactory?.(name);
+        const logger = appLogger?.child({}, { msgPrefix: name ? `[${name}] ` : '' });
         return defineInjectableFactory.name(name).inject<any>().handler(fn)(() => ({
           logger,
           ...injectorOrNothing?.(),
