@@ -171,7 +171,7 @@ describe('defineInjectableFactory', () => {
     // Test 6: Should create injectable factory with typed dependencies
     it('should create injectable factory with typed dependencies', () => {
       type Dependencies = {
-        logger: Injectable<{ log: (msg: string) => void }>;
+        customLogger: Injectable<{ log: (msg: string) => void }>;
         config: Injectable<{ apiUrl: string; timeout: number }>;
       };
 
@@ -179,12 +179,12 @@ describe('defineInjectableFactory', () => {
         .name('ServiceComponent')
         .inject<Dependencies>()
         .handler(({ name, injector }) => {
-          const { logger, config } = injector();
+          const { customLogger, config } = injector();
 
           return {
             name,
             makeRequest: (endpoint: string) => {
-              logger.log(`Making request to ${config.apiUrl}${endpoint}`);
+              customLogger.log(`Making request to ${config.apiUrl}${endpoint}`);
               return {
                 url: `${config.apiUrl}${endpoint}`,
                 timeout: config.timeout,
@@ -195,7 +195,7 @@ describe('defineInjectableFactory', () => {
 
       const mockLogger = { log: () => {} };
       const mockConfig = { apiUrl: 'https://api.test.com', timeout: 5000 };
-      const mockInjector = () => ({ logger: mockLogger, config: mockConfig });
+      const mockInjector = () => ({ customLogger: mockLogger, config: mockConfig });
 
       const instance = defineInjectable(mockInjector);
       const result = instance.makeRequest('/users');
@@ -505,7 +505,7 @@ describe('defineInjectableFactory', () => {
     // Test 13: Should work with lifecycle hooks and dependencies together
     it('should work with lifecycle hooks and dependencies together', () => {
       type Dependencies = {
-        logger: Injectable<{ log: (message: string) => void; getHistory: () => string[] }>;
+        customLogger: Injectable<{ log: (message: string) => void; getHistory: () => string[] }>;
         config: Injectable<{ appName: string; version: string }>;
       };
 
@@ -515,34 +515,34 @@ describe('defineInjectableFactory', () => {
         getHistory: () => [...logs],
       };
       const mockConfig = { appName: 'TestApp', version: '1.0.0' };
-      const mockInjector = () => ({ logger: mockLogger, config: mockConfig });
+      const mockInjector = () => ({ customLogger: mockLogger, config: mockConfig });
 
       const defineInjectable = defineInjectableFactory
         .name('IntegratedComponent')
         .inject<Dependencies>()
         .handler(({ name, injector, appHooks }) => {
-          const { logger, config } = injector();
+          const { customLogger, config } = injector();
 
           // Register lifecycle hooks that use dependencies
           appHooks.onApplicationInitialized(() => {
-            logger.log(`${name} initialized for ${config.appName} v${config.version}`);
+            customLogger.log(`${name} initialized for ${config.appName} v${config.version}`);
           });
 
           appHooks.onApplicationStart(() => {
-            logger.log(`${name} started`);
+            customLogger.log(`${name} started`);
           });
 
           appHooks.onApplicationStop(() => {
-            logger.log(`${name} stopped`);
+            customLogger.log(`${name} stopped`);
           });
 
           return {
             name,
             performAction: () => {
-              logger.log(`${name} performing action`);
+              customLogger.log(`${name} performing action`);
               return `Action performed for ${config.appName}`;
             },
-            getLogHistory: () => logger.getHistory(),
+            getLogHistory: () => customLogger.getHistory(),
             getConfig: () => config,
           };
         });
@@ -891,26 +891,26 @@ describe('defineInjectableFactory', () => {
 
       // Test with dependencies and generic name
       type TestDependencies = {
-        logger: Injectable<{ log: (msg: string) => void }>;
+        customLogger: Injectable<{ log: (msg: string) => void }>;
       };
 
       const defineNamedServiceWithDeps = defineInjectableFactory
         .name('NamedServiceWithDeps' as const)
         .inject<TestDependencies>()
         .handler(({ name, injector }) => {
-          const { logger } = injector();
+          const { customLogger } = injector();
 
           return {
             name,
             logWithName: (message: string) => {
-              logger.log(`[${name}] ${message}`);
+              customLogger.log(`[${name}] ${message}`);
               return `${name}: ${message}`;
             },
           };
         });
 
       const mockLogger = { log: () => {} };
-      const mockInjector = () => ({ logger: mockLogger });
+      const mockInjector = () => ({ customLogger: mockLogger });
       const namedInstance = defineNamedServiceWithDeps(mockInjector);
 
       assert.strictEqual(namedInstance.name, 'NamedServiceWithDeps');
@@ -1154,6 +1154,58 @@ describe('defineInjectableFactory', () => {
       // Clean up
       setAppLogger(undefined);
     });
+
+    // Test 28: Should inject logger after user dependencies, logger overrides user dependencies
+    it('should inject logger after user dependencies, logger overrides user dependencies', async () => {
+      const { setAppLogger } = await import('./app-logger.ts');
+      const { createMockLogger } = await import('./logger.mock.ts');
+
+      // Create a mock pino logger
+      const mockLogger = createMockLogger('test');
+      setAppLogger(mockLogger);
+
+      type Dependencies = {
+        logger: Injectable<{ customMethod: () => string }>;
+        config: Injectable<{ setting: string }>;
+      };
+
+      const defineInjectable = defineInjectableFactory
+        .name('LoggerOrderComponent')
+        .inject<Dependencies>()
+        .handler(({ name, injector }) => {
+          const deps = injector();
+          return {
+            name,
+            testLoggerOrder: () => {
+              // Auto-injected logger should override user's logger
+              return typeof deps.logger?.info === 'function' ? 'auto-logger' : 'user-logger';
+            },
+            hasAutoLogger: () => 'info' in deps.logger,
+            hasUserLogger: () => 'customMethod' in deps.logger,
+            getLoggerKeys: () => Object.keys(deps.logger),
+          };
+        });
+
+      const mockInjector = () => ({
+        logger: { customMethod: () => 'user-logger-method' },
+        config: { setting: 'config-value' },
+      });
+
+      const instance = defineInjectable(mockInjector);
+
+      // Auto-injected logger should override the user's logger
+      assert.strictEqual(instance.testLoggerOrder(), 'auto-logger');
+      assert.strictEqual(instance.hasAutoLogger(), true);
+      assert.strictEqual(instance.hasUserLogger(), false);
+
+      // Should have the auto logger's methods, not user's
+      const keys = instance.getLoggerKeys();
+      assert.strictEqual(keys.includes('info'), true);
+      assert.strictEqual(keys.includes('customMethod'), false);
+
+      // Clean up
+      setAppLogger(undefined);
+    });
   });
 
   describe('Integration', () => {
@@ -1211,7 +1263,7 @@ describe('defineInjectableFactory', () => {
       // Test composition of multiple injectable factories
 
       type LoggerDeps = {
-        logger: Injectable<{ log: (msg: string) => void; getLogs: () => string[] }>;
+        customLogger: Injectable<{ log: (msg: string) => void; getLogs: () => string[] }>;
       };
 
       type ConfigDeps = {
@@ -1240,11 +1292,11 @@ describe('defineInjectableFactory', () => {
         .name('LoggingMixin')
         .inject<LoggerDeps>()
         .handler(({ name, injector }) => {
-          const { logger } = injector();
+          const { customLogger } = injector();
           return {
             name,
-            logInfo: (msg: string) => logger.log(`[INFO] ${msg}`),
-            logError: (msg: string) => logger.log(`[ERROR] ${msg}`),
+            logInfo: (msg: string) => customLogger.log(`[INFO] ${msg}`),
+            logError: (msg: string) => customLogger.log(`[ERROR] ${msg}`),
           };
         });
 
@@ -1268,7 +1320,7 @@ describe('defineInjectableFactory', () => {
         .handler(({ name, injector }) => {
           const deps = injector();
 
-          const loggingMixin = defineLoggingMixin(() => ({ logger: deps.logger }));
+          const loggingMixin = defineLoggingMixin(() => ({ customLogger: deps.customLogger }));
           const configMixin = defineConfigMixin(() => ({ config: deps.config }));
 
           return {
@@ -1288,7 +1340,7 @@ describe('defineInjectableFactory', () => {
         });
 
       const composedService = defineComposedService(() => ({
-        logger: mockLogger,
+        customLogger: mockLogger,
         config: mockConfig,
       }));
 

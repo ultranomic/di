@@ -97,7 +97,7 @@ describe('defineServiceFactory', () => {
   describe('handler with dependencies', () => {
     it('should create service with dependency injection', () => {
       type Dependencies = {
-        logger: Service<{ log: (msg: string) => void }>;
+        customLogger: Service<{ log: (msg: string) => void }>;
         config: Service<{ apiUrl: string; timeout: number }>;
       };
 
@@ -105,18 +105,18 @@ describe('defineServiceFactory', () => {
         .name('ApiService')
         .inject<Dependencies>()
         .handler(({ injector }) => {
-          const { logger, config } = injector();
+          const { customLogger, config } = injector();
 
           return {
             fetchData: async (endpoint: string) => {
-              logger.log(`Fetching from ${config.apiUrl}${endpoint}`);
+              customLogger.log(`Fetching from ${config.apiUrl}${endpoint}`);
               return { data: `mock data from ${endpoint}`, timeout: config.timeout };
             },
           };
         });
 
       const mockDeps = {
-        logger: { log: () => {} },
+        customLogger: { log: () => {} },
         config: { apiUrl: 'https://api.example.com', timeout: 5000 },
       };
 
@@ -173,30 +173,30 @@ describe('defineServiceFactory', () => {
 
       type Dependencies = {
         db: DatabaseService;
-        logger: LoggerService;
+        customLogger: LoggerService;
       };
 
       const defineUserService = defineServiceFactory
         .name('UserService')
         .inject<Dependencies>()
         .handler(({ injector }) => {
-          const { db, logger } = injector();
+          const { db, customLogger } = injector();
 
           return {
             createUser: (userData: { name: string; email: string }) => {
               try {
-                logger.log(`Creating user: ${userData.name}`);
+                customLogger.log(`Creating user: ${userData.name}`);
                 const id = db.insert('users', userData);
-                logger.log(`User created with ID: ${id}`);
+                customLogger.log(`User created with ID: ${id}`);
                 return { id, ...userData };
               } catch (error) {
-                logger.error(`Failed to create user: ${error}`);
+                customLogger.error(`Failed to create user: ${error}`);
                 throw error;
               }
             },
 
             findUser: (id: string) => {
-              logger.log(`Looking up user: ${id}`);
+              customLogger.log(`Looking up user: ${id}`);
               const results = db.query(`SELECT * FROM users WHERE id = '${id}'`);
               return results[0] || null;
             },
@@ -208,7 +208,7 @@ describe('defineServiceFactory', () => {
           query: (sql: string) => [{ id: '123', name: 'Test User', email: 'test@example.com' }],
           insert: (table: string, data: any) => '123',
         },
-        logger: {
+        customLogger: {
           log: () => {},
           error: () => {},
         },

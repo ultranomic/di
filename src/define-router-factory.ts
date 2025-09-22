@@ -56,7 +56,7 @@ type RouterFactoryBuilderWithDeps<TName extends string, TInject extends Record<s
   handler<S extends Record<string | symbol, unknown> | void>(
     fn: (params: {
       name: TName;
-      injector: () => { logger?: Logger } & TInject;
+      injector: () => TInject & { logger?: Logger };
       appHooks: {
         onApplicationInitialized: (callback: () => unknown, executionOrder?: number) => void;
         onApplicationStart: (callback: () => unknown, executionOrder?: number) => void;
@@ -111,8 +111,8 @@ export const defineRouterFactory: DefineRouterFactory = {
       handler: (fn: any) => (injectorOrNothing?: Function) => {
         const logger = appLogger?.child({}, { msgPrefix: name ? `[${name}] ` : '' });
         return defineInjectableFactory.name(name).inject<any>().handler(fn)(() => ({
-          logger,
           ...injectorOrNothing?.(),
+          logger,
         })) as any;
       },
     }),

@@ -56,7 +56,7 @@ type ServiceFactoryBuilderWithDeps<TName extends string, TInject extends Record<
   handler<S extends object | void>(
     fn: (params: {
       name: TName;
-      injector: () => { logger?: Logger } & TInject;
+      injector: () => TInject & { logger?: Logger };
       appHooks: {
         onApplicationInitialized: (callback: () => unknown, executionOrder?: number) => void;
         onApplicationStart: (callback: () => unknown, executionOrder?: number) => void;
@@ -111,8 +111,8 @@ export const defineServiceFactory: DefineServiceFactory = {
       handler: (fn: any) => (injectorOrNothing?: Function) => {
         const logger = appLogger?.child({}, { msgPrefix: name ? `[${name}] ` : '' });
         return defineInjectableFactory.name(name).inject<any>().handler(fn)(() => ({
-          logger,
           ...injectorOrNothing?.(),
+          logger,
         })) as any;
       },
     }),
