@@ -56,7 +56,7 @@ type InjectableFactoryBuilderWithDeps<TName extends string, TInject extends Reco
   handler<S extends object | void>(
     fn: (params: {
       name: TName;
-      injector: () => { logger?: Logger } & TInject;
+      injector: () => TInject & { logger?: Logger };
       appHooks: {
         onApplicationInitialized: (callback: () => unknown, executionOrder?: number) => void;
         onApplicationStart: (callback: () => unknown, executionOrder?: number) => void;
@@ -101,7 +101,7 @@ export const defineInjectableFactory: DefineInjectableFactory = {
         const logger = appLogger?.child({}, { msgPrefix: name ? `[${name}] ` : '' });
         const injectable = fn({
           name,
-          injector: () => ({ logger, ...injectorOrNothing?.() }),
+          injector: () => ({ ...injectorOrNothing?.(), logger }),
           appHooks: { onApplicationInitialized, onApplicationStart, onApplicationStop },
         });
         appLogger?.info(`${name} initialized`);
