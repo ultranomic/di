@@ -31,6 +31,7 @@ export type { ContainerInterface, ResolverInterface } from './container/interfac
 export { Module } from './module/module.js'
 export type { ModuleMetadata } from './module/module.js'
 export type { ModuleInterface, ModuleConstructor } from './module/interfaces.js'
+export { ModuleRegistry } from './module/registry.js'
 
 // Errors
 export { VoxelError, TokenNotFoundError } from './errors/index.js'
