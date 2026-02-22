@@ -1,0 +1,10 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Remove all local git branches except current",
+      "type": "shell",
+      "command": "git fetch --prune; git branch | grep -v \"$(git branch --show-current)\" | xargs git branch -D"
+    }
+  ]
+}
