@@ -144,8 +144,8 @@ describe('Container Scope Support', () => {
         }))
         .asSingleton()
 
-      const instance1 = container.resolve('SingletonService')
-      const instance2 = container.resolve('SingletonService')
+      const instance1 = container.resolve<{ dep: { value: number } }>('SingletonService')
+      const instance2 = container.resolve<{ dep: { value: number } }>('SingletonService')
 
       expect(instance1).toBe(instance2)
       expect(instance1.dep).toBe(instance2.dep)
@@ -162,8 +162,8 @@ describe('Container Scope Support', () => {
       const scope1 = container.createScope()
       const scope2 = container.createScope()
 
-      const instance1 = scope1.resolve('ScopedService')
-      const instance2 = scope2.resolve('ScopedService')
+      const instance1 = scope1.resolve<{ dep: { value: string } }>('ScopedService')
+      const instance2 = scope2.resolve<{ dep: { value: string } }>('ScopedService')
 
       expect(instance1).not.toBe(instance2)
       expect(instance1.dep).toBe(instance2.dep)
