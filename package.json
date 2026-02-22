@@ -15,10 +15,11 @@
     "prepublishOnly": "pnpm run typecheck && pnpm run test:coverage"
   },
   "devDependencies": {
-    "typescript": "catalog:",
-    "vitest": "catalog:",
-    "oxlint": "catalog:",
-    "oxfmt": "catalog:"
+    "typescript": "6.0.0-beta",
+    "vitest": "4.0.18",
+    "oxlint": "1.49.0",
+    "oxfmt": "0.34.0",
+    "@vitest/coverage-v8": "4.0.18"
   },
   "pnpm": {
     "overrides": {}
