@@ -211,4 +211,124 @@ describe('Module', () => {
       expect(() => new ModuleClass()).not.toThrow()
     })
   })
+
+  describe('getExportedTokens', () => {
+    it('should return exported tokens from metadata', () => {
+      class TestModule extends Module {
+        static readonly metadata: ModuleMetadata = {
+          exports: ['ServiceA', 'ServiceB'],
+        }
+
+        register(_container: Container) {}
+      }
+
+      const module = new TestModule()
+      const exportedTokens = module.getExportedTokens()
+
+      expect(exportedTokens).toEqual(['ServiceA', 'ServiceB'])
+    })
+
+    it('should return empty array when no exports defined', () => {
+      class TestModule extends Module {
+        static readonly metadata: ModuleMetadata = {}
+
+        register(_container: Container) {}
+      }
+
+      const module = new TestModule()
+      const exportedTokens = module.getExportedTokens()
+
+      expect(exportedTokens).toEqual([])
+    })
+
+    it('should return empty array when metadata is undefined', () => {
+      class TestModule extends Module {
+        register(_container: Container) {}
+      }
+
+      const module = new TestModule()
+      const exportedTokens = module.getExportedTokens()
+
+      expect(exportedTokens).toEqual([])
+    })
+
+    it('should return a copy of the exports array', () => {
+      class TestModule extends Module {
+        static readonly metadata: ModuleMetadata = {
+          exports: ['ServiceA'],
+        }
+
+        register(_container: Container) {}
+      }
+
+      const module = new TestModule()
+      const exportedTokens1 = module.getExportedTokens()
+      const exportedTokens2 = module.getExportedTokens()
+
+      expect(exportedTokens1).not.toBe(exportedTokens2)
+      expect(exportedTokens1).toEqual(exportedTokens2)
+    })
+  })
+
+  describe('lifecycle hooks', () => {
+    describe('onModuleInit', () => {
+      it('should have default onModuleInit implementation', async () => {
+        class TestModule extends Module {
+          static readonly metadata: ModuleMetadata = {}
+          register(_container: Container) {}
+        }
+
+        const module = new TestModule()
+        await expect(module.onModuleInit()).resolves.toBeUndefined()
+      })
+
+      it('should allow overriding onModuleInit', async () => {
+        let initialized = false
+
+        class TestModule extends Module {
+          static readonly metadata: ModuleMetadata = {}
+          register(_container: Container) {}
+
+          override async onModuleInit(): Promise<void> {
+            initialized = true
+          }
+        }
+
+        const module = new TestModule()
+        await module.onModuleInit()
+
+        expect(initialized).toBe(true)
+      })
+    })
+
+    describe('onModuleDestroy', () => {
+      it('should have default onModuleDestroy implementation', async () => {
+        class TestModule extends Module {
+          static readonly metadata: ModuleMetadata = {}
+          register(_container: Container) {}
+        }
+
+        const module = new TestModule()
+        await expect(module.onModuleDestroy()).resolves.toBeUndefined()
+      })
+
+      it('should allow overriding onModuleDestroy', async () => {
+        let destroyed = false
+
+        class TestModule extends Module {
+          static readonly metadata: ModuleMetadata = {}
+          register(_container: Container) {}
+
+          override async onModuleDestroy(): Promise<void> {
+            destroyed = true
+          }
+        }
+
+        const module = new TestModule()
+        await module.onModuleDestroy()
+
+        expect(destroyed).toBe(true)
+      })
+    })
+  })
 })

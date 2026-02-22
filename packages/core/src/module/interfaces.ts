@@ -25,6 +25,16 @@ export interface ModuleInterface {
    * @param container - The container to register providers with
    */
   register(container: ContainerInterface): void
+
+  /**
+   * Lifecycle hook: Called after the module is initialized
+   */
+  onModuleInit?(): Promise<void> | void
+
+  /**
+   * Lifecycle hook: Called before the module is destroyed
+   */
+  onModuleDestroy?(): Promise<void> | void
 }
 
 /**

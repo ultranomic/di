@@ -5,10 +5,11 @@
  * - Tracking which modules have been loaded
  * - Resolving import dependencies
  * - Loading modules in the correct order (imports first)
+ * - Calling lifecycle hooks (onModuleInit, onModuleDestroy)
  */
 
 import type { ContainerInterface } from '../container/interfaces.js'
-import type { ModuleConstructor } from './interfaces.js'
+import type { ModuleConstructor, ModuleInterface } from './interfaces.js'
 
 /**
  * ModuleRegistry orchestrates module loading with proper import resolution
@@ -17,11 +18,12 @@ import type { ModuleConstructor } from './interfaces.js'
  * const registry = new ModuleRegistry()
  * registry.register(UserModule)
  * registry.register(DatabaseModule)
- * registry.loadModules(container)
+ * await registry.loadModules(container)
  */
 export class ModuleRegistry {
   private readonly modules = new Set<ModuleConstructor>()
-  private readonly loadedModules = new Set<ModuleConstructor>()
+  private readonly loadedModuleConstructors = new Set<ModuleConstructor>()
+  private readonly loadedModuleInstances: ModuleInterface[] = []
 
   /**
    * Register a module to be loaded
@@ -36,12 +38,13 @@ export class ModuleRegistry {
    * Load all registered modules into the container
    *
    * Modules are loaded in dependency order - imports are processed first.
+   * After registration, onModuleInit() is called on each module.
    *
    * @param container - The container to register providers with
    */
-  loadModules(container: ContainerInterface): void {
+  async loadModules(container: ContainerInterface): Promise<void> {
     for (const module of this.modules) {
-      this.loadModule(module, container)
+      await this.loadModule(module, container)
     }
   }
 
@@ -52,27 +55,52 @@ export class ModuleRegistry {
    * 1. Checks if the module is already loaded (prevents duplicates)
    * 2. Recursively loads imported modules first
    * 3. Instantiates and registers the module
+   * 4. Calls onModuleInit() after registration
    *
    * @param module - The module constructor to load
    * @param container - The container to register providers with
    */
-  loadModule(module: ModuleConstructor, container: ContainerInterface): void {
-    if (this.loadedModules.has(module)) {
+  async loadModule(module: ModuleConstructor, container: ContainerInterface): Promise<void> {
+    if (this.loadedModuleConstructors.has(module)) {
       return
     }
 
     // Mark loaded before processing imports to prevent infinite recursion
-    this.loadedModules.add(module)
+    this.loadedModuleConstructors.add(module)
 
     const imports = module.metadata?.imports
     if (imports) {
       for (const importedModule of imports) {
-        this.loadModule(importedModule as ModuleConstructor, container)
+        await this.loadModule(importedModule as ModuleConstructor, container)
       }
     }
 
     const instance = new module()
     instance.register(container)
+
+    // Store instance for lifecycle management
+    this.loadedModuleInstances.push(instance)
+
+    // Call onModuleInit after registration
+    if (instance.onModuleInit) {
+      await instance.onModuleInit()
+    }
+  }
+
+  /**
+   * Destroy all loaded modules
+   *
+   * Calls onModuleDestroy() on each module in reverse order of loading.
+   *
+   */
+  async destroyModules(): Promise<void> {
+    // Destroy in reverse order (last loaded first)
+    for (let i = this.loadedModuleInstances.length - 1; i >= 0; i--) {
+      const instance = this.loadedModuleInstances[i]
+      if (instance && instance.onModuleDestroy) {
+        await instance.onModuleDestroy()
+      }
+    }
   }
 
   /**
@@ -82,16 +110,19 @@ export class ModuleRegistry {
    * @returns true if the module has been loaded
    */
   isLoaded(module: ModuleConstructor): boolean {
-    return this.loadedModules.has(module)
+    return this.loadedModuleConstructors.has(module)
   }
 
   /**
    * Clear all registered and loaded modules
    *
-   * Useful for testing
+   * Calls destroyModules() first to ensure proper cleanup.
+   * Useful for testing.
    */
-  clear(): void {
+  async clear(): Promise<void> {
+    await this.destroyModules()
     this.modules.clear()
-    this.loadedModules.clear()
+    this.loadedModuleConstructors.clear()
+    this.loadedModuleInstances.length = 0
   }
 }
