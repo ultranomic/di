@@ -3,7 +3,7 @@
 
 // Types
 export type { Token, TokenRegistry } from './types/token.js'
-export type { InferDeps, Deps } from './types/deps.js'
+export type { InferDeps, Deps, InjectableClass, ExtractInject } from './types/deps.js'
 export type {
   BaseRequest,
   BaseResponse,
