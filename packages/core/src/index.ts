@@ -34,4 +34,4 @@ export type { ModuleInterface, ModuleConstructor } from './module/interfaces.js'
 export { ModuleRegistry } from './module/registry.js'
 
 // Errors
-export { VoxelError, TokenNotFoundError } from './errors/index.js'
+export { VoxelError, TokenNotFoundError, ScopeValidationError } from './errors/index.js'
