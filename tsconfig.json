@@ -9,7 +9,8 @@
     { "path": "./packages/express" },
     { "path": "./packages/fastify" },
     { "path": "./packages/hono" },
-    { "path": "./packages/testing" }
+    { "path": "./packages/testing" },
+    { "path": "./packages/cli" }
   ],
 
   "files": []
