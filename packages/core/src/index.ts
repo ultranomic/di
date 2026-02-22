@@ -33,5 +33,10 @@ export type { ModuleMetadata } from './module/module.js'
 export type { ModuleInterface, ModuleConstructor } from './module/interfaces.js'
 export { ModuleRegistry } from './module/registry.js'
 
+// Controller
+export { Controller } from './controller/controller.js'
+export type { ControllerMetadata } from './controller/controller.js'
+export type { ControllerConstructor, RouteInfo } from './controller/interfaces.js'
+
 // Errors
 export { VoxelError, TokenNotFoundError, ScopeValidationError } from './errors/index.js'
