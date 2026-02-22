@@ -157,6 +157,108 @@ describe('Circular Dependencies', () => {
       const str = Object.prototype.toString.call(serviceA.deps.serviceB)
       expect(typeof str).toBe('string')
     })
+
+    it('should return specific string from toString() on proxy during construction', () => {
+      let capturedProxy: { toString: () => string } | null = null
+
+      class ServiceA {
+        static readonly inject = { serviceB: 'ServiceB' } as const
+        constructor(private deps: typeof ServiceA.inject) {}
+      }
+
+      class ServiceB {
+        static readonly inject = { serviceA: 'ServiceA' } as const
+        constructor(deps: typeof ServiceB.inject) {
+          // Capture proxy during construction before instance is set
+          capturedProxy = deps.serviceA as { toString: () => string }
+        }
+      }
+
+      container.register('ServiceA', (c) => new ServiceA({ serviceB: c.resolve('ServiceB') }))
+      container.register('ServiceB', (c) => new ServiceB({ serviceA: c.resolve('ServiceA') }))
+
+      container.resolve('ServiceA')
+
+      // Call toString on the captured proxy
+      expect(capturedProxy).not.toBeNull()
+      const result = capturedProxy!.toString()
+      expect(result).toBe('[CircularProxy: ServiceA]')
+    })
+
+    it('should return CircularProxy as Symbol.toStringTag on proxy', () => {
+      let capturedProxy: { [Symbol.toStringTag]?: string } | null = null
+
+      class ServiceA {
+        static readonly inject = { serviceB: 'ServiceB' } as const
+        constructor(private deps: typeof ServiceA.inject) {}
+      }
+
+      class ServiceB {
+        static readonly inject = { serviceA: 'ServiceA' } as const
+        constructor(deps: typeof ServiceB.inject) {
+          // Capture proxy during construction
+          capturedProxy = deps.serviceA as { [Symbol.toStringTag]?: string }
+        }
+      }
+
+      container.register('ServiceA', (c) => new ServiceA({ serviceB: c.resolve('ServiceB') }))
+      container.register('ServiceB', (c) => new ServiceB({ serviceA: c.resolve('ServiceA') }))
+
+      container.resolve('ServiceA')
+
+      // Access Symbol.toStringTag on the captured proxy
+      expect(capturedProxy).not.toBeNull()
+      expect(capturedProxy![Symbol.toStringTag]).toBe('CircularProxy')
+    })
+
+    it('should forward property access through proxy after instance is resolved', () => {
+      let capturedProxy: { getValue: () => string } | null = null
+
+      class ServiceA {
+        static readonly inject = { serviceB: 'ServiceB' } as const
+        constructor(private deps: typeof ServiceA.inject) {}
+        getValue() {
+          return 'A'
+        }
+      }
+
+      class ServiceB {
+        static readonly inject = { serviceA: 'ServiceA' } as const
+        constructor(deps: typeof ServiceB.inject) {
+          // Capture proxy during construction
+          capturedProxy = deps.serviceA as { getValue: () => string }
+        }
+      }
+
+      container.register('ServiceA', (c) => new ServiceA({ serviceB: c.resolve('ServiceB') })).asSingleton()
+      container.register('ServiceB', (c) => new ServiceB({ serviceA: c.resolve('ServiceA') })).asSingleton()
+
+      container.resolve('ServiceA')
+
+      // After resolution, the proxy should forward to the actual instance
+      expect(capturedProxy).not.toBeNull()
+      expect(capturedProxy!.getValue()).toBe('A')
+    })
+
+    it('should return undefined for non-existent property on proxy', () => {
+      let accessedValue: unknown = 'not-set'
+      class ServiceA {
+        static readonly inject = { serviceB: 'ServiceB' } as const
+        constructor(private deps: typeof ServiceA.inject) {}
+      }
+      class ServiceB {
+        static readonly inject = { serviceA: 'ServiceA' } as const
+        constructor(deps: typeof ServiceB.inject) {
+          const proxy = deps.serviceA as { nonExistent: unknown }
+          accessedValue = proxy.nonExistent
+        }
+      }
+      container.register('ServiceA', (c) => new ServiceA({ serviceB: c.resolve('ServiceB') }))
+      container.register('ServiceB', (c) => new ServiceB({ serviceA: c.resolve('ServiceA') }))
+      container.resolve('ServiceA')
+
+      expect(accessedValue).toBeUndefined()
+    })
   })
 
   describe('singleton circular dependencies', () => {
