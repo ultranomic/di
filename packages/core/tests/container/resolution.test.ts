@@ -43,9 +43,8 @@ describe('Resolution with static inject', () => {
 
     it('should throw with resolution path when dependency not found', () => {
       const injectMap = { missing: 'MissingService' } as const
-
       expect(() => container.buildDeps(injectMap)).toThrow(
-        /Token not found: MissingService/,
+        /Token 'MissingService' not found/,
       )
     })
 
@@ -318,9 +317,9 @@ describe('Resolution with static inject', () => {
       })
 
       expect(() => container.resolve('Level1Service')).toThrow(
-        /Token not found: Level2Service/,
+        /Token 'Level2Service' not found/,
       )
-    })
+  })
   })
 
   describe('singleton scope with deps', () => {
