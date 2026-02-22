@@ -1,13 +1,7 @@
 services:
   app:
-    image: mcr.microsoft.com/devcontainers/javascript-node:24
+    image: mcr.microsoft.com/devcontainers/base:bookworm
     volumes:
-      - root:/root
-      - npm-global:/usr/local/share/npm-global
       - ../..:/workspaces:delegated
-      - ~/.ssh:/root/.ssh:ro,cached
+      - ~/.ssh:/home/vscode/.ssh:ro
     command: sleep infinity
-
-volumes:
-  root:
-  npm-global:

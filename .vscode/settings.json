@@ -1,3 +1,107 @@
 {
-  "typescript.experimental.useTsgo": true
+  "aws.telemetry": false,
+  "chat.agent.enabled": true,
+  "chat.agent.maxRequests": 99,
+  "chat.edits2.enabled": true,
+  "chat.renderRelatedFiles": true,
+  "editor.codeActionsOnSave": {
+    "source.addMissingImports": "explicit",
+    "source.fixAll": "never",
+    "source.fixAll.oxc": "explicit",
+    "source.organizeImports": "explicit"
+  },
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "editor.formatOnSave": true,
+  "editor.inlineSuggest.edits.showCollapsed": true,
+  "editor.linkedEditing": true,
+  "editor.mouseWheelZoom": true,
+  "editor.quickSuggestions": {
+    "strings": "on"
+  },
+  "editor.stickyTabStops": true,
+  "editor.wordBasedSuggestions": "off",
+  "editor.wordWrap": "on",
+  "eslint.useFlatConfig": true,
+  "eslint.validate": ["javascript", "vue", "typescript"],
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+  "files.trimTrailingWhitespace": true,
+  "git.autofetch": true,
+  "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+  "github.copilot.chat.codesearch.enabled": true,
+  "github.copilot.chat.commitMessageGeneration.instructions": [
+    {
+      "text": "Generate a commit message following the Conventional Commits format: `<type>(<scope>): <subject>`. The `<type>` must be one of `feat`, `fix`, `chore`, `docs`, `style`, `perf`, `build`, `revert`, `refactor`, `test`, or `ci`. The `<scope>` is mandatory. The `<subject>` should be a concise summary (max 72 chars). The `<body>` must be in bullet point format, clearly listing key changes. `<subject>` and `<body>` need to be separated by an empty line. Keep everything concise and meaningful"
+    }
+  ],
+  "github.copilot.chat.editor.temporalContext.enabled": true,
+  "github.copilot.chat.edits.temporalContext.enabled": true,
+  "github.copilot.chat.generateTests.codeLens": true,
+  "github.copilot.chat.languageContext.fix.typescript.enabled": true,
+  "github.copilot.chat.languageContext.inline.typescript.enabled": true,
+  "github.copilot.chat.languageContext.typescript.enabled": true,
+  "github.copilot.chat.newWorkspaceCreation.enabled": true,
+  "github.copilot.chat.pullRequestDescriptionGeneration.instructions": [
+    {
+      "text": "Generate a pull request description using the provided text. Ensure that the output is formatted in raw Markdown suitable for direct copy and paste into GitHub.\n## Steps\n- Analyze the input text to identify key changes made in the pull request.\n- Summarize the main objectives of the pull request including any relevant background information.\n- Include specific sections in the Markdown format, such as:\n  - **Title**: A clear title summarizing the pull request.\n  - **Description**: A detailed description of what was changed and why.\n  - **Related Issues**: Reference any related issue numbers if applicable.\n  - **Checklist**: A checklist of tasks that have been completed.\n- Ensure formatting adheres to Markdown standards (use headings, bullet points, etc.).\n\n# Output Format\n\nThe output should be a complete Markdown formatted string, ready for use in a GitHub pull request description. Use appropriate Markdown syntax for headers, lists, and links.\nUse the template in `.github/pull-request-template.md` as a reference."
+    }
+  ],
+  "github.copilot.chat.scopeSelection": true,
+  "github.copilot.nextEditSuggestions.enabled": true,
+  "github.copilot.nextEditSuggestions.fixes": true,
+  "githubPullRequests.experimental.chat": true,
+  "githubPullRequests.experimental.useQuickChat": true,
+  "inlineChat.enableV2": true,
+  "javascript.format.enable": false,
+  "javascript.preferences.importModuleSpecifier": "project-relative",
+  "javascript.referencesCodeLens.enabled": true,
+  "javascript.referencesCodeLens.showOnAllFunctions": true,
+  "javascript.suggest.completeFunctionCalls": true,
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "json.schemaDownload.enable": true,
+  "oxc.enable": true,
+  "oxc.fmt.configPath": ".oxfmtrc.json",
+  "oxc.requireConfig": true,
+  "oxc.typeAware": true,
+  "oxc.unusedDisableDirectives": "warn",
+  "prettier.enable": false,
+  "prettier.requireConfig": true,
+  "scm.defaultViewMode": "tree",
+  "tailwindCSS.classAttributes": ["class", "ui"],
+  "tailwindCSS.experimental.classRegex": [["ui:\\s*{([^)]*)\\s*}", "(?:'|\"|`)([^']*)(?:'|\"|`)"]],
+  "terminal.integrated.suggest.enabled": true,
+  "turbo.useLocalTurbo": true,
+  "typescript.disableAutomaticTypeAcquisition": true,
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "typescript.experimental.useTsgo": true,
+  "typescript.format.enable": false,
+  "typescript.implementationsCodeLens.enabled": true,
+  "typescript.implementationsCodeLens.showOnInterfaceMethods": true,
+  "typescript.preferences.importModuleSpecifier": "project-relative",
+  "typescript.preferences.importModuleSpecifierEnding": "js",
+  "typescript.preferences.preferTypeOnlyAutoImports": true,
+  "typescript.preferGoToSourceDefinition": true,
+  "typescript.referencesCodeLens.enabled": true,
+  "typescript.referencesCodeLens.showOnAllFunctions": true,
+  "typescript.suggestionActions.enabled": true,
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.tsserver.maxTsServerMemory": 8096,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "vue.inlayHints.destructuredProps": true,
+  "vue.inlayHints.inlineHandlerLeading": true,
+  "vue.inlayHints.missingProps": true,
+  "vue.inlayHints.optionsWrapper": true,
+  "vue.inlayHints.vBindShorthand": true,
+  "workbench.commandPalette.experimental.enableNaturalLanguageSearch": true,
+  "workbench.commandPalette.experimental.suggestCommands": true,
+  "json.schemaDownload.trustedDomains": {
+    "https://schemastore.azurewebsites.net/": true,
+    "https://raw.githubusercontent.com/": true,
+    "https://www.schemastore.org/": true,
+    "https://json.schemastore.org/": true,
+    "https://json-schema.org/": true,
+    "https://opencode.ai/": true,
+    "https://models.dev/": true
+  }
 }
