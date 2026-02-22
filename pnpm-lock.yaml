@@ -72,6 +72,16 @@ importers:
         specifier: ^4.6.14
         version: 4.12.1
 
+  packages/testing:
+    dependencies:
+      '@voxeljs/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      vitest:
+        specifier: 4.0.18
+        version: 4.0.18(@types/node@25.3.0)
+
 packages:
 
   '@babel/helper-string-parser@7.27.1':
