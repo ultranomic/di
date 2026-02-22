@@ -27,5 +27,10 @@ export { BindingScope, BindingBuilder } from './container/binding.js'
 export type { Binding, ContainerLike } from './container/binding.js'
 export type { ContainerInterface, ResolverInterface } from './container/interfaces.js'
 
+// Module
+export { Module } from './module/module.js'
+export type { ModuleMetadata } from './module/module.js'
+export type { ModuleInterface, ModuleConstructor } from './module/interfaces.js'
+
 // Errors
 export { VoxelError, TokenNotFoundError } from './errors/index.js'
