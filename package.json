@@ -1,0 +1,26 @@
+{
+  "name": "voxel-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --build",
+    "typecheck": "tsc --build --dry",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "oxlint",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "prepublishOnly": "pnpm run typecheck && pnpm run test:coverage"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "oxlint": "catalog:",
+    "oxfmt": "catalog:"
+  },
+  "pnpm": {
+    "overrides": {}
+  }
+}

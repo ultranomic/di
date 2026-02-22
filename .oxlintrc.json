@@ -1,0 +1,10 @@
+{
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "no-unused-vars": "error",
+    "no-undef": "error",
+    "prefer-const": "warn"
+  }
+}
