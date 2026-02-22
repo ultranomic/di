@@ -33,6 +33,19 @@ importers:
         specifier: 5.2.1
         version: 5.2.1
 
+  packages/express:
+    dependencies:
+      '@voxeljs/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/express':
+        specifier: 5.0.6
+        version: 5.0.6
+      express:
+        specifier: 5.2.1
+        version: 5.2.1
+
 packages:
 
   '@babel/helper-string-parser@7.27.1':
