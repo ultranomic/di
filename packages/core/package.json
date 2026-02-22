@@ -18,10 +18,10 @@
   "keywords": ["voxel", "di", "dependency-injection", "framework"],
   "license": "MIT",
   "peerDependencies": {
-    "express": "^4.0.0"
+    "express": "5.2.1"
   },
   "devDependencies": {
-    "express": "catalog:",
-    "@types/express": "catalog:"
+    "express": "5.2.1",
+    "@types/express": "5.0.6"
   }
 }
