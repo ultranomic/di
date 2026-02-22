@@ -1,0 +1,31 @@
+{
+  "name": "@voxeljs/hono",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": ["voxel", "hono", "http", "adapter"],
+  "license": "MIT",
+  "peerDependencies": {
+    "hono": "^4.0.0"
+  },
+  "dependencies": {
+    "@voxeljs/core": "workspace:*",
+    "@hono/node-server": "^1.13.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "hono": "^4.6.14"
+  }
+}
