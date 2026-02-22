@@ -26,3 +26,6 @@ export { Container } from './container/container.js'
 export { BindingScope, BindingBuilder } from './container/binding.js'
 export type { Binding, ContainerLike } from './container/binding.js'
 export type { ContainerInterface, ResolverInterface } from './container/interfaces.js'
+
+// Errors
+export { VoxelError, TokenNotFoundError } from './errors/index.js'

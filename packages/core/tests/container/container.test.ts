@@ -78,14 +78,14 @@ describe('Container', () => {
 
     it('should throw for unregistered token', () => {
       expect(() => container.resolve('Unknown')).toThrow(
-        'Token not found: Unknown',
+        /Token 'Unknown' not found/,
       )
     })
 
     it('should throw for unregistered symbol token', () => {
       const token = Symbol('Unknown')
       expect(() => container.resolve(token)).toThrow(
-        `Token not found: ${String(token)}`,
+        /Token '.*' not found/,
       )
     })
 

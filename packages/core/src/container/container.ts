@@ -4,6 +4,7 @@ import type {
   ContainerInterface,
   ResolverInterface,
 } from './interfaces.js'
+import { TokenNotFoundError } from '../errors/token-not-found.js'
 
 interface ResolutionContext {
   path: Token[]
@@ -65,13 +66,9 @@ export class Container implements ContainerInterface {
   private resolveWithContext<T>(token: Token<T>, context: ResolutionContext): T {
     const binding = this.bindings.get(token) as Binding<T> | undefined
     if (!binding) {
-      const resolutionPath = this.getResolutionPath(context)
-      const availableTokens = Array.from(this.bindings.keys())
-        .map((t) => String(t))
-        .join(', ')
-      throw new Error(
-        `Token not found: ${String(token)}${resolutionPath}\n  Available tokens: ${availableTokens || 'none'}`,
-      )
+      const resolutionPath = context.path.map((t) => String(t))
+      const availableTokens = Array.from(this.bindings.keys()).map((t) => String(t))
+      throw new TokenNotFoundError(token, resolutionPath, availableTokens)
     }
     if (binding.scope === BindingScope.SINGLETON && binding.instance !== undefined) {
       return binding.instance
