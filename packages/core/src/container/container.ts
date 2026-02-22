@@ -5,27 +5,15 @@ import type {
   ResolverInterface,
 } from './interfaces.js'
 
-/**
- * ResolutionContext tracks the resolution path for error messages
- */
 interface ResolutionContext {
-  /** The chain of tokens being resolved */
   path: Token[]
 }
 
-/**
- * DI Container for managing provider registration and resolution
- *
- * @example
- * ```typescript
- * const container = new Container()
- *
- * container.register('Logger', () => new ConsoleLogger()).asSingleton()
- * container.register('Database', (c) => new Database(c.resolve('Logger')))
- *
- * const db = container.resolve('Database')
- * ```
- */
+interface CircularProxyState {
+  token: Token
+  getBinding: () => Binding | undefined
+}
+
 export class Container implements ContainerInterface {
   private readonly bindings = new Map<Token, Binding>()
 
@@ -46,16 +34,6 @@ export class Container implements ContainerInterface {
     return this.resolveWithContext(token, { path: [] })
   }
 
-  /**
-   * Build a deps object from an inject map
-   *
-   * This is used to resolve all dependencies for a class that uses
-   * the static inject pattern.
-   *
-   * @param injectMap - The static inject property from a class
-   * @param context - The resolution context for tracking
-   * @returns A deps object with all dependencies resolved
-   */
   buildDeps<TInjectMap extends Record<string, Token>>(
     injectMap: TInjectMap,
   ): Record<string, unknown> {
@@ -66,12 +44,17 @@ export class Container implements ContainerInterface {
     return deps
   }
 
-  /**
-   * Get the current resolution path as a formatted string
-   *
-   * @param context - The resolution context
-   * @returns Formatted resolution path string
-   */
+  private buildDepsWithContext<TInjectMap extends Record<string, Token>>(
+    injectMap: TInjectMap,
+    context: ResolutionContext,
+  ): Record<string, unknown> {
+    const deps: Record<string, unknown> = {}
+    for (const [key, token] of Object.entries(injectMap)) {
+      deps[key] = this.resolveWithContext(token, context)
+    }
+    return deps
+  }
+
   getResolutionPath(context: ResolutionContext): string {
     if (context.path.length === 0) {
       return ''
@@ -79,13 +62,6 @@ export class Container implements ContainerInterface {
     return ' -> ' + context.path.map((t) => String(t)).join(' -> ')
   }
 
-  /**
-   * Internal resolve with context tracking
-   *
-   * @param token - The token to resolve
-   * @param context - The resolution context for tracking
-   * @returns The resolved value
-   */
   private resolveWithContext<T>(token: Token<T>, context: ResolutionContext): T {
     const binding = this.bindings.get(token) as Binding<T> | undefined
     if (!binding) {
@@ -97,14 +73,23 @@ export class Container implements ContainerInterface {
         `Token not found: ${String(token)}${resolutionPath}\n  Available tokens: ${availableTokens || 'none'}`,
       )
     }
-    // Return cached singleton
     if (binding.scope === BindingScope.SINGLETON && binding.instance !== undefined) {
       return binding.instance
     }
-    // Track resolution path
+    if (context.path.includes(token)) {
+      return this.createCircularProxy(token) as T
+    }
     context.path.push(token)
-    const instance = binding.factory(this)
-    // Cache singleton
+
+    const bindings = this.bindings
+    const contextResolver: ResolverInterface = {
+      resolve: <TResolve>(resolveToken: Token<TResolve>): TResolve =>
+        this.resolveWithContext(resolveToken, context),
+      has: (checkToken: Token) => bindings.has(checkToken),
+      buildDeps: <TInjectMap extends Record<string, Token>>(injectMap: TInjectMap) =>
+        this.buildDepsWithContext(injectMap, context),
+    }
+    const instance = binding.factory(contextResolver)
     if (binding.scope === BindingScope.SINGLETON) {
       binding.instance = instance
     }
@@ -120,4 +105,42 @@ export class Container implements ContainerInterface {
     this.bindings.clear()
   }
 
+  private createCircularProxy<T>(token: Token<T>): T {
+    const bindings = this.bindings
+
+    const state: CircularProxyState = {
+      token,
+      getBinding: () => bindings.get(token) as Binding | undefined,
+    }
+
+    const handler: ProxyHandler<object> = {
+      get(_target, prop) {
+        if (prop === 'then') {
+          return undefined
+        }
+
+        if (prop === 'toString') {
+          return () => `[CircularProxy: ${String(token)}]`
+        }
+
+        if (prop === Symbol.toStringTag) {
+          return 'CircularProxy'
+        }
+
+        const binding = state.getBinding()
+        if (binding?.instance) {
+          const actual = binding.instance as Record<string | symbol, unknown>
+          const value = actual[prop]
+          if (typeof value === 'function') {
+            return value.bind(actual)
+          }
+          return value
+        }
+
+        return undefined
+      },
+    }
+
+    return new Proxy({}, handler) as T
+  }
 }
