@@ -4,7 +4,7 @@ packages:
 
 catalogs:
   default:
-    typescript: ^5.9.0
-    vitest: ^3.0.0
-    oxlint: ^1.0.0
-    oxfmt: ^0.34.0
+    typescript: 6.0.0-beta
+    vitest: 3.0.0
+    oxlint: 1.0.0
+    oxfmt: 0.34.0
