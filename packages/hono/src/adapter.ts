@@ -1,11 +1,6 @@
 import { Hono, type Context } from 'hono'
 import { serve, type ServerType } from '@hono/node-server'
-
-import {
-  type ControllerConstructor,
-  type ResolverInterface,
-  type HttpMethod,
-} from '@voxeljs/core'
+import type { ControllerConstructor, ResolverInterface, HttpMethod } from '@voxeljs/core'
 
 export class HonoAdapter {
   private readonly app: Hono

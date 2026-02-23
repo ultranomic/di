@@ -1,1 +1,1 @@
-export { FastifyAdapter } from './adapter.js'
+export { FastifyAdapter } from './adapter.ts';

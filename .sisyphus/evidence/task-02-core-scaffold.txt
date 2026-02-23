@@ -1,0 +1,40 @@
+# Evidence - Task 02: Core Package Scaffolding
+
+## Scenario: Core package builds
+
+Steps:
+1. pnpm --filter @voxeljs/core build
+2. ls packages/core/dist/
+
+Result: PASS
+
+Output:
+```
+> @voxeljs/core@0.0.1 build /workspaces/di/packages/core
+> tsc -p tsconfig.json
+
+total 16
+drwxr-xr-x 1 vscode vscode  88 Feb 22 08:49 .
+drwxr-xr-x 1 vscode vscode 146 Feb 22 08:49 ..
+-rw-r--r-- 1 vscode vscode  46 Feb 22 08:49 index.d.ts
+-rw-r--r-- 1 vscode vscode 104 Feb 22 08:49 index.d.ts.map
+-rw-r--r-- 1 vscode vscode 149 Feb 22 08:49 index.js
+-rw-r--r-- 1 vscode vscode 127 Feb 22 08:49 index.js.map
+```
+
+## Files Created
+
+- `/workspaces/di/packages/core/package.json`
+- `/workspaces/di/packages/core/tsconfig.json`
+- `/workspaces/di/packages/core/src/index.ts`
+- `/workspaces/di/packages/core/vitest.config.ts`
+- `/workspaces/di/packages/core/tests/.gitkeep`
+
+## Root tsconfig.json Updated
+
+- References only `./packages/core` (other packages don't exist yet)
+
+## Dependencies Fixed
+
+- Changed `@anthropic/oxfmt` to `oxfmt` in package.json and pnpm-workspace.yaml
+- Changed TypeScript from `^6.0.0` to `^5.9.0` (6.0 is beta only)

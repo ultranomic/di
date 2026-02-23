@@ -74,18 +74,22 @@ export class TestModuleBuilder {
     const container = new Container()
     const registry = new ModuleRegistry()
 
+    // Register overrides FIRST so they take precedence
+    // Module registration will skip tokens that are already registered
+    const overrideTokens = new Set<Token>()
+    for (const override of this.overrides) {
+      container.register(override.token, override.factory)
+      overrideTokens.add(override.token)
+    }
+
     for (const module of this.config.imports ?? []) {
       registry.register(module)
     }
 
-    const testModule = this.createTestModule()
+    const testModule = this.createTestModule(overrideTokens)
     registry.register(testModule)
 
     await registry.loadModules(container)
-
-    for (const override of this.overrides) {
-      container.register(override.token, override.factory)
-    }
 
     for (const provider of this.extraProviders) {
       container.register(provider.token, provider.factory)
@@ -94,9 +98,11 @@ export class TestModuleBuilder {
     return new TestingModule(container)
   }
 
-  private createTestModule(): ModuleConstructor {
+  private createTestModule(overrideTokens: Set<Token>): ModuleConstructor {
     const providers = this.config.providers ?? []
     const controllers = this.config.controllers ?? []
+
+    const overrideTokensRef = overrideTokens
 
     class DynamicTestModule extends Module {
       static readonly metadata: ModuleMetadata = {
@@ -112,6 +118,10 @@ export class TestModuleBuilder {
             const ProviderClass = provider as {
               new (...args: unknown[]): unknown
               inject?: Record<string, Token>
+            }
+            // Skip if this provider is being overridden
+            if (overrideTokensRef.has(ProviderClass)) {
+              continue
             }
             if (ProviderClass.inject) {
               container.register(ProviderClass, (c: ResolverInterface) => {

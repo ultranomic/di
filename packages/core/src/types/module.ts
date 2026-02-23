@@ -5,7 +5,7 @@
  * a cohesive unit of functionality.
  */
 
-import type { Token } from './token.js'
+import type { Token } from './token.ts';
 
 /**
  * Lifecycle hook: Called when a module is initialized
@@ -21,7 +21,7 @@ import type { Token } from './token.js'
  */
 export interface OnModuleInit {
   /** Called after the module is initialized */
-  onModuleInit(): Promise<void> | void
+  onModuleInit(): Promise<void> | void;
 }
 
 /**
@@ -38,48 +38,50 @@ export interface OnModuleInit {
  */
 export interface OnModuleDestroy {
   /** Called before the module is destroyed */
-  onModuleDestroy(): Promise<void> | void
+  onModuleDestroy(): Promise<void> | void;
 }
 
 /**
- * Module configuration interface
+ * Module metadata interface
  *
  * Defines the structure of a Voxel module with its imports, providers,
  * controllers, and exports.
  *
  * @example
- * class UserModule {
- *   static readonly imports = [DatabaseModule, LoggerModule]
- *   static readonly providers = [UserService, UserRepository]
- *   static readonly controllers = [UserController]
- *   static readonly exports = [UserService]
+ * class UserModule extends Module {
+ *   static readonly metadata: ModuleMetadata = {
+ *     imports: [DatabaseModule, LoggerModule],
+ *     providers: [UserService, UserRepository],
+ *     controllers: [UserController],
+ *     exports: [UserService]
+ *   }
  * }
  */
-export interface ModuleConfig {
+export interface ModuleMetadata {
   /**
    * Modules whose exported providers are available to this module
    * @readonly
    */
-  imports?: readonly unknown[]
+  imports?: readonly unknown[];
 
   /**
    * Service providers registered in this module
    * @readonly
    */
-  providers?: readonly unknown[]
+  providers?: readonly unknown[];
 
   /**
    * Controllers (HTTP route handlers) registered in this module
    * @readonly
    */
-  controllers?: readonly unknown[]
+  controllers?: readonly unknown[];
 
   /**
    * Tokens that should be visible to modules importing this one
    * Only exported providers are accessible to importing modules.
    * @readonly
    */
-  exports?: readonly Token[]
+  exports?: readonly Token[];
 }
 
 /**
@@ -87,10 +89,10 @@ export interface ModuleConfig {
  *
  * A type that ensures a class has a valid module configuration.
  *
- * @template T - The module configuration type
+ * @template T - The module metadata type
  */
-export type ModuleClass<T extends ModuleConfig = ModuleConfig> = {
-  [K in keyof T]: T[K]
+export type ModuleClass<T extends ModuleMetadata = ModuleMetadata> = {
+  [K in keyof T]: T[K];
 } & {
-  new (...args: unknown[]): unknown
-}
+  new (...args: unknown[]): unknown;
+};

@@ -1,6 +1,6 @@
-import { Module } from '@voxeljs/core';
 import type { ModuleMetadata } from '@voxeljs/core';
-import { UserModule } from './user/user.module.js';
+import { Module } from '@voxeljs/core';
+import { UserModule } from './user/user.module.ts';
 
 /**
  * Root application module
@@ -15,9 +15,9 @@ export class AppModule extends Module {
     imports: [UserModule],
   };
 
-  register(container: import('@voxeljs/core').ContainerInterface): void {
+  register(_container: import('@voxeljs/core').ContainerInterface): void {
     // ModuleRegistry automatically loads UserModule before calling this
-    // No need to manually: new UserModule(); userModule.register(container);
+    // No need to manually: new UserModule(); userModule.register(_container);
     // The registry handles instantiation, registration, and lifecycle hooks
   }
 

@@ -134,6 +134,23 @@ class ServiceB {
 }
 ```
 
+
+### Import Conventions
+
+Always use `.ts` extension for local file imports, not `.js`:
+
+```typescript
+// CORRECT: Use .ts extension
+import { UserService } from './services/user.service.ts'
+import { UserController } from './controllers/user.controller.ts'
+
+// WRONG: Do not use .js extension
+import { UserService } from './services/user.service.js'
+import { UserController } from './controllers/user.controller.js'
+```
+
+This ensures consistency in the codebase and aligns with TypeScript source files.
+
 ## Testing Strategy
 
 - **TDD**: Write tests first
@@ -192,6 +209,7 @@ Use conventional commits:
 - Maintain 100% test coverage
 - Follow existing patterns in codebase
 - Write clear error messages with context
+ Keep AGENTS.md synchronized with source code changes (update when logic, patterns, or conventions change)
 
 ## Common Patterns
 

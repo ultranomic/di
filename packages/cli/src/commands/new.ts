@@ -1,75 +1,95 @@
-import { mkdir, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
 export interface ProjectTemplate {
-  name: string
-  files: Record<string, string>
+  name: string;
+  files: Record<string, string>;
 }
 
 function getPackageJsonContent(projectName: string): string {
-  return JSON.stringify({
-    name: projectName,
-    version: '1.0.0',
-    type: 'module',
-    main: './dist/index.js',
-    scripts: {
-      build: 'tsc',
-      dev: 'tsx watch src/index.ts',
-      start: 'node dist/index.js'
+  return JSON.stringify(
+    {
+      name: projectName,
+      version: '1.0.0',
+      type: 'module',
+      main: './dist/index.ts',
+      scripts: {
+        build: 'tsc',
+        dev: 'tsx watch src/index.ts',
+        start: 'node dist/index.ts',
+      },
+      dependencies: {
+        '@voxeljs/core': 'workspace:*',
+        '@voxeljs/express': 'workspace:*',
+        express: '^5.0.0',
+      },
+      devDependencies: {
+        '@types/express': '^5.0.0',
+        '@types/node': '^22.0.0',
+        tsx: '^4.0.0',
+        typescript: '^5.0.0',
+      },
     },
-    dependencies: {
-      '@voxeljs/core': 'workspace:*',
-      '@voxeljs/express': 'workspace:*',
-      express: '^5.0.0'
-    },
-    devDependencies: {
-      '@types/express': '^5.0.0',
-      '@types/node': '^22.0.0',
-      tsx: '^4.0.0',
-      typescript: '^5.0.0'
-    }
-  }, null, 2)
+    null,
+    2,
+  );
 }
 
 function getTsConfigContent(): string {
-  return JSON.stringify({
-    compilerOptions: {
-      target: 'ES2024',
-      module: 'NodeNext',
-      moduleResolution: 'NodeNext',
-      outDir: './dist',
-      rootDir: './src',
-      strict: true,
-      esModuleInterop: true,
-      skipLibCheck: true,
-      declaration: true
+  return JSON.stringify(
+    {
+      compilerOptions: {
+        target: 'ES2024',
+        module: 'NodeNext',
+        moduleResolution: 'NodeNext',
+        outDir: './dist',
+        rootDir: './src',
+        strict: true,
+        esModuleInterop: true,
+        skipLibCheck: true,
+        declaration: true,
+      },
+      include: ['src/**/*'],
+      exclude: ['node_modules', 'dist'],
     },
-    include: ['src/**/*'],
-    exclude: ['node_modules', 'dist']
-  }, null, 2)
+    null,
+    2,
+  );
 }
 
 function getIndexContent(): string {
   return `import { Container } from '@voxeljs/core'
-import { createExpressAdapter } from '@voxeljs/express'
-import { AppModule } from './app.js'
+import { ExpressAdapter } from '@voxeljs/express'
+import { AppModule, UserController } from './app.ts'
 
-const container = new Container()
-const app = createExpressAdapter(container, [AppModule])
+const PORT = Number(process.env['PORT']) || 3000
 
-const port = Number(process.env['PORT']) || 3000
-app.listen(port, () => {
-  console.log(\`Server running at http://localhost:\${port}\`)
+async function bootstrap(): Promise<void> {
+  const container = new Container()
+
+  const appModule = new AppModule()
+  appModule.register(container)
+
+  const adapter = new ExpressAdapter(container)
+  adapter.registerController(UserController)
+
+  await adapter.listen(PORT)
+  console.log(\`Server running on http://localhost:\${PORT}\`)
+}
+
+bootstrap().catch((err) => {
+  console.error('Failed to start server:', err)
+  process.exit(1)
 })
-`
+`;
 }
 
 function getAppModuleContent(): string {
-  return `import { Controller, Module } from '@voxeljs/core'
+  return `import { Module } from '@voxeljs/core'
 import type { Request, Response } from 'express'
-import { UserService } from './services/user.service.js'
+import { UserService } from './services/user.service.ts'
 
-class UserController {
+export class UserController {
   static readonly inject = {
     users: UserService
   } as const
@@ -96,13 +116,25 @@ class UserController {
   }
 }
 
-@Module({
-  controllers: [UserController],
-  providers: [UserService],
-  exports: [UserService]
-})
-export class AppModule {}
-`
+export class AppModule extends Module {
+  static readonly metadata = {
+    providers: [UserService],
+    exports: [UserService]
+  } as const
+
+  register(container: import('@voxeljs/core').ContainerInterface): void {
+    container.register(UserService, (c) => {
+      const deps = c.buildDeps(UserService.inject)
+      return new UserService(deps)
+    }).asSingleton()
+
+    container.register(UserController, (c) => {
+      const deps = c.buildDeps(UserController.inject)
+      return new UserController(deps)
+    })
+  }
+}
+`;
 }
 
 function getUserServiceContent(): string {
@@ -123,7 +155,7 @@ function getUserServiceContent(): string {
     return users.find(u => u.id === id) ?? null
   }
 }
-`
+`;
 }
 
 function getTemplateFiles(projectName: string): ProjectTemplate {
@@ -134,32 +166,29 @@ function getTemplateFiles(projectName: string): ProjectTemplate {
       'tsconfig.json': getTsConfigContent(),
       'src/index.ts': getIndexContent(),
       'src/app.ts': getAppModuleContent(),
-      'src/services/user.service.ts': getUserServiceContent()
-    }
-  }
+      'src/services/user.service.ts': getUserServiceContent(),
+    },
+  };
 }
 
 export async function createProject(projectName: string, targetDir?: string): Promise<void> {
   if (!isValidProjectName(projectName)) {
-    throw new Error(
-      `Invalid project name "${projectName}". ` +
-      `Use lowercase letters, numbers, and hyphens only.`
-    )
+    throw new Error(`Invalid project name "${projectName}". ` + `Use lowercase letters, numbers, and hyphens only.`);
   }
 
-  const baseDir = targetDir ?? process.cwd()
-  const projectDir = join(baseDir, projectName)
-  const template = getTemplateFiles(projectName)
+  const baseDir = targetDir ?? process.cwd();
+  const projectDir = join(baseDir, projectName);
+  const template = getTemplateFiles(projectName);
 
-  await mkdir(projectDir, { recursive: true })
-  await mkdir(join(projectDir, 'src', 'services'), { recursive: true })
+  await mkdir(projectDir, { recursive: true });
+  await mkdir(join(projectDir, 'src', 'services'), { recursive: true });
 
   for (const [filePath, content] of Object.entries(template.files)) {
-    const fullPath = join(projectDir, filePath)
-    await writeFile(fullPath, content, 'utf-8')
+    const fullPath = join(projectDir, filePath);
+    await writeFile(fullPath, content, 'utf-8');
   }
 }
 
 function isValidProjectName(name: string): boolean {
-  return /^[a-z][a-z0-9-]*$/.test(name)
+  return /^[a-z][a-z0-9-]*$/.test(name);
 }

@@ -1,13 +1,6 @@
-import type { Token } from '../types/token.js'
-import type { ContainerInterface } from '../container/interfaces.js'
-import type { OnModuleInit, OnModuleDestroy } from '../types/module.js'
-
-export interface ModuleMetadata {
-  imports?: readonly unknown[]
-  providers?: readonly unknown[]
-  controllers?: readonly unknown[]
-  exports?: readonly Token[]
-}
+import type { ContainerInterface } from '../container/interfaces.ts';
+import type { ModuleMetadata, OnModuleDestroy, OnModuleInit } from '../types/module.ts';
+import type { Token } from '../types/token.ts';
 
 /**
  * Abstract base class for Voxel modules
@@ -16,27 +9,71 @@ export interface ModuleMetadata {
  * a cohesive unit of functionality.
  *
  * @example
+ * // Simple module with auto-registration
  * class UserModule extends Module {
  *   static readonly metadata: ModuleMetadata = {
  *     imports: [DatabaseModule],
- *     providers: [UserService],
+ *     providers: [UserService, UserRepository],
+ *     controllers: [UserController],
  *     exports: ['UserService'],
  *   }
+ *   // No register() needed - providers/controllers are auto-registered!
+ * }
  *
- *   register(container: ContainerInterface) {
- *     container.register('UserService', () => new UserService())
+ * @example
+ * // Module with custom registration (e.g., for dependencies)
+ * class ServerModule extends Module {
+ *   static readonly metadata: ModuleMetadata = {
+ *     providers: [ConfigService],
+ *   }
+ *
+ *   override register(container: ContainerInterface): void {
+ *     super.register(container) // Auto-registers ConfigService
+ *     // Custom registration for services with dependencies
+ *     container.register(ServerService, (c) => new ServerService({
+ *       config: c.resolve(ConfigService),
+ *     }))
  *   }
  * }
  */
 export abstract class Module implements OnModuleInit, OnModuleDestroy {
-  static readonly metadata?: ModuleMetadata
+  static readonly metadata?: ModuleMetadata;
 
   /**
    * Register this module's providers with the container
    *
+   * This default implementation auto-registers all providers and controllers
+   * from the module's metadata. Override this method to add custom registration
+   * logic or configure bindings with specific scopes.
+   *
    * @param container - The container to register providers with
    */
-  abstract register(container: ContainerInterface): void
+  register(container: ContainerInterface): void {
+    const ctor = this.constructor as typeof Module;
+    const metadata = ctor.metadata;
+
+    if (!metadata) {
+      return;
+    }
+
+    // Auto-register providers from metadata
+    if (metadata.providers) {
+      for (const provider of metadata.providers) {
+        // Register provider with the class itself as the token
+        const ProviderClass = provider as new (...args: unknown[]) => unknown;
+        container.register(ProviderClass, () => new ProviderClass());
+      }
+    }
+
+    // Auto-register controllers from metadata
+    if (metadata.controllers) {
+      for (const controller of metadata.controllers) {
+        // Register controller with the class itself as the token
+        const ControllerClass = controller as new (...args: unknown[]) => unknown;
+        container.register(ControllerClass, () => new ControllerClass());
+      }
+    }
+  }
 
   /**
    * Get the tokens that this module exports
@@ -46,8 +83,8 @@ export abstract class Module implements OnModuleInit, OnModuleDestroy {
    * @returns Array of tokens that this module exports
    */
   getExportedTokens(): Token[] {
-    const ctor = this.constructor as typeof Module
-    return ctor.metadata?.exports ? [...ctor.metadata.exports] : []
+    const ctor = this.constructor as typeof Module;
+    return ctor.metadata?.exports ? [...ctor.metadata.exports] : [];
   }
 
   /**
@@ -56,7 +93,7 @@ export abstract class Module implements OnModuleInit, OnModuleDestroy {
    * Override this method to run setup logic when the module loads.
    *
    * @example
-     * async onModuleInit() {
+   * async onModuleInit() {
    *   await this.connectToDatabase()
    * }
    */

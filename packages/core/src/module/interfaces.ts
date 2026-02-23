@@ -4,8 +4,8 @@
  * These types provide the public API for module definitions.
  */
 
-import type { ContainerInterface } from '../container/interfaces.js'
-import type { ModuleMetadata } from './module.js'
+import type { ContainerInterface } from '../container/interfaces.ts';
+import type { ModuleMetadata } from '../types/module.ts';
 
 /**
  * ModuleInterface defines the contract for module instances
@@ -24,17 +24,17 @@ export interface ModuleInterface {
    *
    * @param container - The container to register providers with
    */
-  register(container: ContainerInterface): void
+  register(container: ContainerInterface): void;
 
   /**
    * Lifecycle hook: Called after the module is initialized
    */
-  onModuleInit?(): Promise<void> | void
+  onModuleInit?(): Promise<void> | void;
 
   /**
    * Lifecycle hook: Called before the module is destroyed
    */
-  onModuleDestroy?(): Promise<void> | void
+  onModuleDestroy?(): Promise<void> | void;
 }
 
 /**
@@ -52,10 +52,10 @@ export interface ModuleConstructor {
   /**
    * Creates a new module instance
    */
-  new (): ModuleInterface
+  new (): ModuleInterface;
 
   /**
    * Static metadata describing the module's configuration
    */
-  readonly metadata?: ModuleMetadata
+  readonly metadata?: ModuleMetadata;
 }

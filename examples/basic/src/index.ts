@@ -1,7 +1,7 @@
 import { Container, ModuleRegistry } from '@voxeljs/core';
 import { ExpressAdapter } from '@voxeljs/express';
-import { AppModule } from './app.module.js';
-import { UserController } from './user/user.controller.js';
+import { AppModule } from './app.module.ts';
+import { UserController } from './user/user.controller.ts';
 
 const PORT = Number(process.env.PORT) || 3000;
 

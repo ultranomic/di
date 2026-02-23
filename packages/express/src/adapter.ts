@@ -1,10 +1,6 @@
 import express, { type Express, type Request, type Response } from 'express'
 import type { Server } from 'node:http'
-import {
-  type ControllerConstructor,
-  type ResolverInterface,
-  type HttpMethod,
-} from '@voxeljs/core'
+import type { ControllerConstructor, ResolverInterface, HttpMethod } from '@voxeljs/core'
 
 export class ExpressAdapter {
   private readonly app: Express
