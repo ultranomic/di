@@ -34,7 +34,11 @@ export interface ControllerMetadata {
    * Each route maps an HTTP method and path to a handler method.
    * The handler name is validated against the controller's methods.
    */
-  routes?: readonly ControllerRoute<unknown>[]
+  routes?: readonly {
+    method: import('../types/controller.js').HttpMethod
+    path: string
+    handler: string
+  }[]
 }
 
 /**

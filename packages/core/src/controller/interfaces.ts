@@ -28,14 +28,9 @@ export interface RouteInfo {
  * const ControllerClass: ControllerConstructor = UserController
  * const routes = ControllerClass.metadata?.routes
  */
-export interface ControllerConstructor {
-  /**
-   * Creates a new controller instance
-   */
-  new (...args: unknown[]): Controller
-
+export type ControllerConstructor = {
   /**
    * Static metadata describing the controller's configuration
    */
   readonly metadata?: ControllerMetadata
-}
+} & (abstract new (...args: any[]) => Controller)
