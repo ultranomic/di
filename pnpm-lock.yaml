@@ -46,6 +46,25 @@ importers:
         specifier: 6.0.0-beta
         version: 6.0.0-beta
 
+  examples/hono-rpc:
+    dependencies:
+      '@voxeljs/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@voxeljs/hono':
+        specifier: workspace:*
+        version: link:../../packages/hono
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.11
+      tsx:
+        specifier: ^4.19.0
+        version: 4.21.0
+      typescript:
+        specifier: 6.0.0-beta
+        version: 6.0.0-beta
+
   packages/cli:
     devDependencies:
       '@types/node':

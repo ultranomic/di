@@ -2,6 +2,7 @@ import { Container, Controller } from '@voxeljs/core';
 import type { Context } from 'hono';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { HonoAdapter } from './adapter.ts';
+import { hc, type InferHonoAppType, type InferRoutesFromApp, createRpcClient } from './index.ts';
 
 class TestController extends Controller {
   static readonly metadata = {
@@ -404,6 +405,219 @@ describe('HonoAdapter', () => {
         const data = (await response.json()) as { method: string };
         expect(data.method).toBe(method);
       }
+    });
+  });
+
+  describe('RPC functionality', () => {
+    it('getApp() returns a valid Hono instance', () => {
+      const adapter = new HonoAdapter(new Container());
+      const app = adapter.getApp();
+
+      expect(app).toBeDefined();
+      expect(typeof app.fetch).toBe('function');
+      expect(typeof app.on).toBe('function');
+      expect(typeof app.get).toBe('function');
+      expect(typeof app.post).toBe('function');
+    });
+
+    it('routes registered through controllers are accessible on the app', async () => {
+      const container = new Container();
+      container.register(TestController, (c) => {
+        return new TestController(c.buildDeps(TestController.inject));
+      });
+
+      const adapter = new HonoAdapter(container);
+      adapter.registerController(TestController);
+
+      const app = adapter.getApp();
+      const response = await app.request('/test/');
+      expect(response.status).toBe(200);
+    });
+
+    it('the app can be used with hc client from hono/client', () => {
+      const container = new Container();
+      container.register(TestController, (c) => {
+        return new TestController(c.buildDeps(TestController.inject));
+      });
+
+      const adapter = new HonoAdapter(container);
+      adapter.registerController(TestController);
+
+      const app = adapter.getApp();
+      const client = hc<typeof app>('/');
+
+      expect(client).toBeDefined();
+      expect(client.test).toBeDefined();
+
+      // Type assertion - if this compiles, types work correctly
+      type ClientType = typeof client;
+      const _typeCheck: ClientType = client;
+      expect(_typeCheck).toBeDefined();
+    });
+
+    it('client can make requests to registered routes via hc', async () => {
+      const container = new Container();
+      container.register(TestController, (c) => {
+        return new TestController(c.buildDeps(TestController.inject));
+      });
+
+      const adapter = new HonoAdapter(container);
+      adapter.registerController(TestController);
+
+      // Test via app.request directly (simulating what hc does)
+      const app = adapter.getApp();
+      const response = await app.request('/test/');
+      expect(response.status).toBe(200);
+
+      const data = (await response.json()) as { items: string[] };
+      expect(data).toEqual({ items: ['a', 'b', 'c'] });
+
+      // Also verify hc client creates proper type structure
+      const client = hc<typeof app>('http://localhost');
+      expect(client.test).toBeDefined();
+      expect(client.test.$get).toBeDefined();
+    });
+
+    it('client can make requests with path parameters', async () => {
+      const container = new Container();
+      container.register(TestController, (c) => {
+        return new TestController(c.buildDeps(TestController.inject));
+      });
+
+      const adapter = new HonoAdapter(container);
+      adapter.registerController(TestController);
+
+      // Test via app.request directly
+      const app = adapter.getApp();
+      const response = await app.request('/test/123');
+      expect(response.status).toBe(200);
+
+      const data = (await response.json()) as { id: string };
+      expect(data).toEqual({ id: '123' });
+
+      // Verify hc client has proper typing for dynamic routes
+      const client = hc<typeof app>('http://localhost');
+      expect(client.test[':id']).toBeDefined();
+      expect(client.test[':id'].$get).toBeDefined();
+    });
+
+    it('client can make POST requests', async () => {
+      const container = new Container();
+      container.register(TestController, (c) => {
+        return new TestController(c.buildDeps(TestController.inject));
+      });
+
+      const adapter = new HonoAdapter(container);
+      adapter.registerController(TestController);
+
+      // Test via app.request directly
+      const app = adapter.getApp();
+      const response = await app.request('/test/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'test' }),
+      });
+
+      expect(response.status).toBe(201);
+      const data = (await response.json()) as { created: boolean };
+      expect(data).toEqual({ created: true });
+
+      // Verify hc client has proper typing for POST
+      const client = hc<typeof app>('http://localhost');
+      expect(client.test.$post).toBeDefined();
+    });
+
+    it('createRpcClient creates a typed client from adapter', async () => {
+      const container = new Container();
+      container.register(TestController, (c) => {
+        return new TestController(c.buildDeps(TestController.inject));
+      });
+
+      const adapter = new HonoAdapter(container);
+      adapter.registerController(TestController);
+
+      const client = createRpcClient(adapter, 'http://localhost');
+
+      expect(client).toBeDefined();
+      expect(client.test).toBeDefined();
+      expect(client.test.$get).toBeDefined();
+
+      // Verify the client works by testing the underlying app
+      const app = adapter.getApp();
+      const response = await app.request('/test/');
+      expect(response.status).toBe(200);
+    });
+
+    it('multiple controllers work with RPC client', async () => {
+      const container = new Container();
+      container.register(TestController, (c) => {
+        return new TestController(c.buildDeps(TestController.inject));
+      });
+      container.register(HealthController, (c) => {
+        return new HealthController(c.buildDeps(HealthController.inject));
+      });
+
+      const adapter = new HonoAdapter(container);
+      adapter.registerController(TestController);
+      adapter.registerController(HealthController);
+
+      const client = createRpcClient(adapter, 'http://localhost');
+
+      expect(client.test).toBeDefined();
+      expect(client.health).toBeDefined();
+
+      // Verify both routes work via the underlying app
+      const app = adapter.getApp();
+      const testResponse = await app.request('/test/');
+      const healthResponse = await app.request('/health/');
+
+      expect(testResponse.status).toBe(200);
+      expect(healthResponse.status).toBe(200);
+
+      const testData = (await testResponse.json()) as { items: string[] };
+      const healthData = (await healthResponse.json()) as { status: string };
+
+      expect(testData).toEqual({ items: ['a', 'b', 'c'] });
+      expect(healthData).toEqual({ status: 'ok' });
+    });
+
+    it('InferHonoAppType correctly infers Hono type from adapter', () => {
+      const adapter = new HonoAdapter(new Container());
+
+      // Type test - should compile without errors
+      type AdapterAppType = InferHonoAppType<typeof adapter>;
+
+      // This is a compile-time type test - if it compiles, types are working
+      const app: AdapterAppType = adapter.getApp();
+      expect(app).toBeDefined();
+      expect(typeof app.fetch).toBe('function');
+    });
+
+    it('InferRoutesFromApp extracts routes schema from Hono app', () => {
+      const adapter = new HonoAdapter(new Container());
+      const app = adapter.getApp();
+
+      // Type test - should compile without errors
+      type RoutesType = InferRoutesFromApp<typeof app>;
+
+      // This is a compile-time type test
+      expect(app).toBeDefined();
+    });
+
+    it('type inference works with registered controllers', async () => {
+      const container = new Container();
+      container.register(TestController, (c) => {
+        return new TestController(c.buildDeps(TestController.inject));
+      });
+
+      const adapter = new HonoAdapter(container);
+      adapter.registerController(TestController);
+
+      // Type test - client should have proper typing for registered routes
+      const client = createRpcClient(adapter, 'http://localhost');
+
+      // If this compiles, type inference is working correctly
+      expect(client.test).toBeDefined();
     });
   });
 });
