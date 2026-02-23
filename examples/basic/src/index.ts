@@ -1,4 +1,4 @@
-import { Container } from '@voxeljs/core';
+import { Container, ModuleRegistry } from '@voxeljs/core';
 import { ExpressAdapter } from '@voxeljs/express';
 import { AppModule } from './app.module.js';
 import { UserController } from './user/user.controller.js';
@@ -7,10 +7,15 @@ const PORT = Number(process.env.PORT) || 3000;
 
 async function bootstrap(): Promise<void> {
   const container = new Container();
+  const registry = new ModuleRegistry();
 
-  const userModule = new AppModule();
-  userModule.register(container);
+  // Register the root module - ModuleRegistry will handle imports
+  registry.register(AppModule);
 
+  // Load all modules with proper import resolution and lifecycle hooks
+  await registry.loadModules(container);
+
+  // Register controllers with the HTTP adapter
   const adapter = new ExpressAdapter(container);
   adapter.registerController(UserController);
 
@@ -28,6 +33,13 @@ async function bootstrap(): Promise<void> {
   console.log('  POST   /users        - Create a new user');
   console.log('  PUT    /users/:id    - Update a user');
   console.log('  DELETE /users/:id    - Delete a user');
+
+  // Graceful shutdown
+  process.on('SIGINT', async () => {
+    console.log('\nShutting down gracefully...');
+    await registry.destroyModules();
+    process.exit(0);
+  });
 }
 
 bootstrap().catch((err) => {
