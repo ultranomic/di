@@ -30,3 +30,5 @@ pnpm-debug.log*
 
 # Test artifacts
 .test-results/
+
+opencode.json
