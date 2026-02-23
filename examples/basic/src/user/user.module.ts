@@ -1,7 +1,7 @@
+import type { ContainerInterface, ModuleMetadata, Token } from '@voxeljs/core';
 import { Module } from '@voxeljs/core';
-import type { ModuleMetadata, ContainerInterface, Token } from '@voxeljs/core';
-import { UserService } from './user.service.js';
-import { UserController } from './user.controller.js';
+import { UserController } from './user.controller.ts';
+import { UserService } from './user.service.ts';
 
 /**
  * User Module
@@ -27,9 +27,11 @@ export class UserModule extends Module {
    */
   register(container: ContainerInterface): void {
     // Register UserService with singleton scope
-    container.register('UserService', (c) => {
-      return new UserService(c.buildDeps(UserService.inject));
-    }).asSingleton();
+    container
+      .register('UserService', (c) => {
+        return new UserService(c.buildDeps(UserService.inject));
+      })
+      .asSingleton();
 
     // Register UserController - scoped per request
     // Use type assertion because UserController has a typed constructor signature

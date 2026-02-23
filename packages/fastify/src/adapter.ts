@@ -3,11 +3,7 @@ import fastify, {
   type FastifyRequest,
   type FastifyReply,
 } from 'fastify'
-import {
-  type ControllerConstructor,
-  type ResolverInterface,
-  type HttpMethod,
-} from '@voxeljs/core'
+import type { ControllerConstructor, ResolverInterface, HttpMethod } from '@voxeljs/core'
 
 export class FastifyAdapter {
   private readonly app: FastifyInstance

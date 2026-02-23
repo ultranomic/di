@@ -1,4 +1,4 @@
-import type { Token } from '../types/token.js'
+import type { Token } from '../types/token.ts';
 
 /**
  * Binding scope determines the lifecycle of a provider
@@ -13,8 +13,8 @@ export enum BindingScope {
  * Forward declaration of Container type to avoid circular dependency
  */
 export type ContainerLike = {
-  resolve<T>(token: Token<T>): T
-}
+  resolve<T>(token: Token<T>): T;
+};
 
 /**
  * Binding represents a provider registration in the container
@@ -23,13 +23,13 @@ export type ContainerLike = {
  */
 export interface Binding<T = unknown> {
   /** The token used to identify this binding */
-  readonly token: Token<T>
+  readonly token: Token<T>;
   /** Factory function that creates the value */
-  readonly factory: (container: ContainerLike) => T
+  readonly factory: (container: ContainerLike) => T;
   /** The scope of this binding */
-  scope: BindingScope
+  scope: BindingScope;
   /** Cached instance for singleton scope */
-  instance?: T
+  instance?: T;
 }
 
 /**
@@ -38,9 +38,7 @@ export interface Binding<T = unknown> {
  * @template T - The type of value the binding produces
  */
 export class BindingBuilder<T> {
-  constructor(
-    private readonly binding: Binding<T>,
-  ) {}
+  constructor(private readonly binding: Binding<T>) {}
 
   /**
    * Configure the binding as a singleton
@@ -49,7 +47,7 @@ export class BindingBuilder<T> {
    * of the container.
    */
   asSingleton(): void {
-    this.binding.scope = BindingScope.SINGLETON
+    this.binding.scope = BindingScope.SINGLETON;
   }
 
   /**
@@ -59,7 +57,7 @@ export class BindingBuilder<T> {
    * This is the default scope.
    */
   asTransient(): void {
-    this.binding.scope = BindingScope.TRANSIENT
+    this.binding.scope = BindingScope.TRANSIENT;
   }
 
   /**
@@ -68,6 +66,6 @@ export class BindingBuilder<T> {
    * Request-scoped bindings create one instance per request scope.
    */
   asScoped(): void {
-    this.binding.scope = BindingScope.SCOPED
+    this.binding.scope = BindingScope.SCOPED;
   }
 }

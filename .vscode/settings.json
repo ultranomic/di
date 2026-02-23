@@ -74,7 +74,7 @@
   "turbo.useLocalTurbo": true,
   "typescript.disableAutomaticTypeAcquisition": true,
   "typescript.enablePromptUseWorkspaceTsdk": true,
-  "typescript.experimental.useTsgo": true,
+  "typescript.experimental.useTsgo": false,
   "typescript.format.enable": false,
   "typescript.implementationsCodeLens.enabled": true,
   "typescript.implementationsCodeLens.showOnInterfaceMethods": true,

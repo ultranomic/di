@@ -133,5 +133,6 @@ export interface TypedRequest<
  * Typed response helper for type-safe response typing
  *
  * Generic typed response that can be extended by adapters.
+ * Use this as a base type for platform-specific response types.
  */
-export interface TypedResponse extends BaseResponse {}
+export type TypedResponse = BaseResponse

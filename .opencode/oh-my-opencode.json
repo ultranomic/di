@@ -35,15 +35,18 @@
       "temperature": 0
     },
     "librarian": {
-      "model": "zai-coding-plan/glm-5",
+      "model": "zai-coding-plan/glm-4.7",
       "temperature": 0
     },
     "explore": {
-      "model": "zai-coding-plan/glm-5",
+      "model": "zai-coding-plan/glm-4.7",
+      "thinking": {
+        "type": "disabled"
+      },
       "temperature": 0
     },
     "multimodal-looker": {
-      "model": "zai-coding-plan/glm-5",
+      "model": "zai-coding-plan/glm-4.6v",
       "temperature": 0
     },
     "prometheus": {

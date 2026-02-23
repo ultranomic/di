@@ -1,1 +1,1 @@
-export { ExpressAdapter } from './adapter.js'
+export { ExpressAdapter } from './adapter.ts';

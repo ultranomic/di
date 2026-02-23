@@ -1,0 +1,22 @@
+{
+  "active_plan": "/workspaces/di/.sisyphus/plans/voxel-framework.md",
+  "started_at": "2026-02-22T08:39:12.695Z",
+  "completed_at": "2026-02-23T01:07:00.000Z",
+  "session_ids": [
+    "ses_37b7f4df3ffeuHB03h7uWgUveG",
+    "ses_37a463c33ffe5fm4H6MCpApFeJ",
+    "ses_37a3f64d1ffevKGdfOdQlm47jy",
+    "ses_3784c2165ffedQ9CbSLE66heTd",
+    "ses_3780e88e9ffeQaesxWWxRjgUJX"
+  ],
+  "plan_name": "voxel-framework",
+  "agent": "atlas",
+  "status": "COMPLETE",
+  "final_verification": {
+    "completed_at": "2026-02-23T01:07:00.000Z",
+    "F1_plan_compliance": "PASSED",
+    "F2_code_quality": "PASSED",
+    "F3_manual_qa": "PASSED",
+    "F4_scope_fidelity": "PASSED"
+  }
+}

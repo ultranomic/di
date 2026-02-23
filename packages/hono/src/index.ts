@@ -1,1 +1,1 @@
-export { HonoAdapter } from './adapter.js'
+export { HonoAdapter } from './adapter.ts';

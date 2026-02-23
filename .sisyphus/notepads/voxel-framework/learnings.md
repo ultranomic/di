@@ -510,3 +510,158 @@ Options include: `fetch`, `port`, `hostname`, `overrideGlobalObjects`, `autoClea
 - Tests use native `fetch` for HTTP requests (Node.js 18+)
 - Tests cover: constructor, registration, listen/close, basePath, error handling, HTTP methods
 - Edge cases: cross-realm Response objects, handlers returning non-Response values
+
+## Example App Creation (2026-02-22)
+
+### Module Pattern
+- Modules must call `.register()` on imported modules to register providers
+- The `register` method receives a `ContainerInterface` parameter
+- Use `asSingleton()` for singleton services
+
+### Controller Registration
+- Controllers are registered with the class itself as the token
+- Use `c.buildDeps(Controller.inject)` to build dependencies
+- The ExpressAdapter resolves controllers from the container
+
+### Dependency Injection
+- Services use `static readonly inject = {} as const` for dependencies
+- Constructor receives `typeof Service.inject` as parameter type
+- Container's `buildDeps` resolves all inject tokens
+
+### Running the Example
+- `pnpm --filter example-basic dev` starts the server with tsx watch
+- Examples directory must be in `pnpm-workspace.yaml`
+- Need `@types/node` for process.env and other Node.js types
+## 2024-02-23: Plan Compliance Audit (F1)
+
+### Summary
+All 33 implementation tasks from the plan have been completed successfully.
+
+### Packages Verified
+- @voxeljs/core - DI container, module system, controllers, types, errors
+- @voxeljs/express - Express HTTP adapter
+- @voxeljs/fastify - Fastify HTTP adapter
+- @voxeljs/hono - Hono HTTP adapter
+- @voxeljs/testing - TestingModule, mock utilities
+- @voxeljs/cli - Project scaffolding
+
+### Key Findings
+- Circular dependency proxy handles `then`, `toString`, `Symbol.toStringTag` correctly
+- All three scopes implemented: SINGLETON, TRANSIENT, SCOPED
+- Scope validation prevents singletons from depending on scoped providers
+- Type inference working via `typeof Class.inject` pattern
+- Path parameter extraction via `ExtractPathParams<TPath>` type
+
+### Minor Gap
+- No README.md at repository root (AGENTS.md exists and is comprehensive)
+- Recommendation: Add README.md with quickstart guide
+
+
+
+## 2026-02-23: Final Verification Wave Complete
+
+### F1: Plan Compliance Audit - PASSED
+- NO decorators (@Inject, @Injectable, @Controller, @Module) found in packages
+- NO reflect-metadata imports found
+- NO `any` type usage found (`: any`, `as any`, `<any>`)
+- All 33 implementation tasks delivered
+
+### F2: Code Quality Review - PASSED
+- Consistent patterns across all packages
+- Proper TypeScript strict mode compliance
+- 10 minor lint warnings (non-blocking):
+  - Empty interface in controller.ts (TypedResponse)
+  - Import type side-effects in adapters
+  - Unused imports in examples
+  - Non-null assertions in test files
+
+### F3: Real Manual QA - PASSED
+- Example app starts correctly on port 3000
+- GET /users returns array of users
+- GET /users/1 returns single user object
+- GET /users/999 returns 404 error
+- CLI scaffolding works correctly
+- Generated code uses correct patterns (static readonly inject, no decorators)
+
+### F4: Scope Fidelity Check - PASSED
+- NO microservices support (no message brokers, event patterns)
+- NO websockets support (no ws, socket.io imports)
+- NO built-in config module (no ConfigService, ConfigModule)
+- NO unified Request/Response abstraction (adapters use native types)
+- All guardrails respected
+
+### Verification Commands Results
+- pnpm build: ✅ Success (all 6 packages)
+- pnpm test: ✅ 287 tests passing (18 test files)
+- pnpm typecheck: ✅ All packages up to date
+- pnpm lint: ⚠️ 10 warnings, 0 errors (non-blocking)
+
+
+
+
+## 2026-02-23: F4 Scope Fidelity Check - COMPREHENSIVE VERIFICATION
+
+### Summary
+Framework stays within defined scope. All guardrails respected. NO out-of-scope features added.
+
+### Guardrail Verification Results
+
+| Guardrail | Status | Evidence |
+|-----------|--------|----------|
+| NO decorators | ✅ PASS | grep for @Inject|@Injectable|@Controller|@Module found 0 matches in packages |
+| NO reflect-metadata | ✅ PASS | grep found 0 matches, not in any package.json |
+| NO unified Request/Response | ✅ PASS | BaseRequest/BaseResponse are type-only interfaces, adapters use native types |
+| NO microservices | ✅ PASS | No MessageBroker, EventBus, Transport, Kafka, RabbitMQ patterns found |
+| NO websockets | ✅ PASS | No ws, socket.io, WebSocket imports found |
+| NO built-in config module | ✅ PASS | No ConfigService/ConfigModule implementations (only test fixtures) |
+| NO `any` type usage | ✅ PASS | grep for `: any|as any|<any>` found 0 matches |
+
+### Adapter Native Type Verification
+
+All adapters pass through native types
+- **ExpressAdapter**: Uses `type Request, type Response` from 'express'
+- **FastifyAdapter**: Uses `type FastifyRequest, type FastifyReply` from 'fastify'
+- **HonoAdapter**: Uses `type Context` from 'hono'
+
+### Core Types Analysis
+
+The `BaseRequest`, `BaseResponse`, `TypedRequest`, `TypedResponse` in `/packages/core/src/types/controller.ts`:
+- Are **type-only interfaces** (exported with `export type` in index.ts)
+- Used for documentation and type inference purposes only
+- **No runtime code** - adapters never wrap native types
+- This is acceptable per guardrails ("NO unified Request/Response abstraction" refers to runtime wrappers)
+
+### Package Dependencies Verified
+
+All package.json files checked:
+- No reflect-metadata dependency
+- No microservice-related packages (kafka, amqplib, nats, redis)
+- No websocket packages (ws, socket.io)
+- Only appropriate dependencies: express, fastify, hono, @hono/node-server
+
+### Example App Verification
+
+Example in `/examples/basic/` uses correct patterns:
+- `static readonly inject = { ... } as const` pattern
+- `static readonly metadata: ControllerMetadata` pattern
+- Native Express types (`import type { Request, Response } from 'express'`)
+- NO decorators used
+
+### Edge Cases Documented
+
+1. **ConfigModule in tests**: Test fixtures use `ConfigModule` as a class name but these are user-defined modules for testing, not a built-in framework config service
+
+2. **BaseRequest/BaseResponse interfaces**: These are type-only helpers, not runtime abstractions. The guardrails prohibit "unified Request/Response abstraction" - meaning no runtime wrapper classes that adapters would use instead of native types
+
+### Final Verification
+- Build: ✅ Success (all 6 packages)
+- Tests: ✅ 287 tests passing (18 test files)
+- Scope: ✅ All guardrails respected
+
+### Conclusion
+The Voxel framework has been implemented strictly within its defined scope. No out-of-scope features (microservices, websockets, config module, decorators, unified request/response) were added. The framework correctly:
+1. Uses static properties for DI configuration (no decorators)
+2. Passes native request/response types through adapters
+3. Implements only HTTP routing (no websockets)
+4. Provides DI container only (no config service)
+5. Uses strict TypeScript (no `any` types)

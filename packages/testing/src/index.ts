@@ -1,2 +1,2 @@
-export { Test, TestModuleBuilder, TestingModule } from './test-module.js'
-export { mock, MockBuilder } from './mock.js'
+export { MockBuilder, mock } from './mock.ts';
+export { Test, TestModuleBuilder, TestingModule } from './test-module.ts';

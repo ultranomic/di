@@ -1,5 +1,5 @@
-import type { HttpMethod } from '../types/controller.js'
-import type { ControllerMetadata, Controller } from './controller.js'
+import type { HttpMethod } from '../types/controller.ts';
+import type { Controller, ControllerMetadata } from './controller.ts';
 
 /**
  * RouteInfo represents runtime route data extracted from a controller
@@ -9,13 +9,13 @@ import type { ControllerMetadata, Controller } from './controller.js'
  */
 export interface RouteInfo {
   /** HTTP method (GET, POST, PUT, DELETE, etc.) */
-  readonly method: HttpMethod
+  readonly method: HttpMethod;
   /** Full path including basePath (e.g., '/users/:id') */
-  readonly path: string
+  readonly path: string;
   /** Handler method name on the controller */
-  readonly handler: string
+  readonly handler: string;
   /** Reference to the controller class */
-  readonly controller: ControllerConstructor
+  readonly controller: ControllerConstructor;
 }
 
 /**
@@ -32,5 +32,5 @@ export type ControllerConstructor = {
   /**
    * Static metadata describing the controller's configuration
    */
-  readonly metadata?: ControllerMetadata
-} & (abstract new (...args: any[]) => Controller)
+  readonly metadata?: ControllerMetadata;
+} & (abstract new (...args: unknown[]) => Controller);

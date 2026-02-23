@@ -1,270 +1,273 @@
-import type { Token } from '../types/token.js'
-import { BindingScope, type Binding, BindingBuilder } from './binding.js'
-import type {
-  ContainerInterface,
-  ResolverInterface,
-} from './interfaces.js'
-import { TokenNotFoundError } from '../errors/token-not-found.js'
-import { ScopeValidationError } from '../errors/scope-validation.js'
+import { ScopeValidationError } from '../errors/scope-validation.ts';
+import { TokenCollisionError } from '../errors/token-collision.ts';
+import { TokenNotFoundError } from '../errors/token-not-found.ts';
+import type { Token } from '../types/token.ts';
+import { BindingBuilder, BindingScope, type Binding } from './binding.ts';
+import type { ContainerInterface, ResolverInterface } from './interfaces.ts';
 
 interface ResolutionContext {
-  path: Token[]
+  path: Token[];
 }
 
 interface CircularProxyState {
-  token: Token
-  getBinding: () => Binding | undefined
+  token: Token;
+  getBinding: () => Binding | undefined;
 }
 
 export class Container implements ContainerInterface {
-  private readonly parent?: Container
-  private readonly bindings = new Map<Token, Binding>()
-  private readonly scopedCache = new Map<Token, unknown>()
+  private readonly parent?: Container;
+  private readonly bindings = new Map<Token, Binding>();
+  private readonly scopedCache = new Map<Token, unknown>();
 
   constructor(parent?: Container) {
     if (parent !== undefined) {
-      this.parent = parent
+      this.parent = parent;
     }
   }
 
   createScope(): Container {
-    return new Container(this)
+    return new Container(this);
   }
 
   isRoot(): boolean {
-    return !this.parent
+    return !this.parent;
   }
 
   private getRoot(): Container {
-    return this.parent ? this.parent.getRoot() : this
+    return this.parent ? this.parent.getRoot() : this;
   }
 
-  register<T>(
-    token: Token<T>,
-    factory: (container: ResolverInterface) => T,
-  ): BindingBuilder<T> {
+  register<T>(token: Token<T>, factory: (container: ResolverInterface) => T): BindingBuilder<T> {
     if (this.parent) {
       throw new Error(
         `Cannot register bindings in child container. Token: ${String(token)}. ` +
-          `Register providers in the root container only.`
-      )
+          `Register providers in the root container only.`,
+      );
+    }
+    if (this.bindings.has(token)) {
+      const existingBinding = this.bindings.get(token);
+      throw new TokenCollisionError(token, existingBinding?.factory.name || 'Unknown', factory.name || 'Unknown');
     }
     const binding: Binding<T> = {
       token,
       factory: factory as (container: { resolve<T>(token: Token<T>): T }) => T,
       scope: BindingScope.TRANSIENT,
-    }
-    this.bindings.set(token, binding as Binding)
-    return new BindingBuilder(binding)
+    };
+    this.bindings.set(token, binding as Binding);
+    return new BindingBuilder(binding);
   }
 
   resolve<T>(token: Token<T>): T {
-    return this.resolveWithContext(token, { path: [] })
+    return this.resolveWithContext(token, { path: [] });
   }
 
-  buildDeps<TInjectMap extends Record<string, Token>>(
-    injectMap: TInjectMap,
-  ): Record<string, unknown> {
-    const deps: Record<string, unknown> = {}
+  buildDeps<TInjectMap extends Record<string, Token>>(injectMap: TInjectMap): Record<string, unknown> {
+    const deps: Record<string, unknown> = {};
     for (const [key, token] of Object.entries(injectMap)) {
-      deps[key] = this.resolve(token)
+      deps[key] = this.resolve(token);
     }
-    return deps
+    return deps;
   }
 
   private buildDepsWithContext<TInjectMap extends Record<string, Token>>(
     injectMap: TInjectMap,
     context: ResolutionContext,
   ): Record<string, unknown> {
-    const deps: Record<string, unknown> = {}
+    const deps: Record<string, unknown> = {};
     for (const [key, token] of Object.entries(injectMap)) {
-      deps[key] = this.resolveWithContext(token, context)
+      deps[key] = this.resolveWithContext(token, context);
     }
-    return deps
+    return deps;
   }
 
   getResolutionPath(context: ResolutionContext): string {
     if (context.path.length === 0) {
-      return ''
+      return '';
     }
-    return ' -> ' + context.path.map((t) => String(t)).join(' -> ')
+    return ' -> ' + context.path.map((t) => String(t)).join(' -> ');
   }
 
   private resolveWithContext<T>(token: Token<T>, context: ResolutionContext): T {
-    const binding = this.getBinding(token)
+    const binding = this.getBinding(token);
     if (!binding) {
-      const resolutionPath = context.path.map((t) => String(t))
-      const availableTokens = Array.from(this.getAllBindings().keys()).map((t) => String(t))
-      throw new TokenNotFoundError(token, resolutionPath, availableTokens)
+      const resolutionPath = context.path.map((t) => String(t));
+      const availableTokens = Array.from(this.getAllBindings().keys()).map((t) => String(t));
+      throw new TokenNotFoundError(token, resolutionPath, availableTokens);
     }
 
     if (binding.scope === BindingScope.SINGLETON && binding.instance !== undefined) {
-      return binding.instance
+      return binding.instance;
     }
 
     if (binding.scope === BindingScope.SCOPED) {
       if (this.scopedCache.has(token)) {
-        return this.scopedCache.get(token) as T
+        return this.scopedCache.get(token) as T;
       }
     }
 
     if (context.path.includes(token)) {
-      return this.createCircularProxy(token) as T
+      return this.createCircularProxy(token) as T;
     }
-    context.path.push(token)
+    context.path.push(token);
 
     const contextResolver: ResolverInterface = {
-      resolve: <TResolve>(resolveToken: Token<TResolve>): TResolve =>
-        this.resolveWithContext(resolveToken, context),
+      resolve: <TResolve>(resolveToken: Token<TResolve>): TResolve => this.resolveWithContext(resolveToken, context),
       has: (checkToken: Token) => this.has(checkToken),
       buildDeps: <TInjectMap extends Record<string, Token>>(injectMap: TInjectMap) =>
         this.buildDepsWithContext(injectMap, context),
-    }
-    const instance = binding.factory(contextResolver)
+    };
+    const instance = binding.factory(contextResolver);
 
     if (binding.scope === BindingScope.SINGLETON) {
-      binding.instance = instance
+      binding.instance = instance;
     } else if (binding.scope === BindingScope.SCOPED) {
-      this.scopedCache.set(token, instance)
+      this.scopedCache.set(token, instance);
     }
 
-    return instance
+    return instance;
   }
 
   has(token: Token): boolean {
     if (this.bindings.has(token)) {
-      return true
+      return true;
     }
-    return this.parent?.has(token) ?? false
+    return this.parent?.has(token) ?? false;
   }
 
   getBinding<T>(token: Token<T>): Binding<T> | undefined {
-    const binding = this.bindings.get(token) as Binding<T> | undefined
+    const binding = this.bindings.get(token) as Binding<T> | undefined;
     if (binding) {
-      return binding
+      return binding;
     }
-    return this.parent?.getBinding(token)
+    return this.parent?.getBinding(token);
   }
 
   private getAllBindings(): Map<Token, Binding> {
     if (!this.parent) {
-      return this.bindings
+      return this.bindings;
     }
-    const allBindings = new Map<Token, Binding>()
-    const parentBindings = this.parent.getAllBindings()
+    const allBindings = new Map<Token, Binding>();
+    const parentBindings = this.parent.getAllBindings();
     for (const [token, binding] of parentBindings) {
-      allBindings.set(token, binding)
+      allBindings.set(token, binding);
     }
     for (const [token, binding] of this.bindings) {
-      allBindings.set(token, binding)
+      allBindings.set(token, binding);
     }
-    return allBindings
+    return allBindings;
   }
 
   clear(): void {
     if (this.parent) {
-      this.scopedCache.clear()
+      this.scopedCache.clear();
     } else {
-      this.bindings.clear()
-      this.scopedCache.clear()
+      this.bindings.clear();
+      this.scopedCache.clear();
     }
   }
 
   validateScopes(): void {
     if (this.parent) {
-      throw new Error('validateScopes() must be called on the root container')
+      throw new Error('validateScopes() must be called on the root container');
     }
 
     for (const [token, binding] of this.bindings) {
       if (binding.scope === BindingScope.SINGLETON) {
-        this.validateSingletonDependencies(token, binding)
+        this.validateSingletonDependencies(token, binding);
       }
     }
   }
 
   private validateSingletonDependencies(token: Token, binding: Binding): void {
-    const deps = this.extractDependenciesFromFactory(binding.factory)
+    const deps = this.extractDependenciesFromFactory(binding.factory);
     for (const depToken of deps) {
-      const depBinding = this.getBinding(depToken)
+      const depBinding = this.getBinding(depToken);
       if (depBinding?.scope === BindingScope.SCOPED) {
-        throw new ScopeValidationError(token, depToken)
+        throw new ScopeValidationError(token, depToken);
       }
     }
   }
 
-  private extractDependenciesFromFactory(
-    factory: (container: ContainerLike) => unknown
-  ): Token[] {
-    const dependencies: Token[] = []
-    const capturedTokens: Token[] = []
+  private extractDependenciesFromFactory(factory: (container: ContainerLike) => unknown): Token[] {
+    const dependencies: Token[] = [];
+    const capturedTokens: Token[] = [];
 
     const probeResolver: ContainerLike = {
       resolve: <T>(token: Token<T>): T => {
-        capturedTokens.push(token)
-        return this.createStubForToken(token) as T
+        capturedTokens.push(token);
+        return this.createStubForToken(token) as T;
       },
-    }
+    };
 
     try {
-      factory(probeResolver)
+      factory(probeResolver);
     } catch {
       // Factory might throw when receiving stub values, that's OK
     }
 
-    dependencies.push(...capturedTokens)
-    return dependencies
+    dependencies.push(...capturedTokens);
+    return dependencies;
   }
 
   private createStubForToken(token: Token): object {
-    const tokenStr = typeof token === 'function' ? token.name : String(token)
+    const tokenStr = typeof token === 'function' ? token.name : String(token);
 
-    return new Proxy({}, {
-      get(_target, prop) {
-        if (prop === 'then') {
-          return undefined
-        }
-        if (prop === 'toString' || prop === Symbol.toStringTag) {
-          return `[Stub: ${tokenStr}]`
-        }
-        return () => {}
+    return new Proxy(
+      {},
+      {
+        get(_target, prop) {
+          if (prop === 'then') {
+            return undefined;
+          }
+          if (prop === 'toString' || prop === Symbol.toStringTag) {
+            return `[Stub: ${tokenStr}]`;
+          }
+          if (prop === 'inspect') {
+            return () => `[Stub: ${tokenStr}]`;
+          }
+          return () => {};
+        },
       },
-    })
+    );
   }
 
   private createCircularProxy<T>(token: Token<T>): T {
-    const getBinding = (): Binding | undefined => this.getBinding(token) as Binding | undefined
+    const getBinding = (): Binding | undefined => this.getBinding(token) as Binding | undefined;
     const state: CircularProxyState = {
       token,
       getBinding,
-    }
+    };
     const handler: ProxyHandler<object> = {
       get(_target, prop) {
         if (prop === 'then') {
-          return undefined
+          return undefined;
         }
         if (prop === 'toString') {
-          return () => `[CircularProxy: ${String(token)}]`
+          return () => `[CircularProxy: ${String(token)}]`;
         }
         if (prop === Symbol.toStringTag) {
-          return 'CircularProxy'
+          return 'CircularProxy';
         }
-        const binding = state.getBinding()
+        if (prop === 'inspect') {
+          return () => `[CircularProxy: ${String(token)}]`;
+        }
+        const binding = state.getBinding();
         if (binding?.instance) {
-          const actual = binding.instance as Record<string | symbol, unknown>
-          const value = actual[prop]
+          const actual = binding.instance as Record<string | symbol, unknown>;
+          const value = actual[prop];
           if (typeof value === 'function') {
-            return value.bind(actual)
+            return value.bind(actual);
           }
-          return value
+          return value;
         }
 
-        return undefined
+        return undefined;
       },
-    }
-    return new Proxy({}, handler) as T
+    };
+    return new Proxy({}, handler) as T;
   }
 }
 
 type ContainerLike = {
-  resolve<T>(token: Token<T>): T
-}
+  resolve<T>(token: Token<T>): T;
+};

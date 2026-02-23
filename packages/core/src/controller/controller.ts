@@ -1,5 +1,3 @@
-import type { ControllerRoute } from '../types/controller.js'
-
 /**
  * Controller metadata interface
  *
@@ -26,7 +24,7 @@ export interface ControllerMetadata {
    * @example
    * basePath: '/users' // routes become /users/, /users/:id, etc.
    */
-  basePath?: string
+  basePath?: string;
 
   /**
    * Route definitions for this controller
@@ -35,10 +33,10 @@ export interface ControllerMetadata {
    * The handler name is validated against the controller's methods.
    */
   routes?: readonly {
-    method: import('../types/controller.js').HttpMethod
-    path: string
-    handler: string
-  }[]
+    method: import('../types/controller.ts').HttpMethod;
+    path: string;
+    handler: string;
+  }[];
 }
 
 /**
@@ -90,5 +88,5 @@ export abstract class Controller {
    *
    * Override this property to define the controller's routes and base path.
    */
-  static readonly metadata?: ControllerMetadata
+  static readonly metadata?: ControllerMetadata;
 }
