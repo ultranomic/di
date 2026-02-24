@@ -85,9 +85,7 @@ export class Container implements ContainerInterface {
   private resolveWithContext<T>(token: Token<T>, context: ResolutionContext): T {
     const binding = this.getBinding(token);
     if (!binding) {
-      const resolutionPath = context.path.map((t) => String(t));
-      const availableTokens = Array.from(this.getAllBindings().keys()).map((t) => String(t));
-      throw new TokenNotFoundError(token, resolutionPath, availableTokens);
+      throw new TokenNotFoundError(token, context.path, Array.from(this.getAllBindings().keys()));
     }
 
     if (binding.scope === BindingScope.SINGLETON && binding.instance !== undefined) {

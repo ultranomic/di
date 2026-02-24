@@ -91,24 +91,22 @@ import type { Request, Response } from 'express'
 import { UserService } from './services/user.service.ts'
 
 export class UserController {
-  static readonly inject = {
-    users: UserService
-  } as const
+  static readonly inject = [UserService] as const
 
   static readonly routes = [
     { method: 'GET', path: '/users', handler: 'list' },
     { method: 'GET', path: '/users/:id', handler: 'get' }
   ] as const
 
-  constructor(private deps: typeof UserController.inject) {}
+  constructor(private userService: UserService) {}
 
   async list(_req: Request, res: Response): Promise<void> {
-    const users = await this.deps.users.findAll()
+    const users = await this.userService.findAll()
     res.json(users)
   }
 
   async get(req: Request, res: Response): Promise<void> {
-    const user = await this.deps.users.findById(req.params.id as string)
+    const user = await this.userService.findById(req.params.id as string)
     if (user === null) {
       res.status(404).json({ error: 'User not found' })
       return
@@ -125,13 +123,11 @@ export class AppModule extends Module {
 
   register(container: import('@ultranomic/voxel/core').ContainerInterface): void {
     container.register(UserService, (c) => {
-      const deps = c.buildDeps(UserService.inject)
-      return new UserService(deps)
+      return new UserService(...c.buildDeps(UserService.inject))
     }).asSingleton()
 
     container.register(UserController, (c) => {
-      const deps = c.buildDeps(UserController.inject)
-      return new UserController(deps)
+      return new UserController(...c.buildDeps(UserController.inject))
     })
   }
 }
@@ -140,9 +136,7 @@ export class AppModule extends Module {
 
 function getUserServiceContent(): string {
   return `export class UserService {
-  static readonly inject = {} as const
-
-  constructor(_deps: typeof UserService.inject) {}
+  static readonly inject = [] as const
 
   async findAll(): Promise<Array<{ id: string; name: string }>> {
     return [

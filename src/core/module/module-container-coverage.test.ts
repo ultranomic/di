@@ -25,11 +25,11 @@ describe('ModuleContainer Coverage Tests', () => {
 
       class ModuleA extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['ExportedService'],
+          exports: [ExportedService],
         };
 
         register(c: ContainerInterface): void {
-          c.register('ExportedService', () => new ExportedService());
+          c.register(ExportedService, () => new ExportedService());
         }
       }
 
@@ -51,7 +51,7 @@ describe('ModuleContainer Coverage Tests', () => {
 
         register(c: ContainerInterface): void {
           // This should succeed because ExportedService is exported from ModuleA
-          c.register('ConsumerService', (res) => new ConsumerService(res.resolve('ExportedService')));
+          c.register(ConsumerService, (res) => new ConsumerService(res.resolve(ExportedService)));
         }
       }
 
@@ -59,7 +59,7 @@ describe('ModuleContainer Coverage Tests', () => {
       await registry.loadModules(container);
 
       // Verify the service can be resolved (meaning the token was accessible)
-      const consumer = container.resolve('ConsumerService') as ConsumerService;
+      const consumer = container.resolve(ConsumerService) as ConsumerService;
       expect(consumer.useDep()).toBe('from A');
     });
 
@@ -77,7 +77,7 @@ describe('ModuleContainer Coverage Tests', () => {
         };
 
         register(c: ContainerInterface): void {
-          c.register('PrivateService', () => new PrivateService());
+          c.register(PrivateService, () => new PrivateService());
         }
       }
 
@@ -96,7 +96,7 @@ describe('ModuleContainer Coverage Tests', () => {
 
         register(c: ContainerInterface): void {
           // This tries to use the private service from ModuleA
-          c.register('ConsumerService', (res) => new ConsumerService(res.resolve('PrivateService')));
+          c.register(ConsumerService, (res) => new ConsumerService(res.resolve(PrivateService)));
         }
       }
 
@@ -123,11 +123,11 @@ describe('ModuleContainer Coverage Tests', () => {
 
       class ModuleA extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['ServiceA'],
+          exports: [ServiceA],
         };
 
         register(c: ContainerInterface): void {
-          c.register('ServiceA', () => new ServiceA());
+          c.register(ServiceA, () => new ServiceA());
         }
       }
 
@@ -138,11 +138,11 @@ describe('ModuleContainer Coverage Tests', () => {
 
       class ModuleB extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['ServiceB'],
+          exports: [ServiceB],
         };
 
         register(c: ContainerInterface): void {
-          c.register('ServiceB', () => new ServiceB());
+          c.register(ServiceB, () => new ServiceB());
         }
       }
 
@@ -165,16 +165,14 @@ describe('ModuleContainer Coverage Tests', () => {
         };
 
         register(c: ContainerInterface): void {
-          c.register('AggregateService', (res) =>
-            new AggregateService(res.resolve('ServiceA'), res.resolve('ServiceB'))
-          );
+          c.register(AggregateService, (res) => new AggregateService(res.resolve(ServiceA), res.resolve(ServiceB)));
         }
       }
 
       registry.register(ModuleC);
       await registry.loadModules(container);
 
-      const aggregate = container.resolve('AggregateService') as AggregateService;
+      const aggregate = container.resolve(AggregateService) as AggregateService;
       expect(aggregate.getNames()).toBe('AB');
     });
 
@@ -190,12 +188,19 @@ describe('ModuleContainer Coverage Tests', () => {
 
       class ModuleA extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['PublicService'], // Only PublicService is exported
+          exports: [PublicService], // Only PublicService is exported
         };
 
         register(c: ContainerInterface): void {
-          c.register('PublicService', () => new PublicService());
-          c.register('PrivateService', () => new PrivateService());
+          c.register(PublicService, () => new PublicService());
+          c.register(PrivateService, () => new PrivateService());
+        }
+      }
+
+      class PublicConsumer {
+        publicType: string;
+        constructor(pub: PublicService) {
+          this.publicType = pub.type;
         }
       }
 
@@ -206,9 +211,9 @@ describe('ModuleContainer Coverage Tests', () => {
 
         register(c: ContainerInterface): void {
           // Should be able to register using exported service
-          c.register('PublicConsumer', (res) => {
-            const pub = res.resolve('PublicService');
-            return { publicType: (pub as PublicService).type };
+          c.register(PublicConsumer, (res) => {
+            const pub = res.resolve(PublicService);
+            return new PublicConsumer(pub);
           });
         }
       }
@@ -216,7 +221,7 @@ describe('ModuleContainer Coverage Tests', () => {
       // ModuleB should load successfully with access to exported service
       registry.register(ModuleB);
       await registry.loadModules(container);
-      const publicConsumer = container.resolve('PublicConsumer') as { publicType: string };
+      const publicConsumer = container.resolve(PublicConsumer);
       expect(publicConsumer.publicType).toBe('public');
     });
 
@@ -228,11 +233,11 @@ describe('ModuleContainer Coverage Tests', () => {
 
       class ModuleA extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['BaseService'],
+          exports: [BaseService],
         };
 
         register(c: ContainerInterface): void {
-          c.register('BaseService', () => new BaseService());
+          c.register(BaseService, () => new BaseService());
         }
       }
 
@@ -251,24 +256,31 @@ describe('ModuleContainer Coverage Tests', () => {
       class ModuleB extends Module {
         static readonly metadata: ModuleMetadata = {
           imports: [ModuleA],
-          exports: ['BaseService', 'DerivedService'],
+          exports: [BaseService, DerivedService],
         };
 
         register(c: ContainerInterface): void {
-          c.register('DerivedService', (res) => new DerivedService(res.resolve('BaseService')));
+          c.register(DerivedService, (res) => new DerivedService(res.resolve(BaseService)));
         }
       }
 
       // ModuleC imports ModuleB
+      class FinalService {
+        level: number;
+        constructor(derived: DerivedService) {
+          this.level = derived.getLevel();
+        }
+      }
+
       class ModuleC extends Module {
         static readonly metadata: ModuleMetadata = {
           imports: [ModuleB],
         };
 
         register(c: ContainerInterface): void {
-          c.register('FinalService', (res) => {
-            const derived = res.resolve('DerivedService') as DerivedService;
-            return { level: derived.getLevel() };
+          c.register(FinalService, (res) => {
+            const derived = res.resolve(DerivedService);
+            return new FinalService(derived);
           });
         }
       }
@@ -276,7 +288,7 @@ describe('ModuleContainer Coverage Tests', () => {
       registry.register(ModuleC);
       await registry.loadModules(container);
 
-      const final = container.resolve('FinalService') as { level: number };
+      const final = container.resolve(FinalService);
       expect(final.level).toBe(2);
     });
 
@@ -291,35 +303,42 @@ describe('ModuleContainer Coverage Tests', () => {
 
       class ModuleX extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['ServiceX'],
+          exports: [ServiceX],
         };
 
         register(c: ContainerInterface): void {
-          c.register('ServiceX', () => new ServiceX());
+          c.register(ServiceX, () => new ServiceX());
         }
       }
 
       class ModuleY extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['ServiceY'],
+          exports: [ServiceY],
         };
 
         register(c: ContainerInterface): void {
-          c.register('ServiceY', () => new ServiceY());
+          c.register(ServiceY, () => new ServiceY());
         }
       }
 
       // MainModule imports both
+      class CombinedService {
+        names: string;
+        constructor(x: ServiceX, y: ServiceY) {
+          this.names = `${x.name}${y.name}`;
+        }
+      }
+
       class MainModule extends Module {
         static readonly metadata: ModuleMetadata = {
           imports: [ModuleX, ModuleY],
         };
 
         register(c: ContainerInterface): void {
-          c.register('CombinedService', (res) => {
-            const x = res.resolve('ServiceX') as ServiceX;
-            const y = res.resolve('ServiceY') as ServiceY;
-            return { names: `${x.name}${y.name}` };
+          c.register(CombinedService, (res) => {
+            const x = res.resolve(ServiceX);
+            const y = res.resolve(ServiceY);
+            return new CombinedService(x, y);
           });
         }
       }
@@ -327,7 +346,7 @@ describe('ModuleContainer Coverage Tests', () => {
       registry.register(MainModule);
       await registry.loadModules(container);
 
-      const combined = container.resolve('CombinedService') as { names: string };
+      const combined = container.resolve(CombinedService);
       expect(combined.names).toBe('XY');
     });
   });
@@ -338,17 +357,24 @@ describe('ModuleContainer Coverage Tests', () => {
         secret = 'private';
       }
 
+      class PublicService {
+        derived: string;
+        constructor(priv: PrivateService) {
+          this.derived = priv.secret;
+        }
+      }
+
       class ModuleA extends Module {
         static readonly metadata: ModuleMetadata = {
           // NOT exported
         };
 
         register(c: ContainerInterface): void {
-          c.register('PrivateService', () => new PrivateService());
+          c.register(PrivateService, () => new PrivateService());
           // Module should be able to use its own private service
-          c.register('PublicService', (res) => {
-            const priv = res.resolve('PrivateService') as PrivateService;
-            return { derived: priv.secret };
+          c.register(PublicService, (res) => {
+            const priv = res.resolve(PrivateService);
+            return new PublicService(priv);
           });
         }
       }
@@ -356,7 +382,7 @@ describe('ModuleContainer Coverage Tests', () => {
       registry.register(ModuleA);
       await registry.loadModules(container);
 
-      const pub = container.resolve('PublicService') as { derived: string };
+      const pub = container.resolve(PublicService);
       expect(pub.derived).toBe('private');
     });
 

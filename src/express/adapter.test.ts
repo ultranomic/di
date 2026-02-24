@@ -348,6 +348,37 @@ describe('ExpressAdapter', () => {
       const newAdapter = new ExpressAdapter(container);
       await expect(newAdapter.close()).resolves.toBeUndefined();
     });
+
+    it('should reject when server close encounters an error', async () => {
+      class TestController extends Controller {
+        static readonly metadata = {
+          basePath: '/test',
+          routes: [{ method: 'GET', path: '/', handler: 'list' }] as const,
+        };
+        list(_req: Request, res: Response): void {
+          res.json({ items: [] });
+        }
+      }
+
+      const testContainer = new Container();
+      const testAdapter = new ExpressAdapter(testContainer);
+
+      testContainer.register(TestController, () => new TestController());
+      testAdapter.registerController(TestController);
+
+      const port = 3469;
+      await testAdapter.listen(port);
+
+      // Mock the server.close to simulate an error
+      if (testAdapter['server']) {
+        testAdapter['server'].close = (cb: (err?: Error) => void) => {
+          cb(new Error('Close error'));
+        };
+      }
+
+      // This should reject because close callback receives an error
+      await expect(testAdapter.close()).rejects.toThrow('Close error');
+    });
   });
 
   describe('HTTP methods', () => {

@@ -79,15 +79,15 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register('Logger', () => new Logger());
+          container.register(Logger, () => new Logger());
         }
       }
 
       registry.register(TestModule);
       await registry.loadModules(container);
 
-      expect(container.has('Logger')).toBe(true);
-      const logger = container.resolve('Logger') as Logger;
+      expect(container.has(Logger)).toBe(true);
+      const logger = container.resolve(Logger) as Logger;
       expect(logger.log()).toBe('logged');
     });
 
@@ -106,21 +106,21 @@ describe('ModuleRegistry', () => {
 
       class LoggerModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['Logger'],
+          exports: [Logger],
         };
 
         register(container: ContainerInterface): void {
-          container.register('Logger', () => new Logger());
+          container.register(Logger, () => new Logger());
         }
       }
 
       class DatabaseModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['Database'],
+          exports: [Database],
         };
 
         register(container: ContainerInterface): void {
-          container.register('Database', () => new Database());
+          container.register(Database, () => new Database());
         }
       }
 
@@ -128,8 +128,8 @@ describe('ModuleRegistry', () => {
       registry.register(DatabaseModule);
       await registry.loadModules(container);
 
-      expect(container.has('Logger')).toBe(true);
-      expect(container.has('Database')).toBe(true);
+      expect(container.has(Logger)).toBe(true);
+      expect(container.has(Database)).toBe(true);
     });
   });
 
@@ -284,11 +284,11 @@ describe('ModuleRegistry', () => {
 
       class LoggerModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['Logger'],
+          exports: [Logger],
         };
 
         register(container: ContainerInterface): void {
-          container.register('Logger', () => new Logger()).asSingleton();
+          container.register(Logger, () => new Logger()).asSingleton();
         }
       }
 
@@ -312,14 +312,14 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register('UserService', (c) => new UserService(c.resolve('Logger'))).asSingleton();
+          container.register(UserService, (c) => new UserService(c.resolve(Logger))).asSingleton();
         }
       }
 
       registry.register(UserModule);
       await registry.loadModules(container);
 
-      const userService = container.resolve('UserService') as UserService;
+      const userService = container.resolve(UserService) as UserService;
       expect(userService.logSomething()).toBe('logged');
     });
   });
@@ -588,22 +588,22 @@ describe('ModuleRegistry', () => {
 
       class LoggerModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['Logger'],
+          exports: [Logger],
         };
 
         register(container: ContainerInterface): void {
-          container.register('Logger', () => new Logger()).asSingleton();
+          container.register(Logger, () => new Logger()).asSingleton();
         }
       }
 
       class DatabaseModule extends Module {
         static readonly metadata: ModuleMetadata = {
           providers: [Database],
-          exports: ['Database'],
+          exports: [Database],
         };
 
         register(container: ContainerInterface): void {
-          container.register('Database', () => new Database()).asSingleton();
+          container.register(Database, () => new Database()).asSingleton();
         }
       }
 
@@ -633,7 +633,7 @@ describe('ModuleRegistry', () => {
 
         register(container: ContainerInterface): void {
           container
-            .register('AppService', (c) => new AppService(c.resolve('Logger'), c.resolve('Database')))
+            .register(AppService, (c) => new AppService(c.resolve(Logger), c.resolve(Database)))
             .asSingleton();
         }
       }
@@ -641,7 +641,7 @@ describe('ModuleRegistry', () => {
       registry.register(AppModule);
       await registry.loadModules(container);
 
-      const appService = container.resolve('AppService') as AppService;
+      const appService = container.resolve(AppService) as AppService;
       expect(appService.getData()).toBe('results');
     });
 
@@ -654,11 +654,11 @@ describe('ModuleRegistry', () => {
 
       class LoggerModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          // Logger is NOT exported
+          // InternalLogger is NOT exported
         };
 
         register(container: ContainerInterface): void {
-          container.register('InternalLogger', () => new InternalLogger()).asSingleton();
+          container.register(InternalLogger, () => new InternalLogger()).asSingleton();
         }
       }
 
@@ -682,7 +682,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register('UserService', (c) => new UserService(c.resolve('InternalLogger'))).asSingleton();
+          container.register(UserService, (c) => new UserService(c.resolve(InternalLogger))).asSingleton();
         }
       }
 
@@ -700,11 +700,11 @@ describe('ModuleRegistry', () => {
 
       class LoggerModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: [] as string[], // Empty exports
+          exports: [] as typeof InternalLogger[], // Empty exports
         };
 
         register(container: ContainerInterface): void {
-          container.register('InternalLogger', () => new InternalLogger()).asSingleton();
+          container.register(InternalLogger, () => new InternalLogger()).asSingleton();
         }
       }
 
@@ -724,7 +724,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register('UserService', (c) => new UserService(c.resolve('InternalLogger'))).asSingleton();
+          container.register(UserService, (c) => new UserService(c.resolve(InternalLogger))).asSingleton();
         }
       }
 
@@ -766,13 +766,13 @@ describe('ModuleRegistry', () => {
 
       class LoggerModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['PublicService'], // Only export PublicService
+          exports: [PublicService], // Only export PublicService
           providers: [InternalLogger, PublicService],
         };
 
         register(container: ContainerInterface): void {
-          container.register('InternalLogger', () => new InternalLogger()).asSingleton();
-          container.register('PublicService', (c) => new PublicService(c.resolve('InternalLogger'))).asSingleton();
+          container.register(InternalLogger, () => new InternalLogger()).asSingleton();
+          container.register(PublicService, (c) => new PublicService(c.resolve(InternalLogger))).asSingleton();
         }
       }
 
@@ -789,7 +789,7 @@ describe('ModuleRegistry', () => {
       // Should not throw because InternalLogger is used within its own module
       await registry.loadModules(container);
 
-      const publicService = container.resolve('PublicService') as PublicService;
+      const publicService = container.resolve(PublicService) as PublicService;
       expect(publicService.log()).toBe('internal');
     });
 
@@ -802,11 +802,11 @@ describe('ModuleRegistry', () => {
 
       class SecretModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['SecretService'],
+          exports: [SecretService],
         };
 
         register(container: ContainerInterface): void {
-          container.register('SecretService', () => new SecretService()).asSingleton();
+          container.register(SecretService, () => new SecretService()).asSingleton();
         }
       }
 
@@ -835,7 +835,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register('UserService', (c) => new UserService(c.resolve('SecretService'))).asSingleton();
+          container.register(UserService, (c) => new UserService(c.resolve(SecretService))).asSingleton();
         }
       }
 
@@ -866,7 +866,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register('InternalLogger', () => new InternalLogger()).asSingleton();
+          container.register(InternalLogger, () => new InternalLogger()).asSingleton();
         }
       }
 
@@ -878,7 +878,7 @@ describe('ModuleRegistry', () => {
 
         register(container: ContainerInterface): void {
           // has() should return false for non-exported tokens
-          hasCheckResult = container.has('InternalLogger');
+          hasCheckResult = container.has(InternalLogger);
         }
       }
 
@@ -897,11 +897,11 @@ describe('ModuleRegistry', () => {
 
       class LoggerModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['Logger'],
+          exports: [Logger],
         };
 
         register(container: ContainerInterface): void {
-          container.register('Logger', () => new Logger()).asSingleton();
+          container.register(Logger, () => new Logger()).asSingleton();
         }
       }
 
@@ -913,7 +913,7 @@ describe('ModuleRegistry', () => {
 
         register(container: ContainerInterface): void {
           // has() should return true for exported tokens
-          hasCheckResult = container.has('Logger');
+          hasCheckResult = container.has(Logger);
         }
       }
 
@@ -924,7 +924,7 @@ describe('ModuleRegistry', () => {
     });
 
     // oxlint-disable-next-line jest/expect-expect
-    it('should support getBinding.) for exported tokens', async () => {
+    it('should support getBinding() for exported tokens', async () => {
       class Logger {
         log() {
           return 'logged';
@@ -933,11 +933,11 @@ describe('ModuleRegistry', () => {
 
       class LoggerModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['Logger'],
+          exports: [Logger],
         };
 
         register(container: ContainerInterface): void {
-          container.register('Logger', () => new Logger()).asSingleton();
+          container.register(Logger, () => new Logger()).asSingleton();
         }
       }
 
@@ -948,7 +948,7 @@ describe('ModuleRegistry', () => {
 
         register(container: ContainerInterface): void {
           // getBinding() should work for exported tokens
-          const binding = container.getBinding('Logger');
+          const binding = container.getBinding(Logger);
           expect(binding).toBeDefined();
         }
       }
@@ -973,12 +973,12 @@ describe('ModuleRegistry', () => {
       // A module with exported tokens
       class SharedModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['Logger', 'Database'],
+          exports: [Logger, Database],
         };
 
         register(container: ContainerInterface): void {
-          container.register('Logger', () => new Logger()).asSingleton();
-          container.register('Database', () => new Database()).asSingleton();
+          container.register(Logger, () => new Logger()).asSingleton();
+          container.register(Database, () => new Database()).asSingleton();
         }
       }
 
@@ -1001,11 +1001,11 @@ describe('ModuleRegistry', () => {
       // oxlint-disable-next-line eslint(no-unused-vars)
       class SecretModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['SecretService'],
+          exports: [SecretService],
         };
 
         register(container: ContainerInterface): void {
-          container.register('SecretService', () => new SecretService()).asSingleton();
+          container.register(SecretService, () => new SecretService()).asSingleton();
         }
       }
 
@@ -1016,7 +1016,7 @@ describe('ModuleRegistry', () => {
 
         register(container: ContainerInterface): void {
           // Try to access SecretService which is from an unimported module
-          container.resolve('SecretService');
+          container.resolve(SecretService);
         }
       }
 
@@ -1046,11 +1046,11 @@ describe('ModuleRegistry', () => {
       // oxlint-disable-next-line eslint(no-unused-vars)
       class SecretModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['SecretService'],
+          exports: [SecretService],
         };
 
         register(container: ContainerInterface): void {
-          container.register('SecretService', () => new SecretService()).asSingleton();
+          container.register(SecretService, () => new SecretService()).asSingleton();
         }
       }
 
@@ -1072,7 +1072,7 @@ describe('ModuleRegistry', () => {
         register(container: ContainerInterface): void {
           // has() should return false for tokens from unimported modules
           // (SecretModule is imported by ProxyModule, but not by UserModule)
-          hasCheckResult = container.has('SecretService');
+          hasCheckResult = container.has(SecretService);
         }
       }
 
@@ -1092,11 +1092,11 @@ describe('ModuleRegistry', () => {
 
       class LoggerModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['Logger'],
+          exports: [Logger],
         };
 
         register(container: ContainerInterface): void {
-          container.register('Logger', () => new Logger()).asSingleton();
+          container.register(Logger, () => new Logger()).asSingleton();
         }
       }
 
@@ -1129,9 +1129,9 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register('Logger', () => new Logger()).asSingleton();
+          container.register(Logger, () => new Logger()).asSingleton();
           // has() should return true for our own tokens
-          expect(container.has('Logger')).toBe(true);
+          expect(container.has(Logger)).toBe(true);
         }
       }
 
@@ -1152,15 +1152,21 @@ describe('ModuleRegistry', () => {
         }
       }
 
+      class InternalCache {
+        get() {
+          return 'cached';
+        }
+      }
+
       class LoggerModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['Logger', 'Database'], // Export both
+          exports: [Logger, Database], // Export both
         };
 
         register(container: ContainerInterface): void {
-          container.register('Logger', () => new Logger()).asSingleton();
-          container.register('Database', () => new Database()).asSingleton();
-          container.register('InternalCache', () => ({})).asSingleton(); // Not exported
+          container.register(Logger, () => new Logger()).asSingleton();
+          container.register(Database, () => new Database()).asSingleton();
+          container.register(InternalCache, () => new InternalCache()).asSingleton(); // Not exported
         }
       }
 
@@ -1171,7 +1177,7 @@ describe('ModuleRegistry', () => {
 
         register(container: ContainerInterface): void {
           // Try to access non-exported token
-          container.resolve('InternalCache');
+          container.resolve(InternalCache);
         }
       }
 
@@ -1192,12 +1198,13 @@ describe('ModuleRegistry', () => {
 
     // oxlint-disable-next-line jest/expect-expect
     it('should delegate to base container for has() on untracked tokens', async () => {
+      class NonExistentToken {}
       class UserModule extends Module {
         static readonly metadata: ModuleMetadata = {};
 
         register(container: ContainerInterface): void {
           // has() should delegate to base container for untracked tokens
-          expect(container.has('NonExistentToken')).toBe(false);
+          expect(container.has(NonExistentToken)).toBe(false);
         }
       }
 
@@ -1215,70 +1222,62 @@ describe('ModuleRegistry', () => {
       // Module with exported tokens
       class SharedModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['Logger'],
+          exports: [Logger],
         };
 
         register(container: ContainerInterface): void {
-          container.register('Logger', () => new Logger()).asSingleton();
+          container.register(Logger, () => new Logger()).asSingleton();
         }
       }
 
-      // Another module that imports SharedModule
-      class AdminModule extends Module {
-        static readonly metadata: ModuleMetadata = {
-          imports: [SharedModule],
-        };
-
-        register(_container: ContainerInterface): void {}
-      }
-
-      // A service from another module that isn't exported
+      // A service from SecretModule that IS exported
       class SecretService {
         secret() {
           return 'secret';
         }
       }
 
+      // SecretModule exports SecretService
       class SecretModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          // Not exported
+          exports: [SecretService],
         };
 
         register(container: ContainerInterface): void {
-          container.register('SecretService', () => new SecretService()).asSingleton();
+          container.register(SecretService, () => new SecretService()).asSingleton();
         }
       }
 
-      // Module that imports BOTH SharedModule and SecretModule
+      // UserModule imports SharedModule and SecretModule, has a service that depends on both
+      class UserService {
+        static readonly inject = [Logger, SecretService] as const satisfies DepsTokens<typeof UserService>;
+
+        constructor(
+          _logger: Logger,
+          _secret: SecretService,
+        ) {}
+      }
+
       class UserModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          imports: [AdminModule, SecretModule],
+          imports: [SharedModule, SecretModule],
+          providers: [UserService],
         };
 
         register(container: ContainerInterface): void {
-          // Try to access non-exported token from SecretModule
-          // This should error and list Logger from SharedModule as accessible
-          container.resolve('SecretService');
+          container.register(UserService, (c) => new UserService(c.resolve(Logger), c.resolve(SecretService))).asSingleton();
         }
       }
 
+      // This should work because both Logger and SecretService are exported
       registry.register(UserModule);
+      await registry.loadModules(container);
 
-      let error: Error | undefined;
-      try {
-        await registry.loadModules(container);
-      } catch (e) {
-        error = e as Error;
-      }
-
-      expect(error).toBeDefined();
-      // Error should list Logger (from SharedModule which is directly imported via AdminModule)
-      // Wait, AdminModule imports SharedModule, but UserModule imports AdminModule
-      // So SharedModule is NOT directly accessible to UserModule
-      // Let me adjust the test
+      const userService = container.resolve(UserService);
+      expect(userService).toBeDefined();
     });
 
-    it('should include accessible tokens from directly imported modules in error', async () => {
+    it('should list accessible exported tokens when trying to access token from unimported module', async () => {
       class Logger {
         log() {
           return 'logged';
@@ -1294,87 +1293,12 @@ describe('ModuleRegistry', () => {
       // Module with exported tokens
       class SharedModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['Logger', 'Database'],
+          exports: [Logger, Database],
         };
 
         register(container: ContainerInterface): void {
-          container.register('Logger', () => new Logger()).asSingleton();
-          container.register('Database', () => new Database()).asSingleton();
-        }
-      }
-
-      // A service from a module that will NOT be imported by UserModule
-      class SecretService {
-        secret() {
-          return 'secret';
-        }
-      }
-
-      // Intermediate module that imports SharedModule
-      class AdminModule extends Module {
-        static readonly metadata: ModuleMetadata = {
-          imports: [SharedModule],
-        };
-
-        register(_container: ContainerInterface): void {}
-      }
-
-      // oxlint-disable-next-line eslint(no-unused-vars)
-      class SecretModule extends Module {
-        static readonly metadata: ModuleMetadata = {
-          exports: ['SecretService'],
-        };
-
-        register(container: ContainerInterface): void {
-          container.register('SecretService', () => new SecretService()).asSingleton();
-        }
-      }
-
-      // Module that imports AdminModule (which imports SharedModule)
-      // but tries to access SecretService from SecretModule (which is NOT imported)
-      class UserModule extends Module {
-        static readonly metadata: ModuleMetadata = {
-          imports: [AdminModule], // Only imports AdminModule
-        };
-
-        register(container: ContainerInterface): void {
-          // Try to access token from SecretModule which is NOT imported
-          // This should error and list tokens from accessible modules
-          container.resolve('SecretService');
-        }
-      }
-
-      registry.register(UserModule);
-
-      let error: Error | undefined;
-      try {
-        await registry.loadModules(container);
-      } catch (e) {
-        error = e as Error;
-      }
-
-      expect(error).toBeDefined();
-      // Since UserModule only imports AdminModule, and AdminModule imports SharedModule
-      // but SharedModule is NOT directly imported by UserModule, the accessible tokens
-      // would be... actually, there are no exported tokens from AdminModule
-      // Let me fix this test - I need SharedModule to be directly imported by UserModule
-    });
-
-    it('should list accessible exported tokens when trying to access token from unimported module', async () => {
-      class Logger {
-        log() {
-          return 'logged';
-        }
-      }
-
-      // Module with exported tokens
-      class SharedModule extends Module {
-        static readonly metadata: ModuleMetadata = {
-          exports: ['Logger'],
-        };
-
-        register(container: ContainerInterface): void {
-          container.register('Logger', () => new Logger()).asSingleton();
+          container.register(Logger, () => new Logger()).asSingleton();
+          container.register(Database, () => new Database()).asSingleton();
         }
       }
 
@@ -1388,11 +1312,11 @@ describe('ModuleRegistry', () => {
       // oxlint-disable-next-line eslint(no-unused-vars)
       class SecretModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['SecretService'],
+          exports: [SecretService],
         };
 
         register(container: ContainerInterface): void {
-          container.register('SecretService', () => new SecretService()).asSingleton();
+          container.register(SecretService, () => new SecretService()).asSingleton();
         }
       }
 
@@ -1405,7 +1329,7 @@ describe('ModuleRegistry', () => {
         register(container: ContainerInterface): void {
           // Try to access token from SecretModule which is NOT imported
           // This should error and list Logger from SharedModule as accessible
-          container.resolve('SecretService');
+          container.resolve(SecretService);
         }
       }
 
@@ -1439,12 +1363,12 @@ describe('ModuleRegistry', () => {
       // Module with exported tokens that will be accessible
       class SharedModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['Logger', 'Database'],
+          exports: [Logger, Database],
         };
 
         register(container: ContainerInterface): void {
-          container.register('Logger', () => new Logger()).asSingleton();
-          container.register('Database', () => new Database()).asSingleton();
+          container.register(Logger, () => new Logger()).asSingleton();
+          container.register(Database, () => new Database()).asSingleton();
         }
       }
 
@@ -1457,11 +1381,11 @@ describe('ModuleRegistry', () => {
 
       class SecretModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['SecretService'],
+          exports: [SecretService],
         };
 
         register(container: ContainerInterface): void {
-          container.register('SecretService', () => new SecretService()).asSingleton();
+          container.register(SecretService, () => new SecretService()).asSingleton();
         }
       }
 
@@ -1474,7 +1398,7 @@ describe('ModuleRegistry', () => {
         register(container: ContainerInterface): void {
           // Try to access token from SecretModule which is NOT imported
           // This should call getAccessibleTokens() which should return Logger and Database
-          container.resolve('SecretService');
+          container.resolve(SecretService);
         }
       }
 

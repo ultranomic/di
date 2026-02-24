@@ -16,33 +16,35 @@ describe('ModuleRegistry Coverage Tests', () => {
 
   describe('getModuleName with anonymous module (line 148)', () => {
     it('should return AnonymousModule for module without name', async () => {
-      // Create an anonymous function as the module class
-      // When a class is created via an anonymous function expression, it may not have a name
+      class AnonService {
+        value = 'anonymous';
+      }
+
       const AnonymousModuleConstructor = class extends Module {
         static readonly metadata: ModuleMetadata = {};
         register(_container: ContainerInterface): void {
           // Register a provider
-          container.register('AnonService', () => ({ value: 'anonymous' }));
+          container.register(AnonService, () => new AnonService());
         }
       };
-
-      // Even though we assign it to a const, the class itself has a name
-      // To test the anonymous branch, we need to simulate module.name being falsy
 
       registry.register(AnonymousModuleConstructor);
       await registry.loadModules(container);
 
       // Verify the module loaded successfully despite potentially anonymous name
       expect(registry.isLoaded(AnonymousModuleConstructor)).toBe(true);
-      expect(container.has('AnonService')).toBe(true);
+      expect(container.has(AnonService)).toBe(true);
     });
 
     it('should handle module with empty name (line 148 branch)', async () => {
-      // Create a module class and override its name to be empty
+      class EmptyNameService {
+        value = 'empty-name';
+      }
+
       const EmptyNameModule = class extends Module {
         static readonly metadata: ModuleMetadata = {};
         register(_container: ContainerInterface): void {
-          container.register('EmptyNameService', () => ({ value: 'empty-name' }));
+          container.register(EmptyNameService, () => new EmptyNameService());
         }
       };
 
@@ -54,7 +56,7 @@ describe('ModuleRegistry Coverage Tests', () => {
 
       // The module should still load, using 'AnonymousModule' as the name
       expect(registry.isLoaded(EmptyNameModule)).toBe(true);
-      expect(container.has('EmptyNameService')).toBe(true);
+      expect(container.has(EmptyNameService)).toBe(true);
     });
 
     it('should handle modules loaded in correct order with anonymous modules', async () => {
@@ -112,10 +114,10 @@ describe('ModuleRegistry Coverage Tests', () => {
 
       class ProviderModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['ExportedService'],
+          exports: [ExportedService],
         };
         register(container: ContainerInterface): void {
-          container.register('ExportedService', () => new ExportedService());
+          container.register(ExportedService, () => new ExportedService());
         }
       }
 
@@ -129,7 +131,7 @@ describe('ModuleRegistry Coverage Tests', () => {
       registry.register(ConsumerModule);
       await registry.loadModules(container);
 
-      expect(container.has('ExportedService')).toBe(true);
+      expect(container.has(ExportedService)).toBe(true);
     });
 
     it('should handle deeply nested import chains', async () => {

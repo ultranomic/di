@@ -9,14 +9,17 @@ import { VoxelError } from './base.ts';
  *
  * @example
  * ```typescript
+ * class Logger {}
+ * class App {}
+ * class Database {}
  * throw new TokenNotFoundError(
- *   'Logger',
- *   ['App', 'UserModule', 'UserService'],
- *   ['Database', 'Config', 'Cache']
+ *   Logger,
+ *   [App, UserService],
+ *   [Database, Config, Cache]
  * )
  * // Error message:
  * // TokenNotFoundError: Token 'Logger' not found
- * //   Resolution path: App -> UserModule -> UserService -> Logger
+ * //   Resolution path: App -> UserService -> Logger
  * //   Available tokens: Database, Config, Cache
  * //   Suggestion: Did you mean to import a module that provides 'Logger'?
  * ```
@@ -37,15 +40,17 @@ export class TokenNotFoundError extends VoxelError {
    */
   readonly availableTokens: string[];
 
-  constructor(token: Token, resolutionPath: string[], availableTokens: string[]) {
+  constructor(token: Token, resolutionPath: Token[], availableTokens: Token[]) {
     const tokenStr = typeof token === 'function' ? token.name : String(token);
+    const pathStr = resolutionPath.map((t) => (typeof t === 'function' ? t.name : String(t)));
+    const availableStr = availableTokens.map((t) => (typeof t === 'function' ? t.name : String(t)));
 
     const pathSection =
-      resolutionPath.length > 0 ? `\n  Resolution path: ${resolutionPath.join(' -> ')} -> ${tokenStr}` : '';
+      resolutionPath.length > 0 ? `\n  Resolution path: ${pathStr.join(' -> ')} -> ${tokenStr}` : '';
 
     const availableSection =
       availableTokens.length > 0
-        ? `\n  Available tokens: ${availableTokens.join(', ')}`
+        ? `\n  Available tokens: ${availableStr.join(', ')}`
         : '\n  Available tokens: (none registered)';
 
     const suggestion = `\n  Suggestion: Did you mean to import a module that provides '${tokenStr}'?`;
@@ -53,7 +58,7 @@ export class TokenNotFoundError extends VoxelError {
     super(`Token '${tokenStr}' not found${pathSection}${availableSection}${suggestion}`);
 
     this.token = tokenStr;
-    this.resolutionPath = resolutionPath;
-    this.availableTokens = availableTokens;
+    this.resolutionPath = pathStr;
+    this.availableTokens = availableStr;
   }
 }

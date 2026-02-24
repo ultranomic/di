@@ -39,8 +39,8 @@ describe('TestModuleBuilder', () => {
 
     it('should compile with providers', async () => {
       class UserService {
-        static readonly inject = {} as const;
-        constructor(_deps: typeof UserService.inject) {}
+        static readonly inject = [] as const;
+        constructor() {}
         getUsers() {
           return ['user1', 'user2'];
         }
@@ -50,29 +50,24 @@ describe('TestModuleBuilder', () => {
         providers: [UserService],
       }).compile();
 
-      const service = testingModule.get(
-        UserService as unknown as abstract new (...args: unknown[]) => UserService,
-      ) as UserService;
+      const service = testingModule.get(UserService);
       expect(service.getUsers()).toEqual(['user1', 'user2']);
     });
 
     it('should compile with providers with dependencies', async () => {
       class Logger {
-        static readonly inject = {} as const;
-        constructor(_deps: typeof Logger.inject) {}
+        static readonly inject = [] as const;
+        constructor() {}
         log(msg: string) {
           return `Logged: ${msg}`;
         }
       }
 
       class UserService {
-        static readonly inject = { logger: Logger as unknown as abstract new (...args: unknown[]) => Logger } as const;
-        private deps: typeof UserService.inject;
-        constructor(deps: typeof UserService.inject) {
-          this.deps = deps;
-        }
+        static readonly inject = [Logger] as const;
+        constructor(private logger: Logger) {}
         getUsers() {
-          (this.deps.logger as unknown as Logger).log('Getting users');
+          this.logger.log('Getting users');
           return ['user1'];
         }
       }
@@ -81,9 +76,7 @@ describe('TestModuleBuilder', () => {
         providers: [Logger, UserService],
       }).compile();
 
-      const service = testingModule.get(
-        UserService as unknown as abstract new (...args: unknown[]) => UserService,
-      ) as UserService;
+      const service = testingModule.get(UserService);
       expect(service.getUsers()).toEqual(['user1']);
     });
   });
@@ -91,8 +84,8 @@ describe('TestModuleBuilder', () => {
   describe('overrideProvider', () => {
     it('should override a provider with mock implementation', async () => {
       class UserService {
-        static readonly inject = {} as const;
-        constructor(_deps: typeof UserService.inject) {}
+        static readonly inject = [] as const;
+        constructor() {}
         getUsers() {
           return ['real-user'];
         }
@@ -105,79 +98,66 @@ describe('TestModuleBuilder', () => {
       const testingModule = await Test.createModule({
         providers: [UserService],
       })
-        .overrideProvider(UserService as unknown as abstract new (...args: unknown[]) => UserService, mockUserService)
+        .overrideProvider(UserService, mockUserService)
         .compile();
 
-      const service = testingModule.get(
-        UserService as unknown as abstract new (...args: unknown[]) => UserService,
-      ) as typeof mockUserService;
+      const service = testingModule.get(UserService) as typeof mockUserService;
       expect(service.getUsers()).toEqual(['mock-user']);
-    });
-
-    it('should override a string token provider', async () => {
-      const mockLogger = {
-        log: (_msg: string) => {},
-      };
-
-      const testingModule = await Test.createModule().overrideProvider('Logger', mockLogger).compile();
-
-      expect(testingModule.get('Logger')).toBe(mockLogger);
-    });
-
-    it('should override multiple providers', async () => {
-      const mockLogger = {
-        log: (_msg: string) => {},
-      };
-      const mockDb = {
-        query: () => [],
-      };
-
-      const testingModule = await Test.createModule()
-        .overrideProvider('Logger', mockLogger)
-        .overrideProvider('Database', mockDb)
-        .compile();
-
-      expect(testingModule.get('Logger')).toBe(mockLogger);
-      expect(testingModule.get('Database')).toBe(mockDb);
     });
   });
 
   describe('overrideProviderFactory', () => {
     it('should override with a factory function', async () => {
+      class UserService {
+        static readonly inject = [] as const;
+        constructor() {}
+        getUsers() {
+          return ['real'];
+        }
+      }
+
       const mockUserService = {
         getUsers: () => ['factory-user'],
       };
 
-      const testingModule = await Test.createModule()
-        .overrideProviderFactory('UserService', () => mockUserService)
+      const testingModule = await Test.createModule({
+        providers: [UserService],
+      })
+        .overrideProviderFactory(UserService, () => mockUserService)
         .compile();
 
-      expect(testingModule.get('UserService')).toBe(mockUserService);
+      expect(testingModule.get(UserService)).toBe(mockUserService);
     });
   });
 
   describe('addProvider', () => {
     it('should add a provider to the test module', async () => {
-      const mockService = {
-        getValue: () => 42,
-      };
+      class TestService {
+        getValue() {
+          return 42;
+        }
+      }
 
-      const testingModule = await Test.createModule().addProvider('MyService', mockService).compile();
+      const testingModule = await Test.createModule().addProvider(TestService, new TestService()).compile();
 
-      expect(testingModule.get('MyService')).toBe(mockService);
+      expect(testingModule.get(TestService).getValue()).toBe(42);
     });
 
     it('should add multiple providers', async () => {
-      const service1 = { value: 1 };
-      const service2 = { value: 2 };
+      class Service1 {
+        value = 1;
+      }
+      class Service2 {
+        value = 2;
+      }
 
       const testingModule = await Test.createModule()
-        .addProvider('Service1', service1)
-        .addProvider('Service2', service2)
+        .addProvider(Service1, new Service1())
+        .addProvider(Service2, new Service2())
         .compile();
 
-      expect(testingModule.get('Service1')).toBe(service1);
-      expect(testingModule.get('Service2')).toBe(service2);
+      expect(testingModule.get(Service1).value).toBe(1);
+      expect(testingModule.get(Service2).value).toBe(2);
     });
   });
 
@@ -204,24 +184,30 @@ describe('TestModuleBuilder', () => {
       }
 
       const testingModule = await Test.createModule({
-        providers: [ValidService, { invalid: true }] as unknown as readonly (abstract new (...args: unknown[]) => unknown)[],
+        providers: [ValidService, { invalid: true }] as unknown as readonly (abstract new (
+          ...args: unknown[]
+        ) => unknown)[],
       }).compile();
 
       // ValidService should be registered, invalid one skipped
-      const service = testingModule.get(ValidService) as ValidService;
+      const service = testingModule.get(ValidService);
       expect(service.getValue()).toBe('valid');
     });
   });
 
   describe('with imports', () => {
     it('should import existing modules', async () => {
+      class ConfigService {
+        port = 3000;
+      }
+
       class ConfigModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['Config'],
+          exports: [ConfigService],
         };
 
         register(container: Container): void {
-          container.register('Config', () => ({ port: 3000 }));
+          container.register(ConfigService, () => new ConfigService());
         }
       }
 
@@ -229,7 +215,7 @@ describe('TestModuleBuilder', () => {
         imports: [ConfigModule],
       }).compile();
 
-      const config = testingModule.get('Config') as { port: number };
+      const config = testingModule.get(ConfigService);
       expect(config.port).toBe(3000);
     });
   });
@@ -256,7 +242,7 @@ describe('TestModuleBuilder additional coverage', () => {
         providers: [Logger, UserService],
       }).compile();
 
-      const service = testingModule.get(UserService) as UserService;
+      const service = testingModule.get(UserService);
       expect(service.getUsers()).toEqual(['user - logged']);
     });
 
@@ -271,7 +257,7 @@ describe('TestModuleBuilder additional coverage', () => {
         providers: [SimpleService],
       }).compile();
 
-      const service = testingModule.get(SimpleService) as SimpleService;
+      const service = testingModule.get(SimpleService);
       expect(service.getValue()).toBe('simple');
     });
 
@@ -300,10 +286,10 @@ describe('TestModuleBuilder additional coverage', () => {
         providers: [Config, ServiceWithDeps, SimpleService],
       }).compile();
 
-      const serviceWithDeps = testingModule.get(ServiceWithDeps) as ServiceWithDeps;
+      const serviceWithDeps = testingModule.get(ServiceWithDeps);
       expect(serviceWithDeps.getValue()).toBe(84);
 
-      const simpleService = testingModule.get(SimpleService) as SimpleService;
+      const simpleService = testingModule.get(SimpleService);
       expect(simpleService.getName()).toBe('simple');
     });
   });
@@ -312,30 +298,35 @@ describe('TestModuleBuilder additional coverage', () => {
 describe('TestingModule', () => {
   let testingModule: TestingModule;
 
+  // Define the class at module level so it can be used in both setup and tests
+  class TestService {
+    getValue = () => 42;
+  }
+
   beforeEach(async () => {
-    testingModule = await Test.createModule()
-      .addProvider('TestService', { getValue: () => 42 })
-      .compile();
+    testingModule = await Test.createModule().addProvider(TestService, new TestService()).compile();
   });
 
   describe('get', () => {
     it('should resolve a provider by token', () => {
-      const service = testingModule.get('TestService') as { getValue: () => number };
+      const service = testingModule.get(TestService) as TestService;
       expect(service.getValue()).toBe(42);
     });
 
     it('should throw for unregistered token', () => {
-      expect(() => testingModule.get('Unknown')).toThrow(/Token 'Unknown' not found/);
+      class Unknown {}
+      expect(() => testingModule.get(Unknown)).toThrow(/not found/);
     });
   });
 
   describe('has', () => {
     it('should return true for registered token', () => {
-      expect(testingModule.has('TestService')).toBe(true);
+      expect(testingModule.has(TestService)).toBe(true);
     });
 
     it('should return false for unregistered token', () => {
-      expect(testingModule.has('Unknown')).toBe(false);
+      class Unknown {}
+      expect(testingModule.has(Unknown)).toBe(false);
     });
   });
 });

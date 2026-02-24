@@ -13,7 +13,7 @@ export type {
 } from './types/controller.ts';
 export type { DepsTokens, ExtractInject, InjectableClass, InferInject } from './types/deps.ts';
 export type { ModuleClass, ModuleMetadata, OnModuleDestroy, OnModuleInit } from './types/module.ts';
-export type { Token, TokenRegistry } from './types/token.ts';
+export type { Token } from './types/token.ts';
 
 // Container
 export { BindingBuilder, BindingScope } from './container/binding.ts';

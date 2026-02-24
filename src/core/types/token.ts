@@ -2,46 +2,29 @@
  * Token types for dependency injection
  *
  * Tokens are used to identify providers in the DI container.
- * They can be strings, symbols, or abstract class constructors.
+ * They must be class constructors (abstract or concrete).
  */
 
 /**
  * Token type for provider identification
  *
- * @template T - The type of the value the token resolves to (for class tokens)
+ * @template T - The type of the value the token resolves to
  *
  * @example
- * // String token
- * const loggerToken: Token = 'Logger'
- *
- * @example
- * // Symbol token
- * const dbToken: Token = Symbol('Database')
- *
- * @example
- * // Class token
- * abstract class LoggerBase {}
+ * // Abstract class token
+ * abstract class LoggerBase {
+ *   abstract log(message: string): void;
+ * }
  * const loggerToken: Token<LoggerBase> = LoggerBase
- */
-// oxlint-disable-next-line typescript-eslint(no-explicit-any)
-export type Token<T = unknown> = string | symbol | (abstract new (...args: any[]) => T);
-
-/**
- * Token registry interface for declaration merging
- *
- * Users can extend this interface to add type-safe token mappings:
  *
  * @example
- * declare module '@ultranomic/voxel' {
- *   interface TokenRegistry {
- *     Logger: ConsoleLogger
- *     Database: PostgresDatabase
+ * // Concrete class token
+ * class Database {
+ *   connect(): void {
+ *     // ...
  *   }
  * }
- *
- * // Then tokens like 'Logger' will be typed to ConsoleLogger
+ * const dbToken: Token<Database> = Database
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface TokenRegistry {
-  // Intentionally empty - for declaration merging
-}
+// oxlint-disable-next-line typescript-eslint/no-explicit-any
+export type Token<T = unknown> = abstract new (...args: any[]) => T;
