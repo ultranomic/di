@@ -1,5 +1,4 @@
 import type { HttpMethod } from '../types/controller.ts';
-import type { DepsTokens } from '../types/deps.ts';
 import type { Token } from '../types/token.ts';
 import type { Controller, ControllerMetadata } from './controller.ts';
 
@@ -51,5 +50,6 @@ export type ControllerConstructor = {
   /**
    * Creates a new controller instance
    */
+  // oxlint-disable-next-line typescript-eslint(no-explicit-any)
   new (...args: any[]): Controller;
 };

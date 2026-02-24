@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { Token } from '../types/token.ts';
 import { Container } from './container.ts';
 
 describe('Circular Dependencies', () => {

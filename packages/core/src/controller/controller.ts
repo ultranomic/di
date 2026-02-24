@@ -1,4 +1,3 @@
-import type { DepsTokens } from '../types/deps.ts';
 import type { Token } from '../types/token.ts';
 
 /**

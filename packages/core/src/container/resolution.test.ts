@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { InferInject, InjectableClass, DepsTokens } from '../types/deps.ts';
-import type { Token } from '../types/token.ts';
+import type { DepsTokens } from '../types/deps.ts';
 import { Container } from './container.ts';
 
 describe('Resolution with static inject', () => {

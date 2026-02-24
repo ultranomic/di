@@ -17,9 +17,10 @@ import type { TokenRegistry } from './token.ts';
  *   constructor(public foo: Foo, public bar: Bar) {}
  * }
  */
+// oxlint-disable-next-line typescript-eslint(no-explicit-any)
 export type DepsTokens<T extends abstract new (...args: any) => any> = T extends abstract new (...args: infer P) => any
-  ? P extends Array<any>
-    ? { [K in keyof P]: (abstract new (...args: any[]) => P[K]) | string | symbol }
+  ? P extends Array<any> // oxlint-disable-line typescript-eslint(no-explicit-any)
+    ? { [K in keyof P]: (abstract new (...args: any[]) => P[K]) | string | symbol } // oxlint-disable-line typescript-eslint(no-explicit-any)
     : never
   : never;
 
@@ -34,8 +35,9 @@ export type DepsTokens<T extends abstract new (...args: any) => any> = T extends
  * const inject = [Foo, 'BarToken'] as const;
  * type Injected = InferInject<typeof inject>; // [Foo, unknown]
  */
+// oxlint-disable-next-line typescript-eslint(no-explicit-any)
 export type InferInject<T extends readonly [...any[]], TRegistry extends TokenRegistry = TokenRegistry> = {
-  [K in keyof T]: T[K] extends abstract new (...args: any[]) => infer R
+  [K in keyof T]: T[K] extends abstract new (...args: any[]) => infer R // oxlint-disable-line typescript-eslint(no-explicit-any)
     ? R
     : T[K] extends keyof TRegistry
       ? TRegistry[T[K]]
@@ -48,6 +50,7 @@ export type InferInject<T extends readonly [...any[]], TRegistry extends TokenRe
  * @template TInject - The type of the inject array (readonly tuple of tokens)
  * @template TInstance - The type of instance the class creates
  */
+// oxlint-disable-next-line typescript-eslint(no-explicit-any)
 export type InjectableClass<TInject extends readonly [...any[]] = readonly [...any[]], TInstance = unknown> = (new (
   ...args: InferInject<TInject>
 ) => TInstance) & {

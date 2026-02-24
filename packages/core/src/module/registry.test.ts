@@ -978,6 +978,7 @@ describe('ModuleRegistry', () => {
         }
       }
 
+      // oxlint-disable-next-line eslint(no-unused-vars)
       class SecretModule extends Module {
         static readonly metadata: ModuleMetadata = {
           exports: ['SecretService'],
@@ -1022,6 +1023,7 @@ describe('ModuleRegistry', () => {
       }
 
       // Module that will be loaded but not imported
+      // oxlint-disable-next-line eslint(no-unused-vars)
       class SecretModule extends Module {
         static readonly metadata: ModuleMetadata = {
           exports: ['SecretService'],
@@ -1297,6 +1299,7 @@ describe('ModuleRegistry', () => {
         register(_container: ContainerInterface): void {}
       }
 
+      // oxlint-disable-next-line eslint(no-unused-vars)
       class SecretModule extends Module {
         static readonly metadata: ModuleMetadata = {
           exports: ['SecretService'],
@@ -1362,6 +1365,7 @@ describe('ModuleRegistry', () => {
         }
       }
 
+      // oxlint-disable-next-line eslint(no-unused-vars)
       class SecretModule extends Module {
         static readonly metadata: ModuleMetadata = {
           exports: ['SecretService'],
