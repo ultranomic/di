@@ -64,18 +64,14 @@ export class ModuleRegistry {
    * Errors are thrown at bootstrap time for better developer experience.
    */
   private async validateDependencies(container: ContainerInterface): Promise<void> {
-    // Create a resolver that checks encapsulation for each module's context
-    for (const [token, _owner] of this.tokenOwners) {
-      // Find which module owns this token and resolve in its context
-      // This will throw if the token's dependencies violate encapsulation
+    for (const [token] of this.tokenOwners) {
       try {
         container.resolve(token);
       } catch (error) {
-        // Re-throw encapsulation errors
+        // Re-throw encapsulation errors, ignore others (e.g., TokenNotFoundError)
         if (error instanceof Error && error.name === 'NonExportedTokenError') {
           throw error;
         }
-        // Ignore other errors (e.g., TokenNotFoundError for optional deps)
       }
     }
   }
@@ -112,31 +108,27 @@ export class ModuleRegistry {
     // Create a module-aware container for encapsulation
     const moduleContainer = new ModuleContainer(container, moduleName, exports, this.tokenOwners);
 
-    // If this module is being imported, track the relationship
-    if (parentModule) {
-      const parentName = this.getModuleName(parentModule);
-      moduleContainer.addAccessibleModule(parentName);
+    // Track parent relationship for encapsulation
+    if (parentModule !== undefined) {
+      moduleContainer.addAccessibleModule(this.getModuleName(parentModule));
     }
 
-    // Load imports first
+    // Load imports first (recursive)
     const imports = module.metadata?.imports;
-    if (imports) {
+    if (imports !== undefined) {
       for (const importedModule of imports) {
         await this.loadModule(importedModule as ModuleConstructor, container, module);
-
-        // Make this module accessible to the imported module's exports
         moduleContainer.addAccessibleModule(this.getModuleName(importedModule as ModuleConstructor));
       }
     }
 
+    // Instantiate and register the module
     const instance = new module();
     instance.register(moduleContainer);
-
-    // Store instance for lifecycle management
     this.loadedModuleInstances.push(instance);
 
-    // Call onModuleInit after registration
-    if (instance.onModuleInit) {
+    // Call lifecycle hook
+    if (instance.onModuleInit !== undefined) {
       await instance.onModuleInit();
     }
   }
@@ -145,20 +137,18 @@ export class ModuleRegistry {
    * Get a human-readable name for a module
    */
   private getModuleName(module: ModuleConstructor): string {
-    return module.name || 'AnonymousModule';
+    return module.name !== undefined && module.name.length > 0 ? module.name : 'AnonymousModule';
   }
 
   /**
    * Destroy all loaded modules
    *
    * Calls onModuleDestroy() on each module in reverse order of loading.
-   *
    */
   async destroyModules(): Promise<void> {
-    // Destroy in reverse order (last loaded first)
     for (let i = this.loadedModuleInstances.length - 1; i >= 0; i--) {
       const instance = this.loadedModuleInstances[i];
-      if (instance && instance.onModuleDestroy) {
+      if (instance !== undefined && instance.onModuleDestroy !== undefined) {
         await instance.onModuleDestroy();
       }
     }

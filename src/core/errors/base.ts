@@ -9,9 +9,9 @@ export abstract class DIError extends Error {
     super(message);
     this.name = this.constructor.name;
     const ErrorWithCapture = Error as typeof Error & {
-      captureStackTrace?: (targetObject: object, constructorOpt?: Function) => void;
+      captureStackTrace?: (targetObject: object, constructorOpt?: () => void) => void;
     };
-    if (ErrorWithCapture.captureStackTrace) {
+    if (ErrorWithCapture.captureStackTrace !== undefined) {
       ErrorWithCapture.captureStackTrace(this, this.constructor);
     }
   }

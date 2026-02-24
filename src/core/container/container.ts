@@ -16,14 +16,12 @@ interface CircularProxyState {
 }
 
 export class Container implements ContainerInterface {
-  private readonly parent?: Container;
+  private readonly parent: Container | undefined;
   private readonly bindings = new Map<Token, Binding>();
   private readonly scopedCache = new Map<Token, unknown>();
 
   constructor(parent?: Container) {
-    if (parent !== undefined) {
-      this.parent = parent;
-    }
+    this.parent = parent;
   }
 
   createScope(): Container {
@@ -31,15 +29,18 @@ export class Container implements ContainerInterface {
   }
 
   isRoot(): boolean {
-    return !this.parent;
+    return this.parent === undefined;
   }
 
   private getRoot(): Container {
-    return this.parent ? this.parent.getRoot() : this;
+    if (this.parent === undefined) {
+      return this;
+    }
+    return this.parent.getRoot();
   }
 
   register<T>(token: Token<T>, factory: (container: ResolverInterface) => T): BindingBuilder<T> {
-    if (this.parent) {
+    if (this.parent !== undefined) {
       throw new Error(
         `Cannot register bindings in child container. Token: ${String(token)}. ` +
           `Register providers in the root container only.`,
@@ -47,7 +48,7 @@ export class Container implements ContainerInterface {
     }
     if (this.bindings.has(token)) {
       const existingBinding = this.bindings.get(token);
-      throw new TokenCollisionError(token, existingBinding?.factory.name || 'Unknown', factory.name || 'Unknown');
+      throw new TokenCollisionError(token, existingBinding?.factory.name ?? 'Unknown', factory.name ?? 'Unknown');
     }
     const binding: Binding<T> = {
       token,
@@ -84,20 +85,21 @@ export class Container implements ContainerInterface {
 
   private resolveWithContext<T>(token: Token<T>, context: ResolutionContext): T {
     const binding = this.getBinding(token);
-    if (!binding) {
+    if (binding === undefined) {
       throw new TokenNotFoundError(token, context.path, Array.from(this.getAllBindings().keys()));
     }
 
+    // Return cached singleton instance
     if (binding.scope === BindingScope.SINGLETON && binding.instance !== undefined) {
       return binding.instance;
     }
 
-    if (binding.scope === BindingScope.SCOPED) {
-      if (this.scopedCache.has(token)) {
-        return this.scopedCache.get(token) as T;
-      }
+    // Return cached scoped instance
+    if (binding.scope === BindingScope.SCOPED && this.scopedCache.has(token)) {
+      return this.scopedCache.get(token) as T;
     }
 
+    // Handle circular dependencies
     if (context.path.includes(token)) {
       return this.createCircularProxy(token) as T;
     }
@@ -110,6 +112,7 @@ export class Container implements ContainerInterface {
     };
     const instance = binding.factory(contextResolver);
 
+    // Cache instances for singleton and scoped bindings
     if (binding.scope === BindingScope.SINGLETON) {
       binding.instance = instance;
     } else if (binding.scope === BindingScope.SCOPED) {
@@ -120,22 +123,19 @@ export class Container implements ContainerInterface {
   }
 
   has(token: Token): boolean {
-    if (this.bindings.has(token)) {
-      return true;
-    }
-    return this.parent?.has(token) ?? false;
+    return this.bindings.has(token) || (this.parent?.has(token) ?? false);
   }
 
   getBinding<T>(token: Token<T>): Binding<T> | undefined {
     const binding = this.bindings.get(token) as Binding<T> | undefined;
-    if (binding) {
+    if (binding !== undefined) {
       return binding;
     }
     return this.parent?.getBinding(token);
   }
 
   private getAllBindings(): Map<Token, Binding> {
-    if (!this.parent) {
+    if (this.parent === undefined) {
       return this.bindings;
     }
     const allBindings = new Map<Token, Binding>();
@@ -150,16 +150,18 @@ export class Container implements ContainerInterface {
   }
 
   clear(): void {
-    if (this.parent) {
+    if (this.parent !== undefined) {
+      // Child containers only clear their scoped cache
       this.scopedCache.clear();
     } else {
+      // Root containers clear both bindings and scoped cache
       this.bindings.clear();
       this.scopedCache.clear();
     }
   }
 
   validateScopes(): void {
-    if (this.parent) {
+    if (this.parent !== undefined) {
       throw new Error('validateScopes() must be called on the root container');
     }
 
