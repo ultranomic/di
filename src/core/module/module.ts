@@ -5,7 +5,7 @@ import type { Token } from '../types/token.ts';
 export type { ModuleMetadata } from '../types/module.ts';
 
 /**
- * Abstract base class for Voxel modules
+ * Abstract base class for DI modules
  *
  * Modules encapsulate providers, controllers, and imports to create
  * a cohesive unit of functionality.

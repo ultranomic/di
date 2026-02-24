@@ -1,4 +1,4 @@
-export { VoxelError } from './base.ts';
+export { DIError } from './base.ts';
 export { CircularDependencyError } from './circular-dependency.ts';
 export { NonExportedTokenError } from './non-exported-token.ts';
 export { ScopeValidationError } from './scope-validation.ts';

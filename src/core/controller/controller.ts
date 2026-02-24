@@ -42,7 +42,7 @@ export interface ControllerMetadata {
 }
 
 /**
- * Abstract base class for Voxel controllers
+ * Abstract base class for DI controllers
  *
  * Controllers define HTTP routes using a static metadata object.
  * The routes array maps HTTP methods and paths to handler methods.

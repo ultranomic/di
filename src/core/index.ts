@@ -1,4 +1,4 @@
-// Voxel Core - Dependency Injection Framework
+// Core - Dependency Injection Framework
 // Export everything from subdirectories when implemented
 
 // Types
@@ -34,8 +34,8 @@ export type { ControllerConstructor, RouteInfo } from './controller/interfaces.t
 // Errors
 export {
   CircularDependencyError,
+  DIError,
   ScopeValidationError,
   TokenCollisionError,
   TokenNotFoundError,
-  VoxelError,
 } from './errors/index.ts';

@@ -22,7 +22,7 @@ function getPackageJsonContent(projectName: string): string {
         start: 'node dist/index.ts',
       },
       dependencies: {
-        '@ultranomic/voxel': 'latest',
+        '@ultranomic/di': 'latest',
         express: '5.0.0',
       },
       devDependencies: {
@@ -59,8 +59,8 @@ function getTsConfigContent(): string {
 }
 
 function getIndexContent(): string {
-  return `import { Container } from '@ultranomic/voxel/core'
-import { ExpressAdapter } from '@ultranomic/voxel/express'
+  return `import { Container } from '@ultranomic/di/core'
+import { ExpressAdapter } from '@ultranomic/di/express'
 import { AppModule, UserController } from './app.ts'
 
 const PORT = Number(process.env['PORT']) || 3000
@@ -86,7 +86,7 @@ bootstrap().catch((err) => {
 }
 
 function getAppModuleContent(): string {
-  return `import { Module } from '@ultranomic/voxel/core'
+  return `import { Module } from '@ultranomic/di/core'
 import type { Request, Response } from 'express'
 import { UserService } from './services/user.service.ts'
 
@@ -121,7 +121,7 @@ export class AppModule extends Module {
     exports: [UserService]
   } as const
 
-  register(container: import('@ultranomic/voxel/core').ContainerInterface): void {
+  register(container: import('@ultranomic/di/core').ContainerInterface): void {
     container.register(UserService, (c) => {
       return new UserService(...c.buildDeps(UserService.inject))
     }).asSingleton()

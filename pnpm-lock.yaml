@@ -42,63 +42,6 @@ importers:
         specifier: 4.0.18
         version: 4.0.18(@types/node@25.3.0)(tsx@4.21.0)
 
-  examples/basic:
-    dependencies:
-      '@ultranomic/voxel':
-        specifier: workspace:*
-        version: link:../../packages/voxel
-    devDependencies:
-      '@types/express':
-        specifier: 5.0.6
-        version: 5.0.6
-      '@types/node':
-        specifier: 25.3.0
-        version: 25.3.0
-      typescript:
-        specifier: 6.0.0-beta
-        version: 6.0.0-beta
-
-  examples/hono-rpc:
-    dependencies:
-      '@ultranomic/voxel':
-        specifier: workspace:*
-        version: link:../../packages/voxel
-      hono:
-        specifier: 4.12.2
-        version: 4.12.2
-    devDependencies:
-      '@types/node':
-        specifier: 25.3.0
-        version: 25.3.0
-      typescript:
-        specifier: 6.0.0-beta
-        version: 6.0.0-beta
-
-  packages/voxel:
-    dependencies:
-      '@hono/node-server':
-        specifier: 1.19.9
-        version: 1.19.9(hono@4.12.2)
-    devDependencies:
-      '@types/express':
-        specifier: 5.0.6
-        version: 5.0.6
-      '@types/node':
-        specifier: 25.3.0
-        version: 25.3.0
-      express:
-        specifier: 5.2.1
-        version: 5.2.1
-      fastify:
-        specifier: 5.7.4
-        version: 5.7.4
-      hono:
-        specifier: 4.12.2
-        version: 4.12.2
-      vitest:
-        specifier: 4.0.18
-        version: 4.0.18(@types/node@25.3.0)(tsx@4.21.0)
-
 packages:
 
   '@babel/helper-string-parser@7.27.1':

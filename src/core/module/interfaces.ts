@@ -1,5 +1,5 @@
 /**
- * Module interface definitions for the Voxel DI system
+ * Module interface definitions for the DI system
  *
  * These types provide the public API for module definitions.
  */

@@ -1,5 +1,5 @@
 /**
- * Module type definitions for the Voxel DI system
+ * Module type definitions for the DI system
  *
  * Modules encapsulate providers, controllers, and imports to create
  * a cohesive unit of functionality.
@@ -44,7 +44,7 @@ export interface OnModuleDestroy {
 /**
  * Module metadata interface
  *
- * Defines the structure of a Voxel module with its imports, providers,
+ * Defines the structure of a DI module with its imports, providers,
  * controllers, and exports.
  *
  * @example

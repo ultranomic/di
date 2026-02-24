@@ -1,28 +1,30 @@
-# Voxel
+# Ultrasonic DI
 
 A dependency injection framework for TypeScript. No decorators, no reflect-metadata. Just classes with static properties.
 
-## Why Voxel?
+## Why Ultrasonic DI?
 
-Most DI frameworks lean heavily on decorators and runtime metadata. Voxel takes a different path. Everything is explicit. Dependencies are declared in static properties. Types flow naturally from those declarations.
+Most DI frameworks lean heavily on decorators and runtime metadata. Ultrasonic DI takes a different path. Everything is explicit. Dependencies are declared in static properties. Types flow naturally from those declarations.
 
 ```typescript
-class UserService {
-  static readonly inject = {
-    db: 'Database',
-    logger: 'Logger',
-  } as const;
+import type { DepsTokens } from '@ultranomic/di';
 
-  constructor(private deps: typeof UserService.inject) {}
+class UserService {
+  static readonly inject = [Database, Logger] as const satisfies DepsTokens<UserService>;
+
+  constructor(
+    private db: InstanceType<typeof Database>,
+    private logger: InstanceType<typeof Logger>,
+  ) {}
 
   async getUser(id: string) {
-    this.deps.logger.info(`Getting user ${id}`);
-    return this.deps.db.query('SELECT * FROM users WHERE id = $1', [id]);
+    this.logger.info(`Getting user ${id}`);
+    return this.db.query('SELECT * FROM users WHERE id = $1', [id]);
   }
 }
 ```
 
-That's it. No `@Injectable()`, no `@Inject('Database')`. The `inject` static property tells the container what this service needs. The constructor type is inferred from that property.
+That's it. No `@Injectable()`, no `@Inject('Database')`. The `inject` static property tells the container what this service needs. The constructor types are inferred from that property.
 
 ## Features
 
@@ -33,15 +35,18 @@ That's it. No `@Injectable()`, no `@Inject('Database')`. The `inject` static pro
 - **Lifecycle hooks** for initialization and cleanup
 - **Circular dependency support** via transparent proxies
 - **Clear error messages** with full resolution context
+- **Class-only tokens** for type-safe dependency resolution
 
 ## Installation
 
 ```bash
 # Core DI container and module system
-pnpm add @voxeljs/core
+pnpm add @ultranomic/di
 
-# Pick an HTTP adapter
-pnpm add @voxeljs/express   # or @voxeljs/fastify or @voxeljs/hono
+# HTTP adapters are included - just import them:
+# import { ExpressAdapter } from '@ultranomic/di/express'
+# import { FastifyAdapter } from '@ultranomic/di/fastify'
+# import { HonoAdapter } from '@ultranomic/di/hono'
 ```
 
 ## Quick Start
@@ -52,12 +57,10 @@ Build a simple API with users.
 
 ```typescript
 // services/user.service.ts
-import type { Request, Response } from 'express';
+import type { DepsTokens } from '@ultranomic/di';
 
 export class UserService {
-  static readonly inject = {} as const;
-
-  constructor(private deps: typeof UserService.inject) {}
+  static readonly inject = [] as const satisfies DepsTokens<UserService>;
 
   private users = [
     { id: '1', name: 'Alice' },
@@ -85,11 +88,11 @@ export class UserService {
 ```typescript
 // controllers/user.controller.ts
 import type { Request, Response } from 'express';
-import type { ControllerRoute } from '@voxeljs/core';
+import type { ControllerRoute, DepsTokens } from '@ultranomic/di';
 import { UserService } from './services/user.service.ts';
 
 export class UserController {
-  static readonly inject = { users: UserService } as const;
+  static readonly inject = [UserService] as const satisfies DepsTokens<UserController>;
 
   static readonly routes = [
     { method: 'GET', path: '/users', handler: 'list' },
@@ -97,15 +100,15 @@ export class UserController {
     { method: 'POST', path: '/users', handler: 'create' },
   ] as const satisfies ControllerRoute<UserController>[];
 
-  constructor(private deps: typeof UserController.inject) {}
+  constructor(private users: UserService) {}
 
   async list(_req: Request, res: Response) {
-    const users = await this.deps.users.findAll();
+    const users = await this.users.findAll();
     res.json(users);
   }
 
   async get(req: Request, res: Response) {
-    const user = await this.deps.users.findById(req.params.id);
+    const user = await this.users.findById(req.params.id);
     if (!user) {
       res.status(404).json({ error: 'Not found' });
       return;
@@ -114,7 +117,7 @@ export class UserController {
   }
 
   async create(req: Request, res: Response) {
-    const user = await this.deps.users.create(req.body);
+    const user = await this.users.create(req.body);
     res.status(201).json(user);
   }
 }
@@ -126,7 +129,7 @@ The `satisfies ControllerRoute<UserController>[]` pattern does two things. It va
 
 ```typescript
 // modules/user.module.ts
-import { Module } from '@voxeljs/core';
+import { Module } from '@ultranomic/di';
 import { UserService } from './services/user.service.ts';
 import { UserController } from './controllers/user.controller.ts';
 
@@ -143,8 +146,8 @@ export class UserModule extends Module {
 
 ```typescript
 // main.ts
-import { Container } from '@voxeljs/core';
-import { ExpressAdapter } from '@voxeljs/express';
+import { Container } from '@ultranomic/di';
+import { ExpressAdapter } from '@ultranomic/di/express';
 import { UserModule } from './modules/user.module.ts';
 import { UserService } from './services/user.service.ts';
 import { UserController } from './controllers/user.controller.ts';
@@ -152,18 +155,10 @@ import { UserController } from './controllers/user.controller.ts';
 const container = new Container();
 
 // Register providers
-container
-  .register(UserService, (c) => {
-    return new UserService(c.buildDeps(UserService.inject));
-  })
-  .asSingleton();
+container.register(UserService, (c) => new UserService(...c.buildDeps(UserService.inject))).asSingleton();
 
 // Register controllers
-container
-  .register(UserController, (c) => {
-    return new UserController(c.buildDeps(UserController.inject));
-  })
-  .asTransient();
+container.register(UserController, (c) => new UserController(...c.buildDeps(UserController.inject)));
 
 // Create adapter and register routes
 const adapter = new ExpressAdapter(container);
@@ -184,18 +179,24 @@ node main.ts
 
 ### Dependency Injection
 
-Voxel's DI container manages object creation and dependency resolution. Register a provider, then resolve it.
+Ultrasonic DI's container manages object creation and dependency resolution. Register a provider with a class token, then resolve it.
 
 ```typescript
-import { Container } from '@voxeljs/core';
+import { Container } from '@ultranomic/di';
+
+class Logger {
+  log(message: string) {
+    console.log(message);
+  }
+}
 
 const container = new Container();
 
-// Register with a token
-container.register('Logger', (c) => new ConsoleLogger()).asSingleton();
+// Register with a class token
+container.register(Logger, () => new Logger()).asSingleton();
 
 // Resolve it
-const logger = container.resolve('Logger');
+const logger = container.resolve(Logger);
 ```
 
 #### Scopes
@@ -207,29 +208,33 @@ Three scopes control instance lifetime:
 - **Scoped**: One instance per scope (useful for request contexts).
 
 ```typescript
-container.register('Cache', CacheService).asSingleton();
-container.register('Validator', Validator).asTransient();
-container.register('RequestContext', RequestContext).asScoped();
+class CacheService {}
+class Validator {}
+class RequestContext {}
+
+container.register(CacheService, () => new CacheService()).asSingleton();
+container.register(Validator, () => new Validator()).asTransient();
+container.register(RequestContext, () => new RequestContext()).asScoped();
 ```
 
 #### Circular Dependencies
 
-Voxel handles circular dependencies automatically. Services can depend on each other without special workarounds.
+DI handles circular dependencies automatically. Services can depend on each other without special workarounds.
 
 ```typescript
 class ServiceA {
-  static readonly inject = { b: 'ServiceB' } as const;
-  constructor(private deps: typeof ServiceA.inject) {}
+  static readonly inject = [ServiceB] as const satisfies DepsTokens<ServiceA>;
+  constructor(private serviceB: ServiceB) {}
 }
 
 class ServiceB {
-  static readonly inject = { a: 'ServiceA' } as const;
-  constructor(private deps: typeof ServiceB.inject) {}
+  static readonly inject = [ServiceA] as const satisfies DepsTokens<ServiceB>;
+  constructor(private serviceA: ServiceA) {}
 }
 
-// This works. Voxel uses proxies to break the cycle.
-container.register('ServiceA', ServiceA).asSingleton();
-container.register('ServiceB', ServiceB).asSingleton();
+// This works. Ultrasonic DI uses proxies to break the cycle.
+container.register(ServiceA, (c) => new ServiceA(...c.buildDeps(ServiceA.inject))).asSingleton();
+container.register(ServiceB, (c) => new ServiceB(...c.buildDeps(ServiceB.inject))).asSingleton();
 ```
 
 ### Modules
@@ -237,8 +242,10 @@ container.register('ServiceB', ServiceB).asSingleton();
 Modules organize related providers and controllers. They define boundaries for dependency visibility.
 
 ```typescript
-import { Module } from '@voxeljs/core';
+import { Module } from '@ultranomic/di';
 
+class Database {}
+class Migrator {}
 class DatabaseModule extends Module {
   static readonly metadata = {
     providers: [Database, Migrator],
@@ -246,6 +253,9 @@ class DatabaseModule extends Module {
   };
 }
 
+class UserService {}
+class UserRepository {}
+class UserController {}
 class UserModule extends Module {
   static readonly metadata = {
     imports: [DatabaseModule], // Get Database from here
@@ -268,10 +278,12 @@ The module metadata properties:
 Controllers group related routes. The `routes` array maps HTTP methods and paths to handler methods.
 
 ```typescript
-import type { ControllerRoute } from '@voxeljs/core';
+import type { ControllerRoute, DepsTokens } from '@ultranomic/di';
+
+class ProductService {}
 
 class ProductController {
-  static readonly inject = { products: 'ProductService' } as const;
+  static readonly inject = [ProductService] as const satisfies DepsTokens<ProductController>;
 
   static readonly routes = [
     { method: 'GET', path: '/products', handler: 'list' },
@@ -281,7 +293,7 @@ class ProductController {
     { method: 'DELETE', path: '/products/:id', handler: 'remove' },
   ] as const satisfies ControllerRoute<ProductController>[];
 
-  constructor(private deps: typeof ProductController.inject) {}
+  constructor(private products: ProductService) {}
 
   async list(req: Request, res: Response) {
     /* ... */
@@ -300,16 +312,19 @@ Path parameters are typed. If your route is `/products/:id`, TypeScript knows `r
 Services can hook into module initialization and destruction.
 
 ```typescript
-import type { OnModuleInit, OnModuleDestroy } from '@voxeljs/core';
+import type { OnModuleInit, OnModuleDestroy, DepsTokens } from '@ultranomic/di';
+
+class Config {}
 
 class Database implements OnModuleInit, OnModuleDestroy {
-  static readonly inject = { config: 'Config' } as const;
-  constructor(private deps: typeof Database.inject) {}
+  static readonly inject = [Config] as const satisfies DepsTokens<Database>;
+
+  constructor(private config: Config) {}
 
   private connection: Connection | null = null;
 
   async onModuleInit() {
-    this.connection = await connect(this.deps.config.databaseUrl);
+    this.connection = await connect();
   }
 
   async onModuleDestroy() {
@@ -320,19 +335,19 @@ class Database implements OnModuleInit, OnModuleDestroy {
 
 ### HTTP Adapters
 
-Voxel ships with three adapters. They all work the same way.
+Ultrasonic DI ships with three adapters. They all work the same way.
 
 ```typescript
 // Express
-import { ExpressAdapter } from '@voxeljs/express';
+import { ExpressAdapter } from '@ultranomic/di/express';
 const adapter = new ExpressAdapter(container);
 
 // Fastify
-import { FastifyAdapter } from '@voxeljs/fastify';
+import { FastifyAdapter } from '@ultranomic/di/fastify';
 const adapter = new FastifyAdapter(container);
 
 // Hono
-import { HonoAdapter } from '@voxeljs/hono';
+import { HonoAdapter } from '@ultranomic/di/hono';
 const adapter = new HonoAdapter(container);
 
 // Usage is identical
@@ -345,7 +360,7 @@ Adapters pass through native request and response types. No wrapper abstractions
 
 ## Error Messages
 
-Voxel errors include context to help debug issues.
+Ultrasonic DI errors include context to help debug issues.
 
 ```
 TokenNotFoundError: Token 'Logger' not found
@@ -358,11 +373,11 @@ You can see the full dependency chain and what tokens are actually registered.
 
 ## Testing
 
-The `@voxeljs/testing` package provides utilities for testing modules in isolation.
+The `@ultranomic/di/testing` package provides utilities for testing modules in isolation.
 
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { Test } from '@voxeljs/testing';
+import { Test } from '@ultranomic/di/testing';
 import { UserService } from './user.service.ts';
 
 describe('UserService', () => {
@@ -379,16 +394,30 @@ describe('UserService', () => {
 });
 ```
 
+## CLI
+
+Create new projects with the CLI:
+
+```bash
+# Create a new project
+di new my-app
+
+# Then:
+cd my-app
+pnpm install
+pnpm dev
+```
+
 ## Packages
 
-| Package            | Description                                         |
-| ------------------ | --------------------------------------------------- |
-| `@voxeljs/core`    | DI container, modules, controllers, lifecycle hooks |
-| `@voxeljs/express` | Express HTTP adapter                                |
-| `@voxeljs/fastify` | Fastify HTTP adapter                                |
-| `@voxeljs/hono`    | Hono HTTP adapter                                   |
-| `@voxeljs/testing` | Testing utilities                                   |
-| `@voxeljs/cli`     | Project scaffolding                                 |
+| Package                  | Description                                         |
+| ------------------------ | --------------------------------------------------- |
+| `@ultranomic/di`         | DI container, modules, controllers, lifecycle hooks |
+| `@ultranomic/di/express` | Express HTTP adapter                                |
+| `@ultranomic/di/fastify` | Fastify HTTP adapter                                |
+| `@ultranomic/di/hono`    | Hono HTTP adapter                                   |
+| `@ultranomic/di/testing` | Testing utilities                                   |
+| `@ultranomic/di/cli`     | Project scaffolding                                 |
 
 ## Philosophy
 

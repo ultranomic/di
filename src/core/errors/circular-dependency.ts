@@ -1,10 +1,10 @@
 import type { Token } from '../types/token.ts';
-import { VoxelError } from './base.ts';
+import { DIError } from './base.ts';
 
 /**
  * Error thrown when a circular dependency cannot be resolved.
  *
- * Note: Voxel handles circular dependencies via proxy pattern by default.
+ * Note: DI handles circular dependencies via proxy pattern by default.
  * This error is reserved for cases where circular resolution fails.
  *
  * @example
@@ -19,7 +19,7 @@ import { VoxelError } from './base.ts';
  * //   Suggestion: Consider refactoring to break the cycle, or use lazy resolution.
  * ```
  */
-export class CircularDependencyError extends VoxelError {
+export class CircularDependencyError extends DIError {
   /**
    * The token where the cycle was detected
    */

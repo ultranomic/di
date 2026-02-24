@@ -1,7 +1,7 @@
 import type { Token } from '../types/token.ts';
-import { VoxelError } from './base.ts';
+import { DIError } from './base.ts';
 
-export class ScopeValidationError extends VoxelError {
+export class ScopeValidationError extends DIError {
   readonly parentToken: string;
   readonly scopedToken: string;
 

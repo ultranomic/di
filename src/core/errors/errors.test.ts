@@ -4,13 +4,13 @@ import {
   ScopeValidationError,
   TokenCollisionError,
   TokenNotFoundError,
-  VoxelError,
+  DIError,
 } from '../index.ts';
 import { NonExportedTokenError } from './non-exported-token.ts';
 
-describe('VoxelError', () => {
+describe('DIError', () => {
   it('should set error name to class name', () => {
-    class TestError extends VoxelError {
+    class TestError extends DIError {
       constructor() {
         super('test message');
       }
@@ -21,7 +21,7 @@ describe('VoxelError', () => {
   });
 
   it('should call captureStackTrace when available (line 14 branch)', () => {
-    class TestError extends VoxelError {
+    class TestError extends DIError {
       constructor() {
         super('test message');
       }
@@ -34,7 +34,7 @@ describe('VoxelError', () => {
   });
 
   it('should extend Error', () => {
-    class TestError extends VoxelError {
+    class TestError extends DIError {
       constructor() {
         super('test message');
       }
@@ -42,11 +42,11 @@ describe('VoxelError', () => {
 
     const error = new TestError();
     expect(error).toBeInstanceOf(Error);
-    expect(error).toBeInstanceOf(VoxelError);
+    expect(error).toBeInstanceOf(DIError);
   });
 
   it('should have message property', () => {
-    class TestError extends VoxelError {
+    class TestError extends DIError {
       constructor() {
         super('test message');
       }
@@ -173,10 +173,10 @@ describe('TokenNotFoundError', () => {
     expect(error.availableTokens).toEqual(['Database', 'Config', 'Cache']);
   });
 
-  it('should extend VoxelError', () => {
+  it('should extend DIError', () => {
     class Logger {}
     const error = new TokenNotFoundError(Logger, [], []);
-    expect(error).toBeInstanceOf(VoxelError);
+    expect(error).toBeInstanceOf(DIError);
     expect(error).toBeInstanceOf(Error);
     expect(error.name).toBe('TokenNotFoundError');
   });
@@ -255,11 +255,11 @@ describe('CircularDependencyError', () => {
     expect(error.dependencyChain).toEqual(['ServiceA', 'ServiceB', 'ServiceA']);
   });
 
-  it('should extend VoxelError', () => {
+  it('should extend DIError', () => {
     class ServiceA {}
     class ServiceB {}
     const error = new CircularDependencyError(ServiceA, [ServiceA, ServiceB, ServiceA]);
-    expect(error).toBeInstanceOf(VoxelError);
+    expect(error).toBeInstanceOf(DIError);
     expect(error).toBeInstanceOf(Error);
     expect(error.name).toBe('CircularDependencyError');
   });
@@ -270,14 +270,18 @@ describe('ScopeValidationError', () => {
     class SingletonService {}
     class RequestService {}
     const error = new ScopeValidationError(SingletonService, RequestService);
-    expect(error.message).toContain("Scope validation failed: Singleton 'SingletonService' depends on scoped 'RequestService'");
+    expect(error.message).toContain(
+      "Scope validation failed: Singleton 'SingletonService' depends on scoped 'RequestService'",
+    );
   });
 
   it('should include helpful suggestion', () => {
     class SingletonService {}
     class RequestService {}
     const error = new ScopeValidationError(SingletonService, RequestService);
-    expect(error.message).toContain("Consider making 'SingletonService' scoped, or 'RequestService' singleton/transient.");
+    expect(error.message).toContain(
+      "Consider making 'SingletonService' scoped, or 'RequestService' singleton/transient.",
+    );
   });
 
   it('should explain why the error occurs', () => {
@@ -331,11 +335,11 @@ describe('ScopeValidationError', () => {
     expect(error.scopedToken).toBe('RequestService');
   });
 
-  it('should extend VoxelError', () => {
+  it('should extend DIError', () => {
     class Parent {}
     class Child {}
     const error = new ScopeValidationError(Parent, Child);
-    expect(error).toBeInstanceOf(VoxelError);
+    expect(error).toBeInstanceOf(DIError);
     expect(error).toBeInstanceOf(Error);
     expect(error.name).toBe('ScopeValidationError');
   });
@@ -446,12 +450,12 @@ describe('TokenCollisionError', () => {
     expect(error.message).toBe(expected);
   });
 
-  it('should extend VoxelError', () => {
+  it('should extend DIError', () => {
     class Token {}
     class Original {}
     class Duplicate {}
     const error = new TokenCollisionError(Token, Original, Duplicate);
-    expect(error).toBeInstanceOf(VoxelError);
+    expect(error).toBeInstanceOf(DIError);
     expect(error).toBeInstanceOf(Error);
     expect(error.name).toBe('TokenCollisionError');
   });
@@ -623,9 +627,9 @@ describe('NonExportedTokenError', () => {
   });
 });
 
-describe('VoxelError captureStackTrace', () => {
+describe('DIError captureStackTrace', () => {
   it('should have stack trace property', () => {
-    class TestError extends VoxelError {
+    class TestError extends DIError {
       constructor() {
         super('test message');
       }
@@ -637,7 +641,7 @@ describe('VoxelError captureStackTrace', () => {
   });
 
   it('should include error message in stack trace', () => {
-    class TestError extends VoxelError {
+    class TestError extends DIError {
       constructor() {
         super('test message');
       }
@@ -648,7 +652,7 @@ describe('VoxelError captureStackTrace', () => {
   });
 
   it('should include error name in stack trace', () => {
-    class TestError extends VoxelError {
+    class TestError extends DIError {
       constructor() {
         super('test message');
       }
