@@ -4,22 +4,50 @@
   "service": "app",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "features": {
+    "ghcr.io/devcontainer-community/devcontainer-features/bun.sh": {
+      "version": "1.3.6"
+    },
     "ghcr.io/devcontainers/features/node": {
-      "version": "24.7.0"
+      "version": "25.4.0",
+      "pnpmVersion": "10.29.2"
     },
     "ghcr.io/devcontainers/features/github-cli": "latest",
-    "ghcr.io/joshuanianji/devcontainer-features/mount-pnpm-store": "true"
+    "ghcr.io/joshuanianji/devcontainer-features/github-cli-persistence": true,
+    "ghcr.io/devcontainers/features/docker-in-docker": {
+      "version": "latest",
+      "moby": false,
+      "disableIp6tables": true,
+      "installDockerBuildx": true
+    },
+    "ghcr.io/ultranomic/devcontainer-features/opencode-persistence": {}
   },
-  "postCreateCommand": "npm install -g @anthropic-ai/claude-code",
+  "onCreateCommand": "curl -fsSL https://opencode.ai/install | bash;",
+  "postCreateCommand": "sudo apt update && sudo apt install tmux -y; printf \"\nexport LANG=C.UTF-8\nexport LC_ALL=C.UTF-8\nexport TERM=xterm-256color\nexport COLORTERM=truecolor\n\" >> ~/.bashrc; npm install -g agent-browser; bunx oh-my-opencode@latest install --no-tui --claude=no --gemini=no --copilot=no; yes | agent-browser install --with-deps; sudo chown -R vscode:vscode /workspaces/${localWorkspaceFolderBasename}",
   "customizations": {
     "vscode": {
       "extensions": [
-        "dbaeumer.vscode-eslint",
+        "-amazonwebservices.aws-toolkit-vscode",
+        "aaron-bond.better-comments",
+        "ms-azuretools.vscode-docker",
+        "-dbaeumer.vscode-eslint",
+        "Wattenberger.footsteps",
         "eamodio.gitlens",
+        "Cardinal90.multi-cursor-case-preserve",
+        "Vue.volar",
         "TypeScriptTeam.native-preview",
-        "esbenp.prettier-vscode"
+        "oxc.oxc-vscode",
+        "oderwat.indent-rainbow",
+        "usernamehw.errorlens",
+        "YoavBls.pretty-ts-errors",
+        "ms-vscode-remote.remote-containers",
+        "bradlc.vscode-tailwindcss",
+        "yzhang.markdown-all-in-one",
+        "sburg.vscode-javascript-booster",
+        "github.vscode-github-actions",
+        "docker.docker",
+        "Vercel.turbo-vsc",
+        "dotenv.dotenvx-vscode"
       ]
     }
-  },
-  "remoteUser": "root"
+  }
 }

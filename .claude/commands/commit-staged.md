@@ -1,18 +1,41 @@
-Commit the current staged changes following the Conventional Commits specification.
+---
+description: Commit the current staged changes
+model: glm-4.7
+---
 
-Requirements:
+Commit staged changes with a conventional commit message.
 
-- Use conventional commit format: `type(scope): description`
-- Common types: feat, fix, chore, docs, style, refactor, test, build, ci
-- Include a detailed commit body when appropriate
-- Do not add "Generated with Claude Code" message
-- Analyze git diff and recent commits to understand context and maintain consistency
-- Use HEREDOC format for multi-line commit messages to ensure proper formatting
+## Single Bash Call (parallel execution)
 
-Process:
+Run ALL context gathering in ONE command:
 
-1. Check git status and git diff --cached to understand staged changes
-2. Review recent commit messages with git log for style consistency
-3. Create appropriate conventional commit message
-4. Commit using git commit with proper formatting
-5. Do not push unless asked to
+```bash
+git status --short && git diff --cached --stat && git diff --cached && git log --oneline -5
+```
+
+## Commit Format
+
+```
+type(scope): description
+```
+
+- Types: feat, fix, chore, docs, style, refactor, test, build, ci
+- Scope: optional but recommended (backend, frontend, database, etc.)
+- Description: lowercase, no period, imperative mood
+
+## Rules
+
+1. NO "Generated with Claude Code" or similar AI markers
+2. NO emojis unless user explicitly requested
+3. Use HEREDOC for multi-line body:
+   ```bash
+   git commit -m "type(scope): description" -m "$(cat <<'EOF'
+   body line 1
+   body line 2
+   EOF
+   )"
+   ```
+
+## After Commit
+
+Run `git status` to verify success.

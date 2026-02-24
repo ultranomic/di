@@ -60,19 +60,10 @@ jobs:
 
       - name: Run tests with coverage verification
         run: |
-          # Extract coverage percentage from test output
-          COVERAGE_OUTPUT=$(pnpm run test:coverage 2>&1)
-          echo "$COVERAGE_OUTPUT"
+          # Run tests with coverage - vitest will fail if thresholds not met
+          pnpm run test:coverage
 
-          # Check if coverage is 100% for all metrics (line, branch, funcs)
-          if echo "$COVERAGE_OUTPUT" | grep -q "all files.*| 100\.00 |.*100\.00 |.*100\.00 |"; then
-            echo "✅ 100% test coverage achieved!" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Test coverage is not 100%. All files must have 100% coverage." >> $GITHUB_STEP_SUMMARY
-            echo "Coverage output:"
-            echo "$COVERAGE_OUTPUT"
-            exit 1
-          fi
+          echo "✅ All coverage thresholds met!" >> $GITHUB_STEP_SUMMARY
 
       - name: Verify package contents
         run: |

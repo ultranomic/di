@@ -1,418 +1,432 @@
-# @ultranomic/di
+# Ultrasonic DI
 
-A lightweight, type-safe dependency injection framework for TypeScript applications with comprehensive lifecycle management, layered architecture support, and complete JSDoc documentation.
+A dependency injection framework for TypeScript. No decorators, no reflect-metadata. Just classes with static properties.
+
+## Why Ultrasonic DI?
+
+Most DI frameworks lean heavily on decorators and runtime metadata. Ultrasonic DI takes a different path. Everything is explicit. Dependencies are declared in static properties. Types flow naturally from those declarations.
+
+```typescript
+import type { DepsTokens } from '@ultranomic/di';
+
+class UserService {
+  static readonly inject = [Database, Logger] as const satisfies DepsTokens<UserService>;
+
+  constructor(
+    private db: InstanceType<typeof Database>,
+    private logger: InstanceType<typeof Logger>,
+  ) {}
+
+  async getUser(id: string) {
+    this.logger.info(`Getting user ${id}`);
+    return this.db.query('SELECT * FROM users WHERE id = $1', [id]);
+  }
+}
+```
+
+That's it. No `@Injectable()`, no `@Inject('Database')`. The `inject` static property tells the container what this service needs. The constructor types are inferred from that property.
 
 ## Features
 
-- **🏗️ Layered Architecture** - Injectable, Service, Router → Module → App layers
-- **🔒 Type-safe dependency injection** - Full TypeScript support with compile-time type checking
-- **⚡ Lifecycle management** - Three-phase application hooks (initialized, start, stop)
-- **📝 Automatic Logger Injection** - Component-specific loggers with pino integration and automatic prefixes
-- **📦 Minimal footprint** - Only depends on `@ultranomic/hook`
-- **🚀 ES modules support** - Modern JavaScript module system
-- **🔌 Flexible definitions** - Support for injectables with and without dependencies
-- **📖 Complete JSDoc documentation** - Comprehensive API documentation with usage examples
-- **✅ Comprehensive test suite** - 6 test files with 88 total tests covering all core functionality with Node.js native test runner
-- **🏷️ Mandatory naming** - All factory functions require explicit naming for better debugging
-- **🎯 Fluent API pattern** - Consistent `.name().inject().handler()` pattern across all factories
+- **Dependency injection** with three scopes: singleton, transient, and request-scoped
+- **Module system** with proper encapsulation and imports
+- **Controller-based routing** with type-safe path parameters
+- **Multiple HTTP adapters**: Express, Fastify, and Hono
+- **Lifecycle hooks** for initialization and cleanup
+- **Circular dependency support** via transparent proxies
+- **Clear error messages** with full resolution context
+- **Class-only tokens** for type-safe dependency resolution
 
 ## Installation
 
 ```bash
-npm install @ultranomic/di
-# or
+# Core DI container and module system
 pnpm add @ultranomic/di
+
+# HTTP adapters are included - just import them:
+# import { ExpressAdapter } from '@ultranomic/di/express'
+# import { FastifyAdapter } from '@ultranomic/di/fastify'
+# import { HonoAdapter } from '@ultranomic/di/hono'
 ```
-
-## Architecture
-
-The framework provides a layered architecture with clear separation of concerns:
-
-```
-┌─────────────────┐
-│   Application   │  ← defineApp (creates app instances)
-├─────────────────┤
-│     Module      │  ← defineModuleFactory (composes injectables)
-├─────────────────┤
-│   Injectable    │  ← defineInjectableFactory, defineServiceFactory, defineRouterFactory
-│                 │    (creates individual injectables that can be injected)
-└─────────────────┘
-```
-
-**Layer Responsibilities:**
-
-- **Injectable Layer**: `defineInjectableFactory`, `defineServiceFactory`, `defineRouterFactory` create individual injectables that can be injected and reused
-- **Module Layer**: `defineModuleFactory` composes related injectables into feature groups
-- **Application Layer**: `defineApp` orchestrates all modules and manages application lifecycle
-
-**Key Distinction**: Injectable factories (`defineInjectableFactory`, `defineServiceFactory`, `defineRouterFactory`) and module factory (`defineModuleFactory`) return factory functions. Only `defineApp` creates the actual application instance.
-
-**Mandatory Pattern**: All factory creators follow the consistent pattern: `.name('InjectableName').inject().handler(...)` or `.name('InjectableName').inject<Dependencies>().handler(...)`.
 
 ## Quick Start
 
-### 1. Injectable Layer - Individual Building Blocks
+Build a simple API with users.
 
-#### Basic Injectable Component
-
-```typescript
-import { defineInjectableFactory } from '@ultranomic/di';
-
-// Creates a basic injectable component
-const defineConfig = defineInjectableFactory
-  .name('Config')
-  .inject()
-  .handler(() => ({
-    port: 3000,
-    databaseUrl: 'postgresql://localhost:5432/myapp',
-  }));
-```
-
-#### Service Component with Business Logic
+### 1. Define a service
 
 ```typescript
-import { defineServiceFactory, type Injectable } from '@ultranomic/di';
+// services/user.service.ts
+import type { DepsTokens } from '@ultranomic/di';
 
-type Config = Injectable<{ port: number; databaseUrl: string }>;
+export class UserService {
+  static readonly inject = [] as const satisfies DepsTokens<UserService>;
 
-type Dependencies = {
-  config: Config;
-};
+  private users = [
+    { id: '1', name: 'Alice' },
+    { id: '2', name: 'Bob' },
+  ];
 
-// Creates a service component with dependencies
-const defineDatabaseService = defineServiceFactory
-  .name('DatabaseService')
-  .inject<Dependencies>()
-  .handler(({ injector }) => {
-    const { config } = injector();
+  async findAll() {
+    return this.users;
+  }
 
-    return {
-      connect: () => {
-        console.log(`Connecting to ${config.databaseUrl}`);
-        return { isConnected: true };
-      },
-      query: (sql: string) => {
-        // Database query logic
-        return [];
-      },
-    };
-  });
+  async findById(id: string) {
+    return this.users.find((u) => u.id === id) ?? null;
+  }
+
+  async create(data: { name: string }) {
+    const user = { id: String(this.users.length + 1), ...data };
+    this.users.push(user);
+    return user;
+  }
+}
 ```
 
-#### Router Component for HTTP Endpoints
+### 2. Define a controller
 
 ```typescript
-import { defineRouterFactory, type Service } from '@ultranomic/di';
+// controllers/user.controller.ts
+import type { Request, Response } from 'express';
+import type { ControllerRoute, DepsTokens } from '@ultranomic/di';
+import { UserService } from './services/user.service.ts';
 
-type DatabaseService = Service<{ query: (sql: string) => any[] }>;
+export class UserController {
+  static readonly inject = [UserService] as const satisfies DepsTokens<UserController>;
 
-type Dependencies = {
-  database: DatabaseService;
-};
+  static readonly routes = [
+    { method: 'GET', path: '/users', handler: 'list' },
+    { method: 'GET', path: '/users/:id', handler: 'get' },
+    { method: 'POST', path: '/users', handler: 'create' },
+  ] as const satisfies ControllerRoute<UserController>[];
 
-// Creates a router component
-const defineApiRouter = defineRouterFactory
-  .name('ApiRouter')
-  .inject<Dependencies>()
-  .handler(({ injector }) => {
-    const { database } = injector();
+  constructor(private users: UserService) {}
 
-    return {
-      '/api/health': {
-        GET: () => ({ status: 'ok', timestamp: new Date().toISOString() }),
-      },
-      '/api/users': {
-        GET: () => database.query('SELECT * FROM users'),
-      },
-    };
-  });
+  async list(_req: Request, res: Response) {
+    const users = await this.users.findAll();
+    res.json(users);
+  }
+
+  async get(req: Request, res: Response) {
+    const user = await this.users.findById(req.params.id);
+    if (!user) {
+      res.status(404).json({ error: 'Not found' });
+      return;
+    }
+    res.json(user);
+  }
+
+  async create(req: Request, res: Response) {
+    const user = await this.users.create(req.body);
+    res.status(201).json(user);
+  }
+}
 ```
 
-### 2. Module Layer - Feature Composition
+The `satisfies ControllerRoute<UserController>[]` pattern does two things. It validates that handler names like `'list'` and `'get'` actually exist on the controller. It also enables type inference for `req.params` based on the path.
+
+### 3. Define a module
 
 ```typescript
-import { defineModuleFactory, type Service, type Router } from '@ultranomic/di';
+// modules/user.module.ts
+import { Module } from '@ultranomic/di';
+import { UserService } from './services/user.service.ts';
+import { UserController } from './controllers/user.controller.ts';
 
-type DatabaseService = Service<{ connect: () => any; query: (sql: string) => any[] }>;
-type ApiRouter = Router<Record<string, any>>;
-
-type Dependencies = {
-  database: DatabaseService;
-  apiRouter: ApiRouter;
-};
-
-// Creates a module that composes multiple injectables
-const defineApiModule = defineModuleFactory
-  .name('ApiModule')
-  .inject<Dependencies>()
-  .handler(({ injector, appHooks: { onApplicationStart, onApplicationStop } }) => {
-    const { database, apiRouter } = injector();
-
-    onApplicationStart(() => {
-      database.connect();
-      console.log('API Module started');
-    });
-
-    onApplicationStop(() => {
-      console.log('API Module stopped');
-    });
-
-    return {
-      // Expose the router for the application layer
-      router: apiRouter,
-
-      // Module-specific functionality
-      getStats: () => ({
-        connected: database.connect().isConnected,
-        endpoints: Object.keys(apiRouter),
-      }),
-    };
-  });
+export class UserModule extends Module {
+  static readonly metadata = {
+    providers: [UserService],
+    controllers: [UserController],
+    exports: [UserService],
+  };
+}
 ```
 
-### 3. Application Layer - Lifecycle Orchestration
+### 4. Bootstrap the app
 
 ```typescript
-import { defineApp, defineModuleFactory } from '@ultranomic/di';
+// main.ts
+import { Container } from '@ultranomic/di';
+import { ExpressAdapter } from '@ultranomic/di/express';
+import { UserModule } from './modules/user.module.ts';
+import { UserService } from './services/user.service.ts';
+import { UserController } from './controllers/user.controller.ts';
 
-// Create the main application module
-const defineMainModule = defineModuleFactory
-  .name('MainModule')
-  .inject()
-  .handler(() => {
-    // Instantiate all modules
-    const apiModule = defineApiModule();
+const container = new Container();
 
-    return {
-      // Expose modules and their injectables
-      api: apiModule,
+// Register providers
+container.register(UserService, (c) => new UserService(...c.buildDeps(UserService.inject))).asSingleton();
 
-      // Application-level utilities
-      getHealth: () => ({
-        status: 'healthy',
-        modules: {
-          api: apiModule.getStats(),
-        },
-      }),
-    };
-  });
+// Register controllers
+container.register(UserController, (c) => new UserController(...c.buildDeps(UserController.inject)));
 
-// Create and run the application
-const app = await defineApp(defineMainModule);
+// Create adapter and register routes
+const adapter = new ExpressAdapter(container);
+adapter.registerController(UserController);
 
-// Application lifecycle
-await app.start(); // Triggers all onApplicationStart hooks
-console.log('Application is running...');
-
-// Graceful shutdown
-await app.stop(); // Triggers all onApplicationStop hooks
+// Start server
+await adapter.listen(3000);
+console.log('Server running on http://localhost:3000');
 ```
 
-## API Reference
+Run it:
 
-### Core Utilities
+```bash
+node main.ts
+```
 
-#### `defineInjectableFactory`
+## Core Concepts
 
-Base dependency injection factory creator - foundation for all other layers. Returns injectable factory functions.
+### Dependency Injection
+
+Ultrasonic DI's container manages object creation and dependency resolution. Register a provider with a class token, then resolve it.
 
 ```typescript
-// Without dependencies - creates injectable factory
-const defineBasic = defineInjectableFactory
-  .name('BasicComponent')
-  .inject()
-  .handler(() => ({ value: 42 }));
+import { Container } from '@ultranomic/di';
 
-// With dependencies - creates injectable factory with dependencies
-const defineWithDeps = defineInjectableFactory
-  .name('ComponentWithDeps')
-  .inject<{ dep: Injectable<SomeType> }>()
-  .handler(({ injector, appHooks: { onApplicationInitialized, onApplicationStart, onApplicationStop } }) => {
-    // Implementation
-  });
+class Logger {
+  log(message: string) {
+    console.log(message);
+  }
+}
+
+const container = new Container();
+
+// Register with a class token
+container.register(Logger, () => new Logger()).asSingleton();
+
+// Resolve it
+const logger = container.resolve(Logger);
 ```
 
-#### `defineServiceFactory`
+#### Scopes
 
-Business logic and data access factory creator. Returns service factory functions that enforce `object | void` return types.
+Three scopes control instance lifetime:
+
+- **Singleton**: One instance shared everywhere. Created once, cached forever.
+- **Transient**: New instance on every resolution.
+- **Scoped**: One instance per scope (useful for request contexts).
 
 ```typescript
-// Creates a service factory function
-const defineMyService = defineServiceFactory
-  .name('MyService')
-  .inject()
-  .handler(() => ({
-    doSomething: () => 'result',
-  }));
+class CacheService {}
+class Validator {}
+class RequestContext {}
+
+container.register(CacheService, () => new CacheService()).asSingleton();
+container.register(Validator, () => new Validator()).asTransient();
+container.register(RequestContext, () => new RequestContext()).asScoped();
 ```
 
-#### `defineModuleFactory`
+#### Circular Dependencies
 
-Feature grouping factory creator. Returns module factory functions that allow `Record<string | symbol, unknown> | void` return types.
+DI handles circular dependencies automatically. Services can depend on each other without special workarounds.
 
 ```typescript
-// Creates a module factory function
-const defineMyModule = defineModuleFactory
-  .name('MyModule')
-  .inject()
-  .handler(() => ({
-    feature1: () => 'value1',
-    feature2: () => 'value2',
-  }));
+class ServiceA {
+  static readonly inject = [ServiceB] as const satisfies DepsTokens<ServiceA>;
+  constructor(private serviceB: ServiceB) {}
+}
+
+class ServiceB {
+  static readonly inject = [ServiceA] as const satisfies DepsTokens<ServiceB>;
+  constructor(private serviceA: ServiceA) {}
+}
+
+// This works. Ultrasonic DI uses proxies to break the cycle.
+container.register(ServiceA, (c) => new ServiceA(...c.buildDeps(ServiceA.inject))).asSingleton();
+container.register(ServiceB, (c) => new ServiceB(...c.buildDeps(ServiceB.inject))).asSingleton();
 ```
 
-#### `defineRouterFactory`
+### Modules
 
-HTTP endpoint factory creator. Returns router factory functions with same constraints as modules.
+Modules organize related providers and controllers. They define boundaries for dependency visibility.
 
 ```typescript
-// Creates a router factory function
-const defineMyRouter = defineRouterFactory
-  .name('MyRouter')
-  .inject()
-  .handler(() => ({
-    '/api/users': { GET: () => users },
-  }));
+import { Module } from '@ultranomic/di';
+
+class Database {}
+class Migrator {}
+class DatabaseModule extends Module {
+  static readonly metadata = {
+    providers: [Database, Migrator],
+    exports: [Database], // Only Database is visible to importers
+  };
+}
+
+class UserService {}
+class UserRepository {}
+class UserController {}
+class UserModule extends Module {
+  static readonly metadata = {
+    imports: [DatabaseModule], // Get Database from here
+    providers: [UserService, UserRepository],
+    controllers: [UserController],
+    exports: [UserService],
+  };
+}
 ```
 
-#### `defineApp`
+The module metadata properties:
 
-Application lifecycle orchestration with async hook management. Takes a module factory and creates the actual application instance with lifecycle control.
+- `imports` - Other modules whose exported providers become available
+- `providers` - Services registered in this module
+- `controllers` - HTTP route handlers
+- `exports` - Providers visible to modules that import this one
+
+### Controllers
+
+Controllers group related routes. The `routes` array maps HTTP methods and paths to handler methods.
 
 ```typescript
-// Create module factory
-const defineAppModule = defineModuleFactory
-  .name('AppModule')
-  .inject()
-  .handler(() => {
-    const userModule = defineUserModule(); // Creates module instance
-    const userRouter = defineUserRouter(); // Creates router instance
-    return {
-      userRouter,
-    };
-  });
+import type { ControllerRoute, DepsTokens } from '@ultranomic/di';
 
-// Create actual app instance (can pass factory directly or as function)
-const app = await defineApp(defineAppModule);
-// OR
-const app = await defineApp(() => defineAppModule);
+class ProductService {}
 
-// App object contains only start() and stop() methods
-await app.start(); // Triggers onApplicationStart hooks
-await app.stop(); // Triggers onApplicationStop hooks
+class ProductController {
+  static readonly inject = [ProductService] as const satisfies DepsTokens<ProductController>;
+
+  static readonly routes = [
+    { method: 'GET', path: '/products', handler: 'list' },
+    { method: 'GET', path: '/products/:id', handler: 'get' },
+    { method: 'POST', path: '/products', handler: 'create' },
+    { method: 'PUT', path: '/products/:id', handler: 'update' },
+    { method: 'DELETE', path: '/products/:id', handler: 'remove' },
+  ] as const satisfies ControllerRoute<ProductController>[];
+
+  constructor(private products: ProductService) {}
+
+  async list(req: Request, res: Response) {
+    /* ... */
+  }
+  async get(req: Request, res: Response) {
+    /* ... */
+  }
+  // ...
+}
 ```
+
+Path parameters are typed. If your route is `/products/:id`, TypeScript knows `req.params.id` exists.
 
 ### Lifecycle Hooks
 
-All inject-enabled utilities provide lifecycle hooks:
-
-- **`onApplicationInitialized(callback, order?)`** - Fired during app creation, after user setup but before returning app instance
-- **`onApplicationStart(callback, order?)`** - Register startup callback, fired when `app.start()` is called
-- **`onApplicationStop(callback, order?)`** - Register shutdown callback, fired when `app.stop()` is called
-
-**Execution Order**: Lower numbers execute first (default: 0)
-
-## Requirements
-
-- Node.js >= 24.0.0
-- TypeScript compilation via `tsgo` (modern TypeScript toolchain)
-- PNPM package manager (v10.15.0)
-- Node.js native test runner (no external testing framework dependencies)
-- Prettier for code formatting
-- All public APIs include comprehensive JSDoc documentation
-
-## Project Structure
-
-```
-src/
-├── index.ts                    # Main entry point with comprehensive JSDoc examples
-├── define-app.ts               # Application lifecycle orchestration with async hooks
-├── define-injectable-factory.ts # Core dependency injection foundation
-├── define-service-factory.ts   # Business logic and data access layer
-├── define-module-factory.ts    # Feature organization and grouping layer
-├── define-router-factory.ts    # HTTP endpoint definitions and routing logic
-├── define-app.test.ts          # Application lifecycle tests (16 tests)
-├── define-injectable-factory.test.ts # Injectable factory tests (24 tests)
-├── define-service-factory.test.ts    # Service factory tests (9 tests)
-├── define-module-factory.test.ts     # Module factory tests (11 tests)
-├── define-router-factory.test.ts     # Router factory tests (10 tests)
-└── define-app-isolated.test.ts # Isolated application testing utilities
-
-dist/                           # Built output (ES modules with TypeScript declarations)
-├── *.js                       # Compiled JavaScript modules
-├── *.d.ts                     # TypeScript declaration files
-└── *.js.map                   # Source maps for debugging
-```
-
-## TypeScript Types
+Services can hook into module initialization and destruction.
 
 ```typescript
-// Core injectable types (all are injectables)
-type Injectable<T = unknown> = T;
-type Service<T = unknown> = Injectable<T>;
-type Router<T = unknown> = Injectable<T>;
+import type { OnModuleInit, OnModuleDestroy, DepsTokens } from '@ultranomic/di';
 
-// Composition type
-type Module<T = unknown> = Injectable<T>;
+class Config {}
 
-// Dependency injection schemas
-type ComponentDependencies = Record<string, Injectable<unknown>>;
-type ModuleDependencies = Record<string, Injectable<unknown>>;
+class Database implements OnModuleInit, OnModuleDestroy {
+  static readonly inject = [Config] as const satisfies DepsTokens<Database>;
 
-// Handler function signatures
-type ComponentHandler<S> = (params: {
-  name: string; // Component name (literal type)
-  injector?: () => ComponentDependencies; // Only present when dependencies exist
-  appHooks: {
-    onApplicationInitialized: (callback: () => unknown, order?: number) => void;
-    onApplicationStart: (callback: () => unknown, order?: number) => void;
-    onApplicationStop: (callback: () => unknown, order?: number) => void;
-  };
-}) => S;
+  constructor(private config: Config) {}
 
-type ModuleHandler<S> = (params: {
-  name: string; // Module name (literal type)
-  injector?: () => ModuleDependencies; // Only present when dependencies exist
-  appHooks: {
-    onApplicationInitialized: (callback: () => unknown, order?: number) => void;
-    onApplicationStart: (callback: () => unknown, order?: number) => void;
-    onApplicationStop: (callback: () => unknown, order?: number) => void;
-  };
-}) => S;
+  private connection: Connection | null = null;
+
+  async onModuleInit() {
+    this.connection = await connect();
+  }
+
+  async onModuleDestroy() {
+    await this.connection?.close();
+  }
+}
 ```
 
-## Development
+### HTTP Adapters
+
+Ultrasonic DI ships with three adapters. They all work the same way.
+
+```typescript
+// Express
+import { ExpressAdapter } from '@ultranomic/di/express';
+const adapter = new ExpressAdapter(container);
+
+// Fastify
+import { FastifyAdapter } from '@ultranomic/di/fastify';
+const adapter = new FastifyAdapter(container);
+
+// Hono
+import { HonoAdapter } from '@ultranomic/di/hono';
+const adapter = new HonoAdapter(container);
+
+// Usage is identical
+adapter.registerController(UserController);
+await adapter.listen(3000);
+await adapter.close();
+```
+
+Adapters pass through native request and response types. No wrapper abstractions.
+
+## Error Messages
+
+Ultrasonic DI errors include context to help debug issues.
+
+```
+TokenNotFoundError: Token 'Logger' not found
+  Resolution path: App -> UserModule -> UserService -> Logger
+  Available tokens: Database, Config, Cache
+  Suggestion: Did you mean to import a module that provides 'Logger'?
+```
+
+You can see the full dependency chain and what tokens are actually registered.
+
+## Testing
+
+The `@ultranomic/di/testing` package provides utilities for testing modules in isolation.
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { Test } from '@ultranomic/di/testing';
+import { UserService } from './user.service.ts';
+
+describe('UserService', () => {
+  it('returns user by id', async () => {
+    const module = await Test.createModule({
+      providers: [UserService],
+    });
+
+    const service = module.get(UserService);
+    const user = await service.findById('1');
+
+    expect(user).toEqual({ id: '1', name: 'Alice' });
+  });
+});
+```
+
+## CLI
+
+Create new projects with the CLI:
 
 ```bash
-# Install dependencies
+# Create a new project
+di new my-app
+
+# Then:
+cd my-app
 pnpm install
-
-# Build the project (uses tsgo for TypeScript compilation)
-npm run build
-
-# Run tests (using Node.js native test runner)
-npm test
-
-# Run tests with coverage
-npm run test:coverage
-
-# Type check without building
-npm run typecheck
-
-# Format code (using Prettier)
-npm run format
-
-# Clean build artifacts
-npm run clean
-
-# Pre-publish validation
-npm run prepublishOnly
+pnpm dev
 ```
+
+## Packages
+
+| Package                  | Description                                         |
+| ------------------------ | --------------------------------------------------- |
+| `@ultranomic/di`         | DI container, modules, controllers, lifecycle hooks |
+| `@ultranomic/di/express` | Express HTTP adapter                                |
+| `@ultranomic/di/fastify` | Fastify HTTP adapter                                |
+| `@ultranomic/di/hono`    | Hono HTTP adapter                                   |
+| `@ultranomic/di/testing` | Testing utilities                                   |
+| `@ultranomic/di/cli`     | Project scaffolding                                 |
+
+## Philosophy
+
+**Explicit over implicit.** Dependencies are declared in static properties, not hidden in decorators. You can see what a class needs by looking at its `inject` property.
+
+**Type-safe by default.** The `satisfies ControllerRoute<T>[]` pattern catches typos in handler names. Path parameters are inferred from route strings.
+
+**No magic.** No reflect-metadata. No decorator processors. No hidden runtime behavior. What you write is what runs.
 
 ## License
 
 MIT
-
-## Contributing
-
-Issues and pull requests welcome at [https://github.com/ultranomic/di](https://github.com/ultranomic/di)
