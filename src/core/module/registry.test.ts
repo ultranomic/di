@@ -1422,5 +1422,144 @@ describe('ModuleRegistry', () => {
       // Error should list Logger (from SharedModule which is directly imported)
       expect(error?.message).toContain('Logger');
     });
+
+    it('should call getAccessibleTokens when module is not imported', async () => {
+      class Logger {
+        log() {
+          return 'logged';
+        }
+      }
+
+      class Database {
+        query() {
+          return 'results';
+        }
+      }
+
+      // Module with exported tokens that will be accessible
+      class SharedModule extends Module {
+        static readonly metadata: ModuleMetadata = {
+          exports: ['Logger', 'Database'],
+        };
+
+        register(container: ContainerInterface): void {
+          container.register('Logger', () => new Logger()).asSingleton();
+          container.register('Database', () => new Database()).asSingleton();
+        }
+      }
+
+      // Another service from a module that won't be imported by UserModule
+      class SecretService {
+        secret() {
+          return 'secret';
+        }
+      }
+
+      class SecretModule extends Module {
+        static readonly metadata: ModuleMetadata = {
+          exports: ['SecretService'],
+        };
+
+        register(container: ContainerInterface): void {
+          container.register('SecretService', () => new SecretService()).asSingleton();
+        }
+      }
+
+      // Module that imports SharedModule (not SecretModule)
+      class UserModule extends Module {
+        static readonly metadata: ModuleMetadata = {
+          imports: [SharedModule],
+        };
+
+        register(container: ContainerInterface): void {
+          // Try to access token from SecretModule which is NOT imported
+          // This should call getAccessibleTokens() which should return Logger and Database
+          container.resolve('SecretService');
+        }
+      }
+
+      // Register both modules - SecretModule will be loaded but not imported by UserModule
+      registry.register(SecretModule);
+      registry.register(UserModule);
+
+      let error: Error | undefined;
+      try {
+        await registry.loadModules(container);
+      } catch (e) {
+        error = e as Error;
+      }
+
+      expect(error).toBeDefined();
+      // Error should list accessible tokens from SharedModule (Logger and Database)
+      expect(error?.message).toContain('Logger');
+      expect(error?.message).toContain('Database');
+    });
+  });
+
+  describe('getModuleName branch coverage', () => {
+    it('should handle module name when accessing module metadata', async () => {
+      // The getModuleName function is private and called internally
+      // We test it indirectly by ensuring modules with different names work
+      class TestModule1 extends Module {
+        static readonly metadata: ModuleMetadata = {};
+        register(_container: ContainerInterface): void {}
+      }
+
+      // Create another module with a different name
+      class TestModule2 extends Module {
+        static readonly metadata: ModuleMetadata = {};
+        register(_container: ContainerInterface): void {}
+      }
+
+      registry.register(TestModule1);
+      registry.register(TestModule2);
+      await registry.loadModules(container);
+
+      // Both modules should be loaded and identifiable
+      expect(registry.isLoaded(TestModule1)).toBe(true);
+      expect(registry.isLoaded(TestModule2)).toBe(true);
+    });
+
+    it('should handle modules without onModuleDestroy', async () => {
+      // This module doesn't have onModuleDestroy
+      class NoDestroyModule extends Module {
+        static readonly metadata: ModuleMetadata = {};
+        register(_container: ContainerInterface): void {}
+      }
+
+      // This module has onModuleDestroy
+      class WithDestroyModule extends Module {
+        static readonly metadata: ModuleMetadata = {};
+        register(_container: ContainerInterface): void {}
+        override async onModuleDestroy(): Promise<void> {
+          // Cleanup logic
+        }
+      }
+
+      registry.register(NoDestroyModule);
+      registry.register(WithDestroyModule);
+      await registry.loadModules(container);
+
+      // Should not throw when destroying modules (line 161 check: instance && instance.onModuleDestroy)
+      await expect(registry.destroyModules()).resolves.toBeUndefined();
+    });
+
+    it('should handle undefined instances in loadedModuleInstances', async () => {
+      class TestModule extends Module {
+        static readonly metadata: ModuleMetadata = {};
+        register(_container: ContainerInterface): void {}
+      }
+
+      registry.register(TestModule);
+      await registry.loadModules(container);
+
+      // Manually inject undefined into the array to simulate edge case
+      (registry as unknown as { loadedModuleInstances: (ModuleInterface | undefined)[] }).loadedModuleInstances.push(
+        undefined,
+      );
+
+      // Should not throw when encountering undefined (line 161 check: instance && instance.onModuleDestroy)
+      await expect(registry.destroyModules()).resolves.toBeUndefined();
+    });
   });
 });

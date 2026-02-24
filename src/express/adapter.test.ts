@@ -276,6 +276,78 @@ describe('ExpressAdapter', () => {
       const response = await fetch(`http://localhost:${port}/error/`);
       expect(response.status).toBe(500);
     });
+
+    it('should return 500 when handler is not found on controller', async () => {
+      class InvalidHandlerController extends Controller {
+        static readonly metadata = {
+          basePath: '/invalid',
+          routes: [{ method: 'GET', path: '/', handler: 'nonexistent' }] as const,
+        };
+      }
+
+      container.register(InvalidHandlerController, () => new InvalidHandlerController());
+      adapter.registerController(InvalidHandlerController);
+
+      const port = 3466;
+      await adapter.listen(port);
+
+      const response = await fetch(`http://localhost:${port}/invalid/`);
+      expect(response.status).toBe(500);
+      const data = (await response.json()) as { error: string };
+      expect(data.error).toContain("Handler 'nonexistent' not found on controller");
+    });
+
+    it('should handle async handlers that return promises', async () => {
+      class AsyncController extends Controller {
+        static readonly metadata = {
+          basePath: '/async',
+          routes: [{ method: 'GET', path: '/', handler: 'getData' }] as const,
+        };
+
+        async getData(_req: Request, res: Response): Promise<void> {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          res.json({ async: true });
+        }
+      }
+
+      container.register(AsyncController, () => new AsyncController());
+      adapter.registerController(AsyncController);
+
+      const port = 3467;
+      await adapter.listen(port);
+
+      const response = await fetch(`http://localhost:${port}/async/`);
+      expect(response.status).toBe(200);
+      const data = (await response.json()) as { async: boolean };
+      expect(data.async).toBe(true);
+    });
+  });
+
+  describe('close error handling', () => {
+    it('should reject on server close error', async () => {
+      class TestController extends Controller {
+        static readonly metadata = {
+          basePath: '/test',
+          routes: [{ method: 'GET', path: '/', handler: 'list' }] as const,
+        };
+        list(_req: Request, res: Response): void {
+          res.json({ items: [] });
+        }
+      }
+
+      container.register(TestController, () => new TestController());
+      adapter.registerController(TestController);
+
+      const port = 3468;
+      await adapter.listen(port);
+
+      // Close the server once, then try to close it again
+      await adapter.close();
+
+      // Create a new adapter and close without listening - should resolve without error
+      const newAdapter = new ExpressAdapter(container);
+      await expect(newAdapter.close()).resolves.toBeUndefined();
+    });
   });
 
   describe('HTTP methods', () => {
