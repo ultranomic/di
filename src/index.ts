@@ -1,5 +1,4 @@
-export * from './define-app.ts';
-export * from './define-injectable-factory.ts';
-export * from './define-module-factory.ts';
-export * from './define-router-factory.ts';
-export * from './define-service-factory.ts';
+// DI - Dependency Injection Framework
+// Main entry point - re-exports core for backward compatibility
+
+export * from './core/index.js';
