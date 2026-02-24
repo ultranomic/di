@@ -12,7 +12,10 @@ describe('Circular Dependencies', () => {
     it('should resolve ServiceA -> ServiceB -> ServiceA without throwing', () => {
       class ServiceA {
         static readonly inject = ['ServiceB'] as const;
-        constructor(private _serviceB: unknown) {}
+        private _serviceB: unknown;
+        constructor(_serviceB: unknown) {
+          this._serviceB = _serviceB;
+        }
         getValue() {
           return 'A';
         }
@@ -20,7 +23,10 @@ describe('Circular Dependencies', () => {
 
       class ServiceB {
         static readonly inject = ['ServiceA'] as const;
-        constructor(private _serviceA: unknown) {}
+        private _serviceA: unknown;
+        constructor(_serviceA: unknown) {
+          this._serviceA = _serviceA;
+        }
         getValue() {
           return 'B';
         }
@@ -35,7 +41,10 @@ describe('Circular Dependencies', () => {
     it('should allow accessing circular dependency properties after resolution', () => {
       class ServiceA {
         static readonly inject = ['ServiceB'] as const;
-        constructor(private serviceB: unknown) {}
+        private serviceB: unknown;
+        constructor(serviceB: unknown) {
+          this.serviceB = serviceB;
+        }
         getValue() {
           return 'A';
         }
@@ -46,7 +55,10 @@ describe('Circular Dependencies', () => {
 
       class ServiceB {
         static readonly inject = ['ServiceA'] as const;
-        constructor(private _serviceA: unknown) {}
+        private _serviceA: unknown;
+        constructor(_serviceA: unknown) {
+          this._serviceA = _serviceA;
+        }
         getValue() {
           return 'B';
         }
@@ -63,7 +75,10 @@ describe('Circular Dependencies', () => {
     it('should work with both directions of circular dependency', () => {
       class ServiceA {
         static readonly inject = ['ServiceB'] as const;
-        constructor(private _serviceB: unknown) {}
+        private _serviceB: unknown;
+        constructor(_serviceB: unknown) {
+          this._serviceB = _serviceB;
+        }
         getValue() {
           return 'A';
         }
@@ -71,7 +86,10 @@ describe('Circular Dependencies', () => {
 
       class ServiceB {
         static readonly inject = ['ServiceA'] as const;
-        constructor(private _serviceA: unknown) {}
+        private _serviceA: unknown;
+        constructor(_serviceA: unknown) {
+          this._serviceA = _serviceA;
+        }
         getValue() {
           return 'B';
         }
@@ -92,12 +110,18 @@ describe('Circular Dependencies', () => {
     it('should handle await on proxy without TypeError (then returns undefined)', async () => {
       class ServiceA {
         static readonly inject = ['ServiceB'] as const;
-        constructor(private serviceB: unknown) {}
+        private serviceB: unknown;
+        constructor(serviceB: unknown) {
+          this.serviceB = serviceB;
+        }
       }
 
       class ServiceB {
         static readonly inject = ['ServiceA'] as const;
-        constructor(private _serviceA: unknown) {}
+        private _serviceA: unknown;
+        constructor(_serviceA: unknown) {
+          this._serviceA = _serviceA;
+        }
       }
 
       container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
@@ -112,12 +136,18 @@ describe('Circular Dependencies', () => {
     it('should handle toString on proxy for logging', () => {
       class ServiceA {
         static readonly inject = ['ServiceB'] as const;
-        constructor(private serviceB: unknown) {}
+        private serviceB: unknown;
+        constructor(serviceB: unknown) {
+          this.serviceB = serviceB;
+        }
       }
 
       class ServiceB {
         static readonly inject = ['ServiceA'] as const;
-        constructor(private _serviceA: unknown) {}
+        private _serviceA: unknown;
+        constructor(_serviceA: unknown) {
+          this._serviceA = _serviceA;
+        }
       }
 
       container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
@@ -132,12 +162,18 @@ describe('Circular Dependencies', () => {
     it('should handle console.log style inspection', () => {
       class ServiceA {
         static readonly inject = ['ServiceB'] as const;
-        constructor(private serviceB: unknown) {}
+        private serviceB: unknown;
+        constructor(serviceB: unknown) {
+          this.serviceB = serviceB;
+        }
       }
 
       class ServiceB {
         static readonly inject = ['ServiceA'] as const;
-        constructor(private _serviceA: unknown) {}
+        private _serviceA: unknown;
+        constructor(_serviceA: unknown) {
+          this._serviceA = _serviceA;
+        }
       }
 
       container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
@@ -154,7 +190,10 @@ describe('Circular Dependencies', () => {
 
       class ServiceA {
         static readonly inject = ['ServiceB'] as const;
-        constructor(private _serviceB: unknown) {}
+        private _serviceB: unknown;
+        constructor(_serviceB: unknown) {
+          this._serviceB = _serviceB;
+        }
       }
 
       class ServiceB {
@@ -179,7 +218,10 @@ describe('Circular Dependencies', () => {
 
       class ServiceA {
         static readonly inject = ['ServiceB'] as const;
-        constructor(private _serviceB: unknown) {}
+        private _serviceB: unknown;
+        constructor(_serviceB: unknown) {
+          this._serviceB = _serviceB;
+        }
       }
 
       class ServiceB {
@@ -202,7 +244,10 @@ describe('Circular Dependencies', () => {
       let capturedProxy: { getValue: () => string } | null = null;
       class ServiceA {
         static readonly inject = ['ServiceB'] as const;
-        constructor(private _serviceB: unknown) {}
+        private _serviceB: unknown;
+        constructor(_serviceB: unknown) {
+          this._serviceB = _serviceB;
+        }
         getValue() {
           return 'A';
         }
@@ -229,7 +274,10 @@ describe('Circular Dependencies', () => {
 
       class ServiceA {
         static readonly inject = ['ServiceB'] as const;
-        constructor(private _serviceB: unknown) {}
+        private _serviceB: unknown;
+        constructor(_serviceB: unknown) {
+          this._serviceB = _serviceB;
+        }
         readonly value = 'test-value';
       }
 
@@ -254,7 +302,10 @@ describe('Circular Dependencies', () => {
 
       class ServiceA {
         static readonly inject = ['ServiceB'] as const;
-        constructor(private _serviceB: unknown) {}
+        private _serviceB: unknown;
+        constructor(_serviceB: unknown) {
+          this._serviceB = _serviceB;
+        }
       }
 
       class ServiceB {
@@ -277,7 +328,10 @@ describe('Circular Dependencies', () => {
       let accessedValue: unknown = 'not-set';
       class ServiceA {
         static readonly inject = ['ServiceB'] as const;
-        constructor(private _serviceB: unknown) {}
+        private _serviceB: unknown;
+        constructor(_serviceB: unknown) {
+          this._serviceB = _serviceB;
+        }
       }
       class ServiceB {
         static readonly inject = ['ServiceA'] as const;
@@ -298,7 +352,10 @@ describe('Circular Dependencies', () => {
     it('should resolve singleton circular dependencies correctly', () => {
       class ServiceA {
         static readonly inject = ['ServiceB'] as const;
-        constructor(private _serviceB: unknown) {}
+        private _serviceB: unknown;
+        constructor(_serviceB: unknown) {
+          this._serviceB = _serviceB;
+        }
         getValue() {
           return 'A';
         }
@@ -306,7 +363,10 @@ describe('Circular Dependencies', () => {
 
       class ServiceB {
         static readonly inject = ['ServiceA'] as const;
-        constructor(private _serviceA: unknown) {}
+        private _serviceA: unknown;
+        constructor(_serviceA: unknown) {
+          this._serviceA = _serviceA;
+        }
         getValue() {
           return 'B';
         }
@@ -324,7 +384,10 @@ describe('Circular Dependencies', () => {
     it('should forward method calls through circular proxy', () => {
       class ServiceA {
         static readonly inject = ['ServiceB'] as const;
-        constructor(private _serviceB: unknown) {}
+        private _serviceB: unknown;
+        constructor(_serviceB: unknown) {
+          this._serviceB = _serviceB;
+        }
         getValue() {
           return 'A';
         }
@@ -332,7 +395,10 @@ describe('Circular Dependencies', () => {
 
       class ServiceB {
         static readonly inject = ['ServiceA'] as const;
-        constructor(private serviceA: unknown) {}
+        private serviceA: unknown;
+        constructor(serviceA: unknown) {
+          this.serviceA = serviceA;
+        }
         getValue() {
           return 'B';
         }
@@ -357,7 +423,10 @@ describe('Circular Dependencies', () => {
     it('should handle three-way circular dependency', () => {
       class ServiceA {
         static readonly inject = ['ServiceB'] as const;
-        constructor(private _serviceB: unknown) {}
+        private _serviceB: unknown;
+        constructor(_serviceB: unknown) {
+          this._serviceB = _serviceB;
+        }
         getValue() {
           return 'A';
         }
@@ -365,7 +434,10 @@ describe('Circular Dependencies', () => {
 
       class ServiceB {
         static readonly inject = ['ServiceC'] as const;
-        constructor(private _serviceC: unknown) {}
+        private _serviceC: unknown;
+        constructor(_serviceC: unknown) {
+          this._serviceC = _serviceC;
+        }
         getValue() {
           return 'B';
         }
@@ -373,7 +445,10 @@ describe('Circular Dependencies', () => {
 
       class ServiceC {
         static readonly inject = ['ServiceA'] as const;
-        constructor(private _serviceA: unknown) {}
+        private _serviceA: unknown;
+        constructor(_serviceA: unknown) {
+          this._serviceA = _serviceA;
+        }
         getValue() {
           return 'C';
         }
@@ -389,7 +464,10 @@ describe('Circular Dependencies', () => {
     it('should handle self-referencing dependency', () => {
       class Service {
         static readonly inject = ['Service'] as const;
-        constructor(private _self: unknown) {}
+        private _self: unknown;
+        constructor(_self: unknown) {
+          this._self = _self;
+        }
         getValue() {
           return 'value';
         }

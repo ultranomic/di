@@ -7,7 +7,11 @@ export class FastifyAdapter {
 
   constructor(container: ResolverInterface) {
     this.container = container;
-    this.app = fastify({ ignoreTrailingSlash: true });
+    this.app = fastify({
+      routerOptions: {
+        ignoreTrailingSlash: true,
+      },
+    });
   }
 
   getApp(): FastifyInstance {

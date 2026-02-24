@@ -177,7 +177,7 @@ console.log('Server running on http://localhost:3000');
 Run it:
 
 ```bash
-tsx main.ts
+node main.ts
 ```
 
 ## Core Concepts

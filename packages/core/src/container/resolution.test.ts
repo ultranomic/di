@@ -101,7 +101,10 @@ describe('Resolution with static inject', () => {
       class UserService {
         static readonly inject = ['Logger'] as const;
 
-        constructor(private logger: Logger) {}
+        private logger: Logger;
+        constructor(logger: Logger) {
+          this.logger = logger;
+        }
 
         getUser(id: string) {
           this.logger.log(`Getting user ${id}`);
@@ -133,11 +136,14 @@ describe('Resolution with static inject', () => {
       class ComplexService {
         static readonly inject = ['Logger', 'Database', 'Cache'] as const;
 
-        constructor(
-          private logger: Logger,
-          private db: Database,
-          private cache: Cache,
-        ) {}
+        private logger: Logger;
+        private db: Database;
+        private cache: Cache;
+        constructor(logger: Logger, db: Database, cache: Cache) {
+          this.logger = logger;
+          this.db = db;
+          this.cache = cache;
+        }
 
         async getData(id: string) {
           this.logger.log(`Fetching data for ${id}`);
@@ -177,7 +183,10 @@ describe('Resolution with static inject', () => {
       // Level 2: Database depends on Logger
       class Database {
         static readonly inject = [Logger] as const satisfies DepsTokens<typeof Database>;
-        constructor(private logger: Logger) {}
+        private logger: Logger;
+        constructor(logger: Logger) {
+          this.logger = logger;
+        }
         query(sql: string) {
           this.logger.log(`Query: ${sql}`);
           return { result: sql };
@@ -187,7 +196,10 @@ describe('Resolution with static inject', () => {
       // Level 3: UserService depends on Database
       class UserService {
         static readonly inject = [Database] as const satisfies DepsTokens<typeof UserService>;
-        constructor(private db: Database) {}
+        private db: Database;
+        constructor(db: Database) {
+          this.db = db;
+        }
         getUser(id: string) {
           return this.db.query(`SELECT * FROM users WHERE id = ${id}`);
         }
@@ -217,7 +229,10 @@ describe('Resolution with static inject', () => {
 
       class MyService {
         static readonly inject = ['Logger'] as const;
-        constructor(private logger: Logger) {}
+        private logger: Logger;
+        constructor(logger: Logger) {
+          this.logger = logger;
+        }
         doSomething() {
           this.logger.log('Doing something');
         }

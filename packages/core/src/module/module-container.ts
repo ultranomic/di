@@ -22,15 +22,19 @@ export class ModuleContainer implements ContainerInterface {
   private readonly moduleName: string;
   private readonly currentModuleExports: Set<Token>;
   private readonly accessibleModules: Set<string>;
+  private readonly baseContainer: ContainerInterface;
+  private readonly allModulesOwners: Map<Token, TokenOwner>;
 
   constructor(
-    private readonly baseContainer: ContainerInterface,
+    baseContainer: ContainerInterface,
     moduleName: string,
     moduleExports: readonly Token[],
-    private readonly allModulesOwners: Map<Token, TokenOwner>,
+    allModulesOwners: Map<Token, TokenOwner>,
   ) {
+    this.baseContainer = baseContainer;
     this.moduleName = moduleName;
     this.currentModuleExports = new Set(moduleExports);
+    this.allModulesOwners = allModulesOwners;
     this.accessibleModules = new Set();
     this.accessibleModules.add(moduleName); // A module can always access its own tokens
   }

@@ -64,8 +64,11 @@ class ControllerWithDependencies extends Controller {
 
   static readonly inject = [UserService] as const satisfies DepsTokens<typeof ControllerWithDependencies>;
 
-  constructor(private userService: UserService) {
+  private userService: UserService;
+
+  constructor(userService: UserService) {
     super();
+    this.userService = userService;
   }
 
   list(_req: Request, res: Response): void {

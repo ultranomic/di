@@ -295,7 +295,10 @@ describe('ModuleRegistry', () => {
       class UserService {
         static readonly inject = [Logger] as const satisfies DepsTokens<typeof UserService>;
 
-        constructor(private logger: Logger) {}
+        private logger: Logger;
+        constructor(logger: Logger) {
+          this.logger = logger;
+        }
 
         logSomething() {
           return this.logger.log();
@@ -607,10 +610,15 @@ describe('ModuleRegistry', () => {
       class AppService {
         static readonly inject = [Logger, Database] as const satisfies DepsTokens<typeof AppService>;
 
+        private logger: Logger;
+        private database: Database;
         constructor(
-          private logger: Logger,
-          private database: Database,
-        ) {}
+          logger: Logger,
+          database: Database,
+        ) {
+          this.logger = logger;
+          this.database = database;
+        }
 
         getData() {
           return this.database.query();
@@ -657,7 +665,10 @@ describe('ModuleRegistry', () => {
       class UserService {
         static readonly inject = [InternalLogger] as const satisfies DepsTokens<typeof UserService>;
 
-        constructor(private logger: InternalLogger) {}
+        private logger: InternalLogger;
+        constructor(logger: InternalLogger) {
+          this.logger = logger;
+        }
 
         log() {
           return this.logger.log();
@@ -700,7 +711,10 @@ describe('ModuleRegistry', () => {
       class UserService {
         static readonly inject = [InternalLogger] as const satisfies DepsTokens<typeof UserService>;
 
-        constructor(private logger: InternalLogger) {}
+        private logger: InternalLogger;
+        constructor(logger: InternalLogger) {
+          this.logger = logger;
+        }
       }
 
       class UserModule extends Module {
@@ -740,7 +754,10 @@ describe('ModuleRegistry', () => {
       class PublicService {
         static readonly inject = [InternalLogger] as const satisfies DepsTokens<typeof PublicService>;
 
-        constructor(private logger: InternalLogger) {}
+        private logger: InternalLogger;
+        constructor(logger: InternalLogger) {
+          this.logger = logger;
+        }
 
         log() {
           return this.logger.log();
@@ -805,7 +822,10 @@ describe('ModuleRegistry', () => {
       class UserService {
         static readonly inject = [SecretService] as const satisfies DepsTokens<typeof UserService>;
 
-        constructor(private secret: SecretService) {}
+        private secret: SecretService;
+        constructor(secret: SecretService) {
+          this.secret = secret;
+        }
       }
 
       class UserModule extends Module {

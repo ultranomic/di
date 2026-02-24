@@ -3,11 +3,13 @@ import type { Token } from '../types/token.ts';
 /**
  * Binding scope determines the lifecycle of a provider
  */
-export enum BindingScope {
-  SINGLETON = 'SINGLETON',
-  TRANSIENT = 'TRANSIENT',
-  SCOPED = 'SCOPED',
-}
+export const BindingScope = {
+  SINGLETON: 'SINGLETON',
+  TRANSIENT: 'TRANSIENT',
+  SCOPED: 'SCOPED',
+} as const;
+
+export type BindingScope = (typeof BindingScope)[keyof typeof BindingScope];
 
 /**
  * Forward declaration of Container type to avoid circular dependency
@@ -38,7 +40,11 @@ export interface Binding<T = unknown> {
  * @template T - The type of value the binding produces
  */
 export class BindingBuilder<T> {
-  constructor(private readonly binding: Binding<T>) {}
+  private readonly binding: Binding<T>;
+
+  constructor(binding: Binding<T>) {
+    this.binding = binding;
+  }
 
   /**
    * Configure the binding as a singleton

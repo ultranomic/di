@@ -20,7 +20,11 @@ interface ProviderOverride {
 }
 
 export class TestingModule {
-  constructor(private readonly container: Container) {}
+  private readonly container: Container;
+
+  constructor(container: Container) {
+    this.container = container;
+  }
 
   get<T>(token: Token<T>): T {
     return this.container.resolve(token);

@@ -27,7 +27,11 @@ import type { Token } from '@voxeljs/core';
  * @template T - The type of the mock implementation
  */
 export class MockBuilder<T> {
-  constructor(private readonly token: Token<T>) {}
+  private readonly token: Token<T>;
+
+  constructor(token: Token<T>) {
+    this.token = token;
+  }
 
   /**
    * Specify the mock implementation to use

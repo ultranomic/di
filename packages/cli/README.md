@@ -56,21 +56,23 @@ Pre-configured with Voxel dependencies and scripts:
   "version": "1.0.0",
   "type": "module",
   "main": "./dist/index.js",
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "scripts": {
     "build": "tsc",
-    "dev": "tsx watch src/index.ts",
+    "dev": "node --watch src/index.ts",
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@voxeljs/core": "workspace:*",
-    "@voxeljs/express": "workspace:*",
-    "express": "^5.0.0"
+    "@voxeljs/core": "latest",
+    "@voxeljs/express": "latest",
+    "express": "5.0.0"
   },
   "devDependencies": {
-    "@types/express": "^5.0.0",
-    "@types/node": "^22.0.0",
-    "tsx": "^4.0.0",
-    "typescript": "^5.0.0"
+    "@types/express": "5.0.0",
+    "@types/node": "22.0.0",
+    "typescript": "5.0.0"
   }
 }
 ```
