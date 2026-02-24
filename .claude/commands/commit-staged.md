@@ -1,6 +1,6 @@
 ---
 description: Commit the current staged changes
-model: zai-coding-plan/glm-4.7
+model: glm-4.7
 ---
 
 Commit staged changes with a conventional commit message.
