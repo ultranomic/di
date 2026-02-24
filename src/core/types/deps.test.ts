@@ -72,10 +72,7 @@ describe('Deps types', () => {
         static readonly inject = [Logger, Database] as const satisfies DepsTokens<typeof MyService>;
         logger: Logger;
         db: Database;
-        constructor(
-          logger: Logger,
-          db: Database,
-        ) {
+        constructor(logger: Logger, db: Database) {
           this.logger = logger;
           this.db = db;
         }

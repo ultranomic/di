@@ -612,10 +612,7 @@ describe('ModuleRegistry', () => {
 
         private logger: Logger;
         private database: Database;
-        constructor(
-          logger: Logger,
-          database: Database,
-        ) {
+        constructor(logger: Logger, database: Database) {
           this.logger = logger;
           this.database = database;
         }
@@ -632,9 +629,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container
-            .register(AppService, (c) => new AppService(c.resolve(Logger), c.resolve(Database)))
-            .asSingleton();
+          container.register(AppService, (c) => new AppService(c.resolve(Logger), c.resolve(Database))).asSingleton();
         }
       }
 
@@ -700,7 +695,7 @@ describe('ModuleRegistry', () => {
 
       class LoggerModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: [] as typeof InternalLogger[], // Empty exports
+          exports: [] as (typeof InternalLogger)[], // Empty exports
         };
 
         register(container: ContainerInterface): void {
@@ -1252,10 +1247,7 @@ describe('ModuleRegistry', () => {
       class UserService {
         static readonly inject = [Logger, SecretService] as const satisfies DepsTokens<typeof UserService>;
 
-        constructor(
-          _logger: Logger,
-          _secret: SecretService,
-        ) {}
+        constructor(_logger: Logger, _secret: SecretService) {}
       }
 
       class UserModule extends Module {
@@ -1265,7 +1257,9 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(UserService, (c) => new UserService(c.resolve(Logger), c.resolve(SecretService))).asSingleton();
+          container
+            .register(UserService, (c) => new UserService(c.resolve(Logger), c.resolve(SecretService)))
+            .asSingleton();
         }
       }
 

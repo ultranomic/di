@@ -19,14 +19,14 @@ function parseArgs(args: string[]): ParsedArgs {
 
 function printUsage(): void {
   console.log(`
-Voxel CLI - Project scaffolding tool
+DI CLI - Project scaffolding tool
 
 Usage:
-  voxel new <project-name>    Create a new Voxel project
-  voxel --help                Show this help message
+  di new <project-name>       Create a new DI project
+  di --help                   Show this help message
 
 Examples:
-  voxel new my-app            Create a new project called "my-app"
+  di new my-app               Create a new project called "my-app"
 `);
 }
 
@@ -41,7 +41,7 @@ async function main(): Promise<void> {
   if (command === 'new') {
     if (projectName === undefined) {
       console.error('Error: Project name is required');
-      console.error('Usage: voxel new <project-name>');
+      console.error('Usage: di new <project-name>');
       process.exit(1);
     }
 

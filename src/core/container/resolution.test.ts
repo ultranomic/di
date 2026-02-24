@@ -159,7 +159,9 @@ describe('Resolution with static inject', () => {
       container.register(PostgresDatabase, () => new PostgresDatabase());
       container.register(RedisCache, () => new RedisCache());
       container.register(ComplexService, (c) => {
-        return new ComplexService(...(c.buildDeps(ComplexService.inject) as [ConsoleLogger, PostgresDatabase, RedisCache]));
+        return new ComplexService(
+          ...(c.buildDeps(ComplexService.inject) as [ConsoleLogger, PostgresDatabase, RedisCache]),
+        );
       });
 
       const service = container.resolve(ComplexService);
@@ -431,7 +433,10 @@ describe('Resolution with static inject', () => {
       }
       class Service {
         hasLogger: boolean;
-        constructor(c: { resolve<T>(token: abstract new (...args: any[]) => T): T; has: (token: abstract new (...args: any[]) => unknown) => boolean }) {
+        constructor(c: {
+          resolve<T>(token: abstract new (...args: any[]) => T): T;
+          has: (token: abstract new (...args: any[]) => unknown) => boolean;
+        }) {
           hasCalled = c.has(Logger);
           this.hasLogger = c.has(Logger);
         }

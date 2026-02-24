@@ -10,12 +10,7 @@ export class NonExportedTokenError extends Error {
   readonly ownerModule: string;
   readonly exportedTokens: Token[];
 
-  constructor(
-    token: Token,
-    requestingModule: Token | string,
-    ownerModule: Token | string,
-    exportedTokens: Token[],
-  ) {
+  constructor(token: Token, requestingModule: Token | string, ownerModule: Token | string, exportedTokens: Token[]) {
     const tokenName = typeof token === 'function' ? token.name : String(token);
     const requestingName = typeof requestingModule === 'function' ? requestingModule.name : String(requestingModule);
     const ownerName = typeof ownerModule === 'function' ? ownerModule.name : String(ownerModule);

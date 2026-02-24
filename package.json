@@ -1,21 +1,20 @@
 {
-  "name": "@ultranomic/voxel",
-  "version": "0.0.1",
+  "name": "@ultranomic/di",
+  "version": "5.0.0",
   "keywords": [
     "dependency-injection",
     "di",
-    "framework",
-    "voxel"
+    "framework"
   ],
   "license": "MIT",
-  "type": "module",
   "bin": {
-    "voxel": "./dist/cli/index.js"
+    "di": "./dist/cli/index.js"
   },
   "files": [
     "src",
     "dist"
   ],
+  "type": "module",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -61,8 +60,18 @@
     "format:check": "oxfmt --check .",
     "prepublishOnly": "pnpm run typecheck && pnpm run test:coverage"
   },
-  "engines": {
-    "node": ">=24.0.0"
+  "devDependencies": {
+    "@hono/node-server": "1.19.9",
+    "@types/express": "5.0.6",
+    "@types/node": "25.3.0",
+    "@vitest/coverage-v8": "4.0.18",
+    "express": "5.2.1",
+    "fastify": "5.7.4",
+    "hono": "4.12.2",
+    "oxfmt": "0.35.0",
+    "oxlint": "1.50.0",
+    "typescript": "6.0.0-beta",
+    "vitest": "4.0.18"
   },
   "peerDependencies": {
     "@hono/node-server": "1.19.0 || 2.0.0",
@@ -84,17 +93,7 @@
       "optional": true
     }
   },
-  "devDependencies": {
-    "@hono/node-server": "1.19.9",
-    "@types/express": "5.0.6",
-    "@types/node": "25.3.0",
-    "@vitest/coverage-v8": "4.0.18",
-    "express": "5.2.1",
-    "fastify": "5.7.4",
-    "hono": "4.12.2",
-    "oxfmt": "0.35.0",
-    "oxlint": "1.50.0",
-    "typescript": "6.0.0-beta",
-    "vitest": "4.0.18"
+  "engines": {
+    "node": ">=24.0.0"
   }
 }

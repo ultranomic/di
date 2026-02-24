@@ -98,9 +98,7 @@ export class TestModuleBuilder {
     return new TestingModule(container);
   }
 
-  private createTestModule(
-    overrideTokens: Set<abstract new (...args: unknown[]) => unknown>,
-  ): ModuleConstructor {
+  private createTestModule(overrideTokens: Set<abstract new (...args: unknown[]) => unknown>): ModuleConstructor {
     const providers = this.config.providers ?? [];
     const controllers = this.config.controllers ?? [];
 
@@ -128,7 +126,9 @@ export class TestModuleBuilder {
             if (ProviderClass.inject) {
               container.register(ProviderClass, (c: ResolverInterface) => {
                 // Array pattern: dependencies as positional constructor parameters
-                const deps = c.buildDeps(ProviderClass.inject as readonly (abstract new (...args: unknown[]) => unknown)[]);
+                const deps = c.buildDeps(
+                  ProviderClass.inject as readonly (abstract new (...args: unknown[]) => unknown)[],
+                );
                 return new ProviderClass(...(deps as unknown[]));
               });
             } else {

@@ -81,8 +81,8 @@ describe('createProject', () => {
     const indexPath = join(testDir, 'import-test', 'src', 'index.ts');
     const content = await readFile(indexPath, 'utf-8');
 
-    expect(content).toContain('@ultranomic/voxel/core');
-    expect(content).toContain('@ultranomic/voxel/express');
+    expect(content).toContain('@ultranomic/di/core');
+    expect(content).toContain('@ultranomic/di/express');
     expect(content).toContain('AppModule');
   });
 

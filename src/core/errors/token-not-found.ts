@@ -1,5 +1,5 @@
 import type { Token } from '../types/token.ts';
-import { VoxelError } from './base.ts';
+import { DIError } from './base.ts';
 
 /**
  * Error thrown when a token cannot be resolved in the container.
@@ -24,7 +24,7 @@ import { VoxelError } from './base.ts';
  * //   Suggestion: Did you mean to import a module that provides 'Logger'?
  * ```
  */
-export class TokenNotFoundError extends VoxelError {
+export class TokenNotFoundError extends DIError {
   /**
    * The token that could not be found
    */
@@ -45,8 +45,7 @@ export class TokenNotFoundError extends VoxelError {
     const pathStr = resolutionPath.map((t) => (typeof t === 'function' ? t.name : String(t)));
     const availableStr = availableTokens.map((t) => (typeof t === 'function' ? t.name : String(t)));
 
-    const pathSection =
-      resolutionPath.length > 0 ? `\n  Resolution path: ${pathStr.join(' -> ')} -> ${tokenStr}` : '';
+    const pathSection = resolutionPath.length > 0 ? `\n  Resolution path: ${pathStr.join(' -> ')} -> ${tokenStr}` : '';
 
     const availableSection =
       availableTokens.length > 0

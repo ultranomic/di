@@ -42,7 +42,9 @@ describe('Container Scope Support', () => {
       }
       const scope = container.createScope();
 
-      expect(() => scope.register(NewService, () => new NewService())).toThrow(/Cannot register bindings in child container/);
+      expect(() => scope.register(NewService, () => new NewService())).toThrow(
+        /Cannot register bindings in child container/,
+      );
     });
 
     it('should support nested scopes', () => {
