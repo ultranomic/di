@@ -1,4 +1,6 @@
 import type { HttpMethod } from '../types/controller.ts';
+import type { DepsTokens } from '../types/deps.ts';
+import type { Token } from '../types/token.ts';
 import type { Controller, ControllerMetadata } from './controller.ts';
 
 /**
@@ -22,15 +24,32 @@ export interface RouteInfo {
  * ControllerConstructor defines the type for controller classes
  *
  * This type ensures that controller classes have the required static metadata
- * and can be instantiated to create controller instances.
+ * and inject properties, and can be instantiated to create controller instances.
+ *
+ * Controllers use the new array-based inject pattern with individual constructor
+ * parameters.
  *
  * @example
- * const ControllerClass: ControllerConstructor = UserController
+ * class MyController extends Controller {
+ *   static readonly inject = [Logger] as const satisfies DepsTokens<typeof MyController>;
+ *   static readonly metadata: ControllerMetadata = { basePath: '/api' };
+ *   constructor(public logger: Logger) { super() }
+ * }
+ *
+ * const ControllerClass: ControllerConstructor = MyController
  * const routes = ControllerClass.metadata?.routes
  */
 export type ControllerConstructor = {
   /**
+   * Static dependencies array for constructor injection
+   */
+  readonly inject?: readonly Token[];
+  /**
    * Static metadata describing the controller's configuration
    */
   readonly metadata?: ControllerMetadata;
-} & (abstract new (...args: unknown[]) => Controller);
+  /**
+   * Creates a new controller instance
+   */
+  new (...args: any[]): Controller;
+};

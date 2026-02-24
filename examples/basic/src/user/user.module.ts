@@ -29,7 +29,7 @@ export class UserModule extends Module {
     // Register UserService with singleton scope
     container
       .register('UserService', (c) => {
-        return new UserService(c.buildDeps(UserService.inject));
+        return new UserService(...(c.buildDeps(UserService.inject) as unknown as []));
       })
       .asSingleton();
 
@@ -37,9 +37,7 @@ export class UserModule extends Module {
     // Use type assertion because UserController has a typed constructor signature
     const UserControllerToken = UserController as Token;
     container.register(UserControllerToken, (c) => {
-      return new UserController({
-        userService: c.resolve('UserService'),
-      });
+      return new UserController(...(c.buildDeps(UserController.inject) as unknown as [UserService]));
     });
   }
 

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Container } from '../container/container.ts';
+import type { ContainerInterface } from '../container/interfaces.ts';
+import type { DepsTokens } from '../types/deps.ts';
 import type { ModuleConstructor } from './interfaces.ts';
 import type { ModuleMetadata } from './module.ts';
 import { Module } from './module.ts';
@@ -13,7 +15,7 @@ describe('Module', () => {
           exports: [],
         };
 
-        register(_container: Container) {}
+        register(_container: ContainerInterface) {}
       }
 
       expect(TestModule.metadata).toBeDefined();
@@ -38,7 +40,7 @@ describe('Module', () => {
           providers: [ServiceA, ServiceB],
         };
 
-        register(_container: Container) {}
+        register(_container: ContainerInterface) {}
       }
 
       expect(TestModule.metadata?.providers).toContain(ServiceA);
@@ -51,7 +53,7 @@ describe('Module', () => {
           exports: ['ServiceA', 'ServiceB'],
         };
 
-        register(_container: Container) {}
+        register(_container: ContainerInterface) {}
       }
 
       expect(TestModule.metadata?.exports).toContain('ServiceA');
@@ -61,7 +63,7 @@ describe('Module', () => {
     it('should allow imports in metadata', () => {
       class DatabaseModule extends Module {
         static readonly metadata: ModuleMetadata = {};
-        register(_container: Container) {}
+        register(_container: ContainerInterface) {}
       }
 
       class UserModule extends Module {
@@ -69,7 +71,7 @@ describe('Module', () => {
           imports: [DatabaseModule],
         };
 
-        register(_container: Container) {}
+        register(_container: ContainerInterface) {}
       }
 
       expect(UserModule.metadata?.imports).toContain(DatabaseModule);
@@ -83,7 +85,7 @@ describe('Module', () => {
           controllers: [UserController],
         };
 
-        register(_container: Container) {}
+        register(_container: ContainerInterface) {}
       }
 
       expect(TestModule.metadata?.controllers).toContain(UserController);
@@ -91,7 +93,7 @@ describe('Module', () => {
 
     it('should allow empty metadata', () => {
       class EmptyModule extends Module {
-        register(_container: Container) {}
+        register(_container: ContainerInterface) {}
       }
 
       expect(EmptyModule.metadata).toBeUndefined();
@@ -111,7 +113,7 @@ describe('Module', () => {
           providers: [Service],
         };
 
-        register(container: Container) {
+        register(container: ContainerInterface) {
           container.register('Service', () => new Service());
         }
       }
@@ -140,7 +142,7 @@ describe('Module', () => {
           providers: [Logger, Database],
         };
 
-        register(container: Container) {
+        register(container: ContainerInterface) {
           container.register('Logger', () => new Logger());
           container.register('Database', () => new Database());
         }
@@ -162,11 +164,12 @@ describe('Module', () => {
       }
 
       class Server {
-        static readonly inject = { config: 'Config' } as const;
-        constructor(private deps: typeof Server.inject) {}
+        static readonly inject = [Config] as const satisfies DepsTokens<typeof Server>;
+
+        constructor(private config: Config) {}
 
         getPort() {
-          return this.deps.config.getPort();
+          return this.config.getPort();
         }
       }
 
@@ -176,13 +179,10 @@ describe('Module', () => {
           exports: ['Config', 'Server'],
         };
 
-        register(container: Container) {
+        register(container: ContainerInterface) {
           container.register('Config', () => new Config()).asSingleton();
           container.register('Server', (c) => {
-            const server = new Server({
-              config: c.resolve('Config'),
-            });
-            return server;
+            return new Server(c.resolve('Config'));
           });
         }
       }
@@ -203,7 +203,7 @@ describe('Module', () => {
           providers: [],
         };
 
-        register(_container: Container) {}
+        register(_container: ContainerInterface) {}
       }
 
       const ModuleClass: ModuleConstructor = TestModule;
@@ -219,7 +219,7 @@ describe('Module', () => {
           exports: ['ServiceA', 'ServiceB'],
         };
 
-        register(_container: Container) {}
+        register(_container: ContainerInterface) {}
       }
 
       const module = new TestModule();
@@ -232,7 +232,7 @@ describe('Module', () => {
       class TestModule extends Module {
         static readonly metadata: ModuleMetadata = {};
 
-        register(_container: Container) {}
+        register(_container: ContainerInterface) {}
       }
 
       const module = new TestModule();
@@ -243,7 +243,7 @@ describe('Module', () => {
 
     it('should return empty array when metadata is undefined', () => {
       class TestModule extends Module {
-        register(_container: Container) {}
+        register(_container: ContainerInterface) {}
       }
 
       const module = new TestModule();
@@ -258,7 +258,7 @@ describe('Module', () => {
           exports: ['ServiceA'],
         };
 
-        register(_container: Container) {}
+        register(_container: ContainerInterface) {}
       }
 
       const module = new TestModule();
@@ -272,14 +272,15 @@ describe('Module', () => {
 
   describe('lifecycle hooks', () => {
     describe('onModuleInit', () => {
-      it('should have default onModuleInit implementation', async () => {
+      it('should have default onModuleInit implementation', () => {
         class TestModule extends Module {
           static readonly metadata: ModuleMetadata = {};
-          register(_container: Container) {}
+          register(_container: ContainerInterface) {}
         }
 
         const module = new TestModule();
-        await expect(module.onModuleInit()).resolves.toBeUndefined();
+        // Default implementation returns void, not a Promise
+        expect(module.onModuleInit()).toBeUndefined();
       });
 
       it('should allow overriding onModuleInit', async () => {
@@ -287,7 +288,7 @@ describe('Module', () => {
 
         class TestModule extends Module {
           static readonly metadata: ModuleMetadata = {};
-          register(_container: Container) {}
+          register(_container: ContainerInterface) {}
 
           override async onModuleInit(): Promise<void> {
             initialized = true;
@@ -302,14 +303,15 @@ describe('Module', () => {
     });
 
     describe('onModuleDestroy', () => {
-      it('should have default onModuleDestroy implementation', async () => {
+      it('should have default onModuleDestroy implementation', () => {
         class TestModule extends Module {
           static readonly metadata: ModuleMetadata = {};
-          register(_container: Container) {}
+          register(_container: ContainerInterface) {}
         }
 
         const module = new TestModule();
-        await expect(module.onModuleDestroy()).resolves.toBeUndefined();
+        // Default implementation returns void, not a Promise
+        expect(module.onModuleDestroy()).toBeUndefined();
       });
 
       it('should allow overriding onModuleDestroy', async () => {
@@ -317,7 +319,7 @@ describe('Module', () => {
 
         class TestModule extends Module {
           static readonly metadata: ModuleMetadata = {};
-          register(_container: Container) {}
+          register(_container: ContainerInterface) {}
 
           override async onModuleDestroy(): Promise<void> {
             destroyed = true;
@@ -439,10 +441,12 @@ describe('Module', () => {
         }
 
         class ServerService {
-          constructor(private deps: { config: typeof ConfigService }) {}
+          static readonly inject = [ConfigService] as const satisfies DepsTokens<typeof ServerService>;
+
+          constructor(private config: ConfigService) {}
 
           getPort() {
-            return this.deps.config.getPort();
+            return this.config.getPort();
           }
         }
 
@@ -458,9 +462,7 @@ describe('Module', () => {
             super.register(container);
             // ServerService needs manual registration with dependencies
             container.register(ServerService, (c) => {
-              return new ServerService({
-                config: c.resolve(ConfigService),
-              });
+              return new ServerService(c.resolve(ConfigService));
             });
           }
         }
@@ -544,10 +546,12 @@ describe('Module', () => {
         }
 
         class HomeController {
-          constructor(private deps: { logger: typeof LoggerService }) {}
+          static readonly inject = [LoggerService] as const satisfies DepsTokens<typeof HomeController>;
+
+          constructor(private logger: LoggerService) {}
 
           index() {
-            return this.deps.logger.log('home');
+            return this.logger.log('home');
           }
         }
 

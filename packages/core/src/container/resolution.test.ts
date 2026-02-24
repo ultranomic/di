@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { InferDeps, InjectableClass } from '../types/deps.ts';
+import type { InferInject, InjectableClass, DepsTokens } from '../types/deps.ts';
+import type { Token } from '../types/token.ts';
 import { Container } from './container.ts';
 
 describe('Resolution with static inject', () => {
@@ -10,50 +11,46 @@ describe('Resolution with static inject', () => {
   });
 
   describe('buildDeps', () => {
-    it('should build deps from empty inject map', () => {
-      const injectMap = {};
-      const deps = container.buildDeps(injectMap);
-      expect(deps).toEqual({});
+    it('should build deps from empty inject array', () => {
+      const injectArray = [] as const;
+      const deps = container.buildDeps(injectArray);
+      expect(deps).toEqual([]);
     });
 
-    it('should build deps from inject map with single dependency', () => {
+    it('should build deps from inject array with single dependency', () => {
       container.register('Logger', () => ({ log: (_msg: string) => {} }));
 
-      const injectMap = { logger: 'Logger' } as const;
-      const deps = container.buildDeps(injectMap);
+      const injectArray = ['Logger'] as const;
+      const deps = container.buildDeps(injectArray);
 
-      expect(deps).toHaveProperty('logger');
-      expect(typeof deps.logger).toBe('object');
+      expect(deps).toHaveLength(1);
+      expect(typeof deps[0]).toBe('object');
     });
 
-    it('should build deps from inject map with multiple dependencies', () => {
+    it('should build deps from inject array with multiple dependencies', () => {
       container.register('Logger', () => ({ log: (_msg: string) => {} }));
       container.register('Database', () => ({ query: (_sql: string) => {} }));
 
-      const injectMap = {
-        logger: 'Logger',
-        db: 'Database',
-      } as const;
+      const injectArray = ['Logger', 'Database'] as const;
 
-      const deps = container.buildDeps(injectMap);
+      const deps = container.buildDeps(injectArray);
 
-      expect(deps).toHaveProperty('logger');
-      expect(deps).toHaveProperty('db');
+      expect(deps).toHaveLength(2);
     });
 
     it('should throw with resolution path when dependency not found', () => {
-      const injectMap = { missing: 'MissingService' } as const;
-      expect(() => container.buildDeps(injectMap)).toThrow(/Token 'MissingService' not found/);
+      const injectArray = ['MissingService'] as const;
+      expect(() => container.buildDeps(injectArray)).toThrow(/Token 'MissingService' not found/);
     });
 
     it('should work with symbol tokens', () => {
       const DB_TOKEN = Symbol('Database');
       container.register(DB_TOKEN, () => ({ connect: () => {} }));
 
-      const injectMap = { db: DB_TOKEN } as const;
-      const deps = container.buildDeps(injectMap);
+      const injectArray = [DB_TOKEN] as const;
+      const deps = container.buildDeps(injectArray);
 
-      expect(deps).toHaveProperty('db');
+      expect(deps).toHaveLength(1);
     });
 
     it('should work with class tokens', () => {
@@ -65,27 +62,26 @@ describe('Resolution with static inject', () => {
       }
       container.register(ServiceBase, () => new Service());
 
-      const injectMap = { service: ServiceBase } as const;
-      const deps = container.buildDeps(injectMap);
+      const injectArray = [ServiceBase] as const;
+      const deps = container.buildDeps(injectArray);
 
-      expect(deps).toHaveProperty('service');
-      expect((deps.service as Service).getValue()).toBe(42);
+      expect(deps).toHaveLength(1);
+      expect((deps[0] as Service).getValue()).toBe(42);
     });
   });
 
   describe('class with static inject', () => {
     it('should resolve class with no dependencies', () => {
       class NoDepsService {
-        static readonly inject = {} as const;
-        constructor(_deps: InferDeps<typeof NoDepsService.inject>) {}
+        static readonly inject = [] as const;
+        constructor() {}
         getValue() {
           return 42;
         }
       }
 
       container.register('NoDepsService', (c) => {
-        const deps = c.buildDeps(NoDepsService.inject);
-        return new NoDepsService(deps as InferDeps<typeof NoDepsService.inject>);
+        return new NoDepsService(...c.buildDeps(NoDepsService.inject));
       });
 
       const service = container.resolve('NoDepsService') as NoDepsService;
@@ -104,20 +100,19 @@ describe('Resolution with static inject', () => {
       }
 
       class UserService {
-        static readonly inject = { logger: 'Logger' } as const;
+        static readonly inject = ['Logger'] as const;
 
-        constructor(private deps: InferDeps<typeof UserService.inject, { Logger: Logger }>) {}
+        constructor(private logger: Logger) {}
 
         getUser(id: string) {
-          this.deps.logger.log(`Getting user ${id}`);
+          this.logger.log(`Getting user ${id}`);
           return { id };
         }
       }
 
       container.register('Logger', () => new ConsoleLogger());
       container.register('UserService', (c) => {
-        const deps = c.buildDeps(UserService.inject) as InferDeps<typeof UserService.inject, { Logger: Logger }>;
-        return new UserService(deps);
+        return new UserService(...(c.buildDeps(UserService.inject) as [Logger]));
       });
 
       const service = container.resolve('UserService') as UserService;
@@ -137,21 +132,19 @@ describe('Resolution with static inject', () => {
       }
 
       class ComplexService {
-        static readonly inject = {
-          logger: 'Logger',
-          db: 'Database',
-          cache: 'Cache',
-        } as const;
+        static readonly inject = ['Logger', 'Database', 'Cache'] as const;
 
         constructor(
-          private deps: InferDeps<typeof ComplexService.inject, { Logger: Logger; Database: Database; Cache: Cache }>,
+          private logger: Logger,
+          private db: Database,
+          private cache: Cache,
         ) {}
 
         async getData(id: string) {
-          this.deps.logger.log(`Fetching data for ${id}`);
-          const cached = this.deps.cache.get(id);
+          this.logger.log(`Fetching data for ${id}`);
+          const cached = this.cache.get(id);
           if (cached) return cached;
-          return this.deps.db.query(`SELECT * FROM data WHERE id = ${id}`);
+          return this.db.query(`SELECT * FROM data WHERE id = ${id}`);
         }
       }
 
@@ -165,11 +158,7 @@ describe('Resolution with static inject', () => {
         get: (_key: string) => null,
       }));
       container.register('ComplexService', (c) => {
-        const deps = c.buildDeps(ComplexService.inject) as InferDeps<
-          typeof ComplexService.inject,
-          { Logger: Logger; Database: Database; Cache: Cache }
-        >;
-        return new ComplexService(deps);
+        return new ComplexService(...(c.buildDeps(ComplexService.inject) as [Logger, Database, Cache]));
       });
 
       const service = container.resolve('ComplexService') as ComplexService;
@@ -179,8 +168,8 @@ describe('Resolution with static inject', () => {
     it('should resolve nested dependencies', () => {
       // Level 1: Logger
       class Logger {
-        static readonly inject = {} as const;
-        constructor(_deps: InferDeps<typeof Logger.inject>) {}
+        static readonly inject = [] as const;
+        constructor() {}
         log(msg: string) {
           return msg;
         }
@@ -188,37 +177,34 @@ describe('Resolution with static inject', () => {
 
       // Level 2: Database depends on Logger
       class Database {
-        static readonly inject = { logger: 'Logger' } as const;
-        constructor(private deps: InferDeps<typeof Database.inject, { Logger: Logger }>) {}
+        static readonly inject = [Logger] as const satisfies DepsTokens<typeof Database>;
+        constructor(private logger: Logger) {}
         query(sql: string) {
-          this.deps.logger.log(`Query: ${sql}`);
+          this.logger.log(`Query: ${sql}`);
           return { result: sql };
         }
       }
 
       // Level 3: UserService depends on Database
       class UserService {
-        static readonly inject = { db: 'Database' } as const;
-        constructor(private deps: InferDeps<typeof UserService.inject, { Database: Database }>) {}
+        static readonly inject = [Database] as const satisfies DepsTokens<typeof UserService>;
+        constructor(private db: Database) {}
         getUser(id: string) {
-          return this.deps.db.query(`SELECT * FROM users WHERE id = ${id}`);
+          return this.db.query(`SELECT * FROM users WHERE id = ${id}`);
         }
       }
 
-      container.register('Logger', (c) => {
-        const deps = c.buildDeps(Logger.inject);
-        return new Logger(deps as InferDeps<typeof Logger.inject>);
+      container.register(Logger, (c) => {
+        return new Logger(...c.buildDeps(Logger.inject));
       });
-      container.register('Database', (c) => {
-        const deps = c.buildDeps(Database.inject) as InferDeps<typeof Database.inject, { Logger: Logger }>;
-        return new Database(deps);
+      container.register(Database, (c) => {
+        return new Database(...c.buildDeps(Database.inject));
       });
-      container.register('UserService', (c) => {
-        const deps = c.buildDeps(UserService.inject) as InferDeps<typeof UserService.inject, { Database: Database }>;
-        return new UserService(deps);
+      container.register(UserService, (c) => {
+        return new UserService(...c.buildDeps(UserService.inject));
       });
 
-      const service = container.resolve('UserService') as UserService;
+      const service = container.resolve(UserService) as UserService;
       const result = service.getUser('123');
       expect(result.result).toBe('SELECT * FROM users WHERE id = 123');
     });
@@ -231,20 +217,19 @@ describe('Resolution with static inject', () => {
       }
 
       class MyService {
-        static readonly inject = { logger: 'Logger' } as const;
-        constructor(private deps: InferDeps<typeof MyService.inject, { Logger: Logger }>) {}
+        static readonly inject = ['Logger'] as const;
+        constructor(private logger: Logger) {}
         doSomething() {
-          this.deps.logger.log('Doing something');
+          this.logger.log('Doing something');
         }
       }
 
-      // Type check: MyService should be assignable to InjectableClass
-      const _ServiceClass: InjectableClass<typeof MyService.inject, MyService> = MyService;
+      // Type check: MyService should work with the container
+      const _ServiceClass = MyService;
 
       container.register('Logger', () => ({ log: (_msg: string) => {} }));
       container.register('MyService', (c) => {
-        const deps = c.buildDeps(_ServiceClass.inject) as InferDeps<typeof _ServiceClass.inject, { Logger: Logger }>;
-        return new _ServiceClass(deps);
+        return new _ServiceClass(...(c.buildDeps(_ServiceClass.inject) as [Logger]));
       });
 
       const service = container.resolve('MyService') as MyService;
@@ -275,15 +260,14 @@ describe('Resolution with static inject', () => {
 
     it('should track resolution path for nested resolution failures', () => {
       class Level1Service {
-        static readonly inject = { level2: 'Level2Service' } as const;
-        constructor(_deps: InferDeps<typeof Level1Service.inject>) {}
+        static readonly inject = ['Level2Service'] as const;
+        constructor(_deps: unknown) {}
       }
 
       // Level2Service is NOT registered, causing failure
 
       container.register('Level1Service', (c) => {
-        const deps = c.buildDeps(Level1Service.inject);
-        return new Level1Service(deps as InferDeps<typeof Level1Service.inject>);
+        return new Level1Service(...c.buildDeps(Level1Service.inject));
       });
 
       expect(() => container.resolve('Level1Service')).toThrow(/Token 'Level2Service' not found/);
@@ -295,8 +279,8 @@ describe('Resolution with static inject', () => {
       let loggerInstantiationCount = 0;
 
       class Logger {
-        static readonly inject = {} as const;
-        constructor(_deps: InferDeps<typeof Logger.inject>) {
+        static readonly inject = [] as const;
+        constructor() {
           loggerInstantiationCount++;
         }
         log(msg: string) {
@@ -305,34 +289,31 @@ describe('Resolution with static inject', () => {
       }
 
       class ServiceA {
-        static readonly inject = { logger: 'Logger' } as const;
-        constructor(private deps: InferDeps<typeof ServiceA.inject, { Logger: Logger }>) {}
+        static readonly inject = [Logger] as const satisfies DepsTokens<typeof ServiceA>;
+        constructor(_logger: Logger) {}
       }
 
       class ServiceB {
-        static readonly inject = { logger: 'Logger' } as const;
-        constructor(private deps: InferDeps<typeof ServiceB.inject, { Logger: Logger }>) {}
+        static readonly inject = [Logger] as const satisfies DepsTokens<typeof ServiceB>;
+        constructor(_logger: Logger) {}
       }
 
       container
-        .register('Logger', (c) => {
-          const deps = c.buildDeps(Logger.inject);
-          return new Logger(deps as InferDeps<typeof Logger.inject>);
+        .register(Logger, (c) => {
+          return new Logger(...c.buildDeps(Logger.inject));
         })
         .asSingleton();
 
-      container.register('ServiceA', (c) => {
-        const deps = c.buildDeps(ServiceA.inject) as InferDeps<typeof ServiceA.inject, { Logger: Logger }>;
-        return new ServiceA(deps);
+      container.register(ServiceA, (c) => {
+        return new ServiceA(...c.buildDeps(ServiceA.inject));
       });
 
-      container.register('ServiceB', (c) => {
-        const deps = c.buildDeps(ServiceB.inject) as InferDeps<typeof ServiceB.inject, { Logger: Logger }>;
-        return new ServiceB(deps);
+      container.register(ServiceB, (c) => {
+        return new ServiceB(...c.buildDeps(ServiceB.inject));
       });
 
-      container.resolve('ServiceA');
-      container.resolve('ServiceB');
+      container.resolve(ServiceA);
+      container.resolve(ServiceB);
 
       expect(loggerInstantiationCount).toBe(1);
     });
@@ -341,30 +322,28 @@ describe('Resolution with static inject', () => {
       let loggerInstantiationCount = 0;
 
       class Logger {
-        static readonly inject = {} as const;
-        constructor(_deps: InferDeps<typeof Logger.inject>) {
+        static readonly inject = [] as const;
+        constructor() {
           loggerInstantiationCount++;
         }
       }
 
       class ServiceA {
-        static readonly inject = { logger: 'Logger' } as const;
-        constructor(_deps: InferDeps<typeof ServiceA.inject>) {}
+        static readonly inject = [Logger] as const satisfies DepsTokens<typeof ServiceA>;
+        constructor(_logger: Logger) {}
       }
 
       // Default scope is TRANSIENT
-      container.register('Logger', (c) => {
-        const deps = c.buildDeps(Logger.inject);
-        return new Logger(deps as InferDeps<typeof Logger.inject>);
+      container.register(Logger, (c) => {
+        return new Logger(...c.buildDeps(Logger.inject));
       });
 
-      container.register('ServiceA', (c) => {
-        const deps = c.buildDeps(ServiceA.inject);
-        return new ServiceA(deps as InferDeps<typeof ServiceA.inject>);
+      container.register(ServiceA, (c) => {
+        return new ServiceA(...c.buildDeps(ServiceA.inject));
       });
 
-      container.resolve('ServiceA');
-      container.resolve('ServiceA');
+      container.resolve(ServiceA);
+      container.resolve(ServiceA);
 
       expect(loggerInstantiationCount).toBe(2);
     });
@@ -385,21 +364,12 @@ describe('Resolution with static inject', () => {
       const CACHE_TOKEN = Symbol('Cache');
 
       class MixedService {
-        static readonly inject = {
-          logger: 'Logger',
-          config: ConfigBase,
-          cache: CACHE_TOKEN,
-        } as const;
+        static readonly inject = ['Logger', ConfigBase, CACHE_TOKEN] as const;
 
         constructor(
-          private deps: InferDeps<
-            typeof MixedService.inject,
-            {
-              Logger: { log(msg: string): void };
-              [ConfigBase]: Config;
-              [typeof CACHE_TOKEN]: { get(key: string): unknown };
-            }
-          >,
+          _logger: unknown,
+          _config: ConfigBase,
+          _cache: unknown,
         ) {}
       }
 
@@ -408,15 +378,7 @@ describe('Resolution with static inject', () => {
       container.register(CACHE_TOKEN, () => ({ get: (_key: string) => null }));
 
       container.register('MixedService', (c) => {
-        const deps = c.buildDeps(MixedService.inject) as InferDeps<
-          typeof MixedService.inject,
-          {
-            Logger: { log(msg: string): void };
-            [ConfigBase]: Config;
-            [typeof CACHE_TOKEN]: { get(key: string): unknown };
-          }
-        >;
-        return new MixedService(deps);
+        return new MixedService(...c.buildDeps(MixedService.inject));
       });
 
       const service = container.resolve('MixedService') as MixedService;

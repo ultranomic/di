@@ -1,10 +1,11 @@
 import type { Token } from '../types/token.ts';
 import type { Binding, BindingBuilder } from './binding.ts';
+import type { InferInject } from '../types/deps.ts';
 
 export interface ResolverInterface {
   resolve<T>(token: Token<T>): T;
   has(token: Token): boolean;
-  buildDeps<TInjectMap extends Record<string, Token>>(injectMap: TInjectMap): Record<string, unknown>;
+  buildDeps<TTokens extends readonly Token[]>(tokens: TTokens): InferInject<TTokens>;
 }
 
 export interface ContainerInterface extends ResolverInterface {

@@ -1,4 +1,4 @@
-import { Container, ModuleRegistry } from '@voxeljs/core';
+import { Container, ModuleRegistry, type ControllerConstructor } from '@voxeljs/core';
 import { ExpressAdapter } from '@voxeljs/express';
 import { AppModule } from './app.module.ts';
 import { UserController } from './user/user.controller.ts';
@@ -17,7 +17,7 @@ async function bootstrap(): Promise<void> {
 
   // Register controllers with the HTTP adapter
   const adapter = new ExpressAdapter(container);
-  adapter.registerController(UserController);
+  adapter.registerController(UserController as ControllerConstructor);
 
   const app = adapter.getApp();
   app.get('/health', (_req, res) => {

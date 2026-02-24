@@ -11,7 +11,12 @@ export type {
   TypedRequest,
   TypedResponse,
 } from './types/controller.ts';
-export type { Deps, ExtractInject, InferDeps, InjectableClass } from './types/deps.ts';
+export type {
+  DepsTokens,
+  ExtractInject,
+  InjectableClass,
+  InferInject,
+} from './types/deps.ts';
 export type { ModuleClass, ModuleMetadata, OnModuleDestroy, OnModuleInit } from './types/module.ts';
 export type { Token, TokenRegistry } from './types/token.ts';
 

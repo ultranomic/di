@@ -220,10 +220,10 @@ type Params = ExtractPathParams<'/users/:userId/posts/:postId'>
 // { userId: string; postId: string }
 ```
 
-### InferDeps
+### InferInject
 
 ```typescript
-type Deps = InferDeps<{ db: 'Database'; logger: 'Logger' }, TokenRegistry>
+type Deps = InferInject<['Database', 'Logger'], TokenRegistry>
 ```
 
 ## License

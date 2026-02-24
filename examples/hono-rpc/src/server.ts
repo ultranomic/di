@@ -6,7 +6,7 @@
  * 2. Creating a HonoAdapter and registering controllers
  * 3. Exporting the app type for RPC client generation
  */
-import { Container } from '@voxeljs/core';
+import { Container, type ControllerConstructor } from '@voxeljs/core';
 import { HonoAdapter } from '@voxeljs/hono';
 import { UserService } from './user.service.js';
 import { UserController } from './user.controller.js';
@@ -25,15 +25,15 @@ export async function createServer(): Promise<{
   // Create container and register services
   const container = new Container();
   container.register('UserService', () => new UserService());
-  container.register(UserController, (c) => {
-    return new UserController(c.buildDeps(UserController.inject));
+  container.register(UserController as ControllerConstructor, (c) => {
+    return new UserController(...(c.buildDeps(UserController.inject) as unknown as [UserService]));
   });
 
   // Create Hono adapter
   const adapter = new HonoAdapter(container);
 
   // Register controller
-  adapter.registerController(UserController);
+  adapter.registerController(UserController as ControllerConstructor);
 
   // Get the Hono app instance
   const app = adapter.getApp();

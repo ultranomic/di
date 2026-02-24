@@ -1,3 +1,6 @@
+import type { DepsTokens } from '../types/deps.ts';
+import type { Token } from '../types/token.ts';
+
 /**
  * Controller metadata interface
  *
@@ -45,16 +48,18 @@ export interface ControllerMetadata {
  * Controllers define HTTP routes using a static metadata object.
  * The routes array maps HTTP methods and paths to handler methods.
  *
+ * Dependencies are injected using the `inject` static property with
+ * individual constructor parameters.
+ *
  * @example
- * interface UserRequest {
- *   params: { id: string }
- *   body: { name: string }
+ * class UserService {
+ *   findAll() { return [] }
+ *   findById(id: string) { return { id } }
+ *   create(data: { name: string }) { return { ...data, id: '1' } }
  * }
  *
  * class UserController extends Controller {
- *   static readonly inject = {
- *     users: 'UserService'
- *   } as const
+ *   static readonly inject = [UserService] as const satisfies DepsTokens<typeof UserController>;
  *
  *   static readonly metadata: ControllerMetadata = {
  *     basePath: '/users',
@@ -65,24 +70,34 @@ export interface ControllerMetadata {
  *     ] as const satisfies ControllerRoute<UserController>[]
  *   }
  *
- *   constructor(private deps: typeof UserController.inject) {
- *     super()
+ *   constructor(private users: UserService) {
+ *     super();
  *   }
  *
  *   async list() {
- *     return this.deps.users.findAll()
+ *     return this.users.findAll()
  *   }
  *
- *   async get(req: UserRequest) {
- *     return this.deps.users.findById(req.params.id)
+ *   async get(req: { params: { id: string } }) {
+ *     return this.users.findById(req.params.id)
  *   }
  *
  *   async create(req: { body: { name: string } }) {
- *     return this.deps.users.create(req.body)
+ *     return this.users.create(req.body)
  *   }
  * }
  */
 export abstract class Controller {
+  /**
+   * Static dependencies array for constructor injection.
+   *
+   * Use the array-based inject pattern with individual constructor parameters.
+   *
+   * @example
+   * static readonly inject = [Logger, UserService] as const satisfies DepsTokens<typeof MyController>;
+   */
+  static readonly inject?: readonly Token[];
+
   /**
    * Static metadata describing the controller's configuration
    *

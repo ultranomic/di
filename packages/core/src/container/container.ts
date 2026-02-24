@@ -2,6 +2,7 @@ import { ScopeValidationError } from '../errors/scope-validation.ts';
 import { TokenCollisionError } from '../errors/token-collision.ts';
 import { TokenNotFoundError } from '../errors/token-not-found.ts';
 import type { Token } from '../types/token.ts';
+import type { InferInject } from '../types/deps.ts';
 import { BindingBuilder, BindingScope, type Binding } from './binding.ts';
 import type { ContainerInterface, ResolverInterface } from './interfaces.ts';
 
@@ -61,23 +62,17 @@ export class Container implements ContainerInterface {
     return this.resolveWithContext(token, { path: [] });
   }
 
-  buildDeps<TInjectMap extends Record<string, Token>>(injectMap: TInjectMap): Record<string, unknown> {
-    const deps: Record<string, unknown> = {};
-    for (const [key, token] of Object.entries(injectMap)) {
-      deps[key] = this.resolve(token);
-    }
-    return deps;
+  buildDeps<TTokens extends readonly Token[]>(tokens: TTokens): InferInject<TTokens> {
+    const resolvedTokens = tokens.map((token) => this.resolve(token));
+    return resolvedTokens as InferInject<TTokens>;
   }
 
-  private buildDepsWithContext<TInjectMap extends Record<string, Token>>(
-    injectMap: TInjectMap,
+  private buildDepsWithContext<TTokens extends readonly Token[]>(
+    tokens: TTokens,
     context: ResolutionContext,
-  ): Record<string, unknown> {
-    const deps: Record<string, unknown> = {};
-    for (const [key, token] of Object.entries(injectMap)) {
-      deps[key] = this.resolveWithContext(token, context);
-    }
-    return deps;
+  ): InferInject<TTokens> {
+    const resolvedTokens = tokens.map((token) => this.resolveWithContext(token, context));
+    return resolvedTokens as InferInject<TTokens>;
   }
 
   getResolutionPath(context: ResolutionContext): string {
@@ -113,8 +108,8 @@ export class Container implements ContainerInterface {
     const contextResolver: ResolverInterface = {
       resolve: <TResolve>(resolveToken: Token<TResolve>): TResolve => this.resolveWithContext(resolveToken, context),
       has: (checkToken: Token) => this.has(checkToken),
-      buildDeps: <TInjectMap extends Record<string, Token>>(injectMap: TInjectMap) =>
-        this.buildDepsWithContext(injectMap, context),
+      buildDeps: <TTokens extends readonly Token[]>(tokens: TTokens) =>
+        this.buildDepsWithContext(tokens, context),
     };
     const instance = binding.factory(contextResolver);
 
