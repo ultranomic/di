@@ -1,11 +1,58 @@
 {
-  "name": "voxel-monorepo",
-  "version": "0.0.0",
-  "private": true,
+  "name": "@ultranomic/voxel",
+  "version": "0.0.1",
+  "keywords": [
+    "dependency-injection",
+    "di",
+    "framework",
+    "voxel"
+  ],
+  "license": "MIT",
   "type": "module",
+  "bin": {
+    "voxel": "./dist/cli/index.js"
+  },
+  "files": [
+    "src",
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.js"
+    },
+    "./express": {
+      "types": "./dist/express/index.d.ts",
+      "import": "./dist/express/index.js"
+    },
+    "./fastify": {
+      "types": "./dist/fastify/index.d.ts",
+      "import": "./dist/fastify/index.js"
+    },
+    "./hono": {
+      "types": "./dist/hono/index.d.ts",
+      "import": "./dist/hono/index.js"
+    },
+    "./hono/client": {
+      "types": "./dist/hono/client.d.ts",
+      "import": "./dist/hono/client.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js"
+    },
+    "./cli": {
+      "types": "./dist/cli/index.d.ts",
+      "import": "./dist/cli/index.js"
+    }
+  },
   "scripts": {
-    "build": "tsc --build",
-    "typecheck": "tsc --build --dry",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -17,14 +64,37 @@
   "engines": {
     "node": ">=24.0.0"
   },
+  "peerDependencies": {
+    "@hono/node-server": "1.19.0 || 2.0.0",
+    "express": "4.0.0 || 5.0.0",
+    "fastify": "5.0.0",
+    "hono": "4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@hono/node-server": {
+      "optional": true
+    },
+    "express": {
+      "optional": true
+    },
+    "fastify": {
+      "optional": true
+    },
+    "hono": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@hono/node-server": "1.19.9",
+    "@types/express": "5.0.6",
+    "@types/node": "25.3.0",
     "@vitest/coverage-v8": "4.0.18",
+    "express": "5.2.1",
+    "fastify": "5.7.4",
+    "hono": "4.12.2",
     "oxfmt": "0.35.0",
     "oxlint": "1.50.0",
     "typescript": "6.0.0-beta",
     "vitest": "4.0.18"
-  },
-  "pnpm": {
-    "overrides": {}
   }
 }
