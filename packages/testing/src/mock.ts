@@ -19,7 +19,7 @@
  *   .compile()
  */
 
-import type { Token } from '@voxeljs/core'
+import type { Token } from '@voxeljs/core';
 
 /**
  * MockBuilder provides a fluent API for creating mock implementations
@@ -27,9 +27,7 @@ import type { Token } from '@voxeljs/core'
  * @template T - The type of the mock implementation
  */
 export class MockBuilder<T> {
-  constructor(
-    private readonly token: Token<T>,
-  ) {}
+  constructor(private readonly token: Token<T>) {}
 
   /**
    * Specify the mock implementation to use
@@ -44,7 +42,7 @@ export class MockBuilder<T> {
    * })
    */
   use(implementation: T): T {
-    return implementation
+    return implementation;
   }
 
   /**
@@ -53,7 +51,7 @@ export class MockBuilder<T> {
    * @returns The token
    */
   getToken(): Token<T> {
-    return this.token
+    return this.token;
   }
 }
 
@@ -80,5 +78,5 @@ export class MockBuilder<T> {
  * })
  */
 export function mock<T>(token: Token<T>): MockBuilder<T> {
-  return new MockBuilder(token)
+  return new MockBuilder(token);
 }

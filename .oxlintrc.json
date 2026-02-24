@@ -4,7 +4,7 @@
   "categories": {
     "correctness": "error",
     "perf": "warn",
-    "restriction": "warn",
+    "restriction": "warn"
     // "suspicious": "warn",
     // "pedantic": "warn",
     // "style": "warn"
@@ -16,7 +16,10 @@
     "jsdoc/check-tag-names": "off",
 
     //Restrictions
-    "eslint/no-unused-vars": ["warn", { "ignoreRestSiblings": true, "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "eslint/no-unused-vars": [
+      "warn",
+      { "ignoreRestSiblings": true, "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
+    ],
     "eslint/no-empty-function": "off",
     "eslint/no-await-in-loop": "off",
     "eslint/class-methods-use-this": "off",
@@ -42,7 +45,7 @@
     "eslint/no-console": "off",
     "eslint-plugin-jest/no-conditional-expect": "off",
     "eslint-plugin-unicorn/no-process-exit": "off",
-    "eslint-plugin-node/no-process-env": "off",
+    "eslint-plugin-node/no-process-env": "off"
 
     // //Suspicious
     // "oxc/no-async-endpoint-handlers": "off", // we use fastify which supports async handlers
@@ -106,6 +109,5 @@
     // "vitest/prefer-describe-function-title": "off",
     // "vitest/prefer-called-once": "off",
     // "unicorn/prefer-spread": "off"
-  },
-
+  }
 }

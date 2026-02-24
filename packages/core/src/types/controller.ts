@@ -9,14 +9,10 @@
  * Base request interface - platform agnostic
  * Adapters will provide platform-specific implementations
  */
-export interface BaseRequest<
-  TParams = Record<string, string>,
-  TBody = unknown,
-  TQuery = Record<string, string>,
-> {
-  params: TParams
-  body: TBody
-  query: TQuery
+export interface BaseRequest<TParams = Record<string, string>, TBody = unknown, TQuery = Record<string, string>> {
+  params: TParams;
+  body: TBody;
+  query: TQuery;
 }
 
 /**
@@ -24,22 +20,15 @@ export interface BaseRequest<
  * Adapters will provide platform-specific implementations
  */
 export interface BaseResponse {
-  json(data: unknown): void
-  status(code: number): this
-  send(data: unknown): void
+  json(data: unknown): void;
+  status(code: number): this;
+  send(data: unknown): void;
 }
 
 /**
  * Supported HTTP methods
  */
-export type HttpMethod =
-  | 'DELETE'
-  | 'GET'
-  | 'HEAD'
-  | 'OPTIONS'
-  | 'PATCH'
-  | 'POST'
-  | 'PUT'
+export type HttpMethod = 'DELETE' | 'GET' | 'HEAD' | 'OPTIONS' | 'PATCH' | 'POST' | 'PUT';
 
 /**
  * Extract path parameters from a route path
@@ -61,14 +50,13 @@ export type HttpMethod =
  * type Params3 = ExtractPathParams<'/health'>
  * // Record<string, never>
  */
-export type ExtractPathParams<TPath extends string> =
-  TPath extends `${infer _Prefix}:${infer Param}/${infer Rest}`
-    ? {
-        [K in Param | keyof ExtractPathParams<`/${Rest}`>]: string
-      }
-    : TPath extends `${infer _Prefix}:${infer Param}`
-      ? { [K in Param]: string }
-      : Record<string, never>
+export type ExtractPathParams<TPath extends string> = TPath extends `${infer _Prefix}:${infer Param}/${infer Rest}`
+  ? {
+      [K in Param | keyof ExtractPathParams<`/${Rest}`>]: string;
+    }
+  : TPath extends `${infer _Prefix}:${infer Param}`
+    ? { [K in Param]: string }
+    : Record<string, never>;
 
 /**
  * Controller route definition
@@ -91,11 +79,11 @@ export type ExtractPathParams<TPath extends string> =
  */
 export interface ControllerRoute<TController> {
   /** HTTP method */
-  method: HttpMethod
+  method: HttpMethod;
   /** Route path with optional parameters (e.g., '/users/:id') */
-  path: string
+  path: string;
   /** Handler method name on the controller */
-  handler: keyof TController & string
+  handler: keyof TController & string;
 }
 
 /**
@@ -122,11 +110,11 @@ export interface TypedRequest<
   TQuery = Record<string, string>,
 > extends BaseRequest<TParams, TBody, TQuery> {
   /** Path parameters (e.g., /users/:id) */
-  params: TParams & Record<string, string>
+  params: TParams & Record<string, string>;
   /** Request body */
-  body: TBody
+  body: TBody;
   /** Query string parameters */
-  query: TQuery & Record<string, string>
+  query: TQuery & Record<string, string>;
 }
 
 /**
@@ -135,4 +123,4 @@ export interface TypedRequest<
  * Generic typed response that can be extended by adapters.
  * Use this as a base type for platform-specific response types.
  */
-export type TypedResponse = BaseResponse
+export type TypedResponse = BaseResponse;

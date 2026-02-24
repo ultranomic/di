@@ -1,6 +1,13 @@
 {
   "name": "@voxeljs/core",
   "version": "0.0.1",
+  "keywords": [
+    "dependency-injection",
+    "di",
+    "framework",
+    "voxel"
+  ],
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,13 +22,11 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "keywords": ["voxel", "di", "dependency-injection", "framework"],
-  "license": "MIT",
-  "peerDependencies": {
+  "devDependencies": {
+    "@types/express": "5.0.6",
     "express": "5.2.1"
   },
-  "devDependencies": {
-    "express": "5.2.1",
-    "@types/express": "5.0.6"
+  "peerDependencies": {
+    "express": "5.2.1"
   }
 }

@@ -108,8 +108,7 @@ export class Container implements ContainerInterface {
     const contextResolver: ResolverInterface = {
       resolve: <TResolve>(resolveToken: Token<TResolve>): TResolve => this.resolveWithContext(resolveToken, context),
       has: (checkToken: Token) => this.has(checkToken),
-      buildDeps: <TTokens extends readonly Token[]>(tokens: TTokens) =>
-        this.buildDepsWithContext(tokens, context),
+      buildDeps: <TTokens extends readonly Token[]>(tokens: TTokens) => this.buildDepsWithContext(tokens, context),
     };
     const instance = binding.factory(contextResolver);
 

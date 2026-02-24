@@ -23,10 +23,7 @@
  * abstract class LoggerBase {}
  * const loggerToken: Token<LoggerBase> = LoggerBase
  */
-export type Token<T = unknown> =
-  | string
-  | symbol
-  | (abstract new (...args: any[]) => T)
+export type Token<T = unknown> = string | symbol | (abstract new (...args: any[]) => T);
 
 /**
  * Token registry interface for declaration merging

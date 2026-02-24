@@ -11,39 +11,39 @@ pnpm add @voxeljs/express express
 ## Quick Start
 
 ```typescript
-import { Container } from '@voxeljs/core'
-import { ExpressAdapter } from '@voxeljs/express'
-import type { Request, Response } from 'express'
+import { Container } from '@voxeljs/core';
+import { ExpressAdapter } from '@voxeljs/express';
+import type { Request, Response } from 'express';
 
 // Define a controller
 class UserController {
-  static readonly inject = {} as const
-  
-  static readonly routes = [
-    { method: 'GET', path: '/users/:id', handler: 'getUser' }
-  ] as const
-  
+  static readonly inject = {} as const;
+
+  static readonly routes = [{ method: 'GET', path: '/users/:id', handler: 'getUser' }] as const;
+
   constructor(private deps: typeof UserController.inject) {}
-  
+
   async getUser(req: Request, res: Response) {
     // req.params.id is typed from the route path
-    res.json({ id: req.params.id, name: 'Alice' })
+    res.json({ id: req.params.id, name: 'Alice' });
   }
 }
 
 // Create container and register controller
-const container = new Container()
-container.register(UserController, (c) => {
-  return new UserController(c.buildDeps(UserController.inject))
-}).asTransient()
+const container = new Container();
+container
+  .register(UserController, (c) => {
+    return new UserController(c.buildDeps(UserController.inject));
+  })
+  .asTransient();
 
 // Create adapter and register routes
-const adapter = new ExpressAdapter(container)
-adapter.registerController(UserController)
+const adapter = new ExpressAdapter(container);
+adapter.registerController(UserController);
 
 // Start server
-await adapter.listen(3000)
-console.log('Server running on http://localhost:3000')
+await adapter.listen(3000);
+console.log('Server running on http://localhost:3000');
 ```
 
 ## API Reference
@@ -97,37 +97,35 @@ Returns the underlying Express application instance. Use this to add middleware,
 The adapter passes through native Express `Request` and `Response` types. You can use any Express middleware or features.
 
 ```typescript
-import type { Request, Response, NextFunction } from 'express'
+import type { Request, Response, NextFunction } from 'express';
 
 class AuthController {
-  static readonly inject = { users: 'UserService' } as const
-  
-  static readonly routes = [
-    { method: 'POST', path: '/login', handler: 'login' }
-  ] as const
-  
+  static readonly inject = { users: 'UserService' } as const;
+
+  static readonly routes = [{ method: 'POST', path: '/login', handler: 'login' }] as const;
+
   constructor(private deps: typeof AuthController.inject) {}
-  
+
   async login(req: Request, res: Response) {
-    const { email, password } = req.body
-    const token = await this.deps.users.authenticate(email, password)
-    
+    const { email, password } = req.body;
+    const token = await this.deps.users.authenticate(email, password);
+
     if (!token) {
-      res.status(401).json({ error: 'Invalid credentials' })
-      return
+      res.status(401).json({ error: 'Invalid credentials' });
+      return;
     }
-    
-    res.json({ token })
+
+    res.json({ token });
   }
 }
 
 // Add custom middleware via getApp()
-const adapter = new ExpressAdapter(container)
+const adapter = new ExpressAdapter(container);
 adapter.getApp().use((req: Request, res: Response, next: NextFunction) => {
-  console.log(`${req.method} ${req.path}`)
-  next()
-})
-adapter.registerController(AuthController)
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
+adapter.registerController(AuthController);
 ```
 
 ## Error Handling
@@ -149,19 +147,19 @@ For custom error handling, add an error middleware via `getApp()`.
 Use child containers for request-scoped dependencies.
 
 ```typescript
-import { Container } from '@voxeljs/core'
-import { ExpressAdapter } from '@voxeljs/express'
+import { Container } from '@voxeljs/core';
+import { ExpressAdapter } from '@voxeljs/express';
 
-const container = new Container()
-container.register('RequestContext', RequestContext).asScoped()
+const container = new Container();
+container.register('RequestContext', RequestContext).asScoped();
 
-const adapter = new ExpressAdapter(container)
+const adapter = new ExpressAdapter(container);
 
 // Create a scope per request
 adapter.getApp().use((req, _res, next) => {
-  req.container = container.createScope()
-  next()
-})
+  req.container = container.createScope();
+  next();
+});
 ```
 
 ## TypeScript
@@ -169,7 +167,7 @@ adapter.getApp().use((req, _res, next) => {
 This package includes TypeScript definitions. The `Request` and `Response` types are re-exported from Express.
 
 ```typescript
-import type { Request, Response } from '@voxeljs/express'
+import type { Request, Response } from '@voxeljs/express';
 ```
 
 ## License

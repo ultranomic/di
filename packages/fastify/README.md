@@ -11,74 +11,78 @@ pnpm add @voxeljs/fastify fastify
 ## Quick Start
 
 ```typescript
-import { Container } from '@voxeljs/core'
-import { FastifyAdapter } from '@voxeljs/fastify'
-import type { FastifyRequest, FastifyReply } from 'fastify'
-import type { ControllerRoute } from '@voxeljs/core'
+import { Container } from '@voxeljs/core';
+import { FastifyAdapter } from '@voxeljs/fastify';
+import type { FastifyRequest, FastifyReply } from 'fastify';
+import type { ControllerRoute } from '@voxeljs/core';
 
 // Define a service
 class UserService {
-  static readonly inject = {} as const
-  
+  static readonly inject = {} as const;
+
   constructor(private deps: typeof UserService.inject) {}
-  
+
   private users = [
     { id: '1', name: 'Alice' },
-    { id: '2', name: 'Bob' }
-  ]
-  
+    { id: '2', name: 'Bob' },
+  ];
+
   async findById(id: string) {
-    return this.users.find(u => u.id === id) ?? null
+    return this.users.find((u) => u.id === id) ?? null;
   }
-  
+
   async create(data: { name: string }) {
-    const user = { id: String(this.users.length + 1), ...data }
-    this.users.push(user)
-    return user
+    const user = { id: String(this.users.length + 1), ...data };
+    this.users.push(user);
+    return user;
   }
 }
 
 // Define a controller
 class UserController {
-  static readonly inject = { users: UserService } as const
-  
+  static readonly inject = { users: UserService } as const;
+
   static readonly routes = [
     { method: 'GET', path: '/users/:id', handler: 'get' },
-    { method: 'POST', path: '/users', handler: 'create' }
-  ] as const satisfies ControllerRoute<UserController>[]
-  
+    { method: 'POST', path: '/users', handler: 'create' },
+  ] as const satisfies ControllerRoute<UserController>[];
+
   constructor(private deps: typeof UserController.inject) {}
-  
+
   async get(req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
-    const user = await this.deps.users.findById(req.params.id)
+    const user = await this.deps.users.findById(req.params.id);
     if (!user) {
-      return reply.status(404).send({ error: 'Not found' })
+      return reply.status(404).send({ error: 'Not found' });
     }
-    return reply.send(user)
+    return reply.send(user);
   }
-  
+
   async create(req: FastifyRequest<{ Body: { name: string } }>, reply: FastifyReply) {
-    const user = await this.deps.users.create(req.body)
-    return reply.status(201).send(user)
+    const user = await this.deps.users.create(req.body);
+    return reply.status(201).send(user);
   }
 }
 
 // Bootstrap
-const container = new Container()
+const container = new Container();
 
-container.register(UserService, (c) => {
-  return new UserService(c.buildDeps(UserService.inject))
-}).asSingleton()
+container
+  .register(UserService, (c) => {
+    return new UserService(c.buildDeps(UserService.inject));
+  })
+  .asSingleton();
 
-container.register(UserController, (c) => {
-  return new UserController(c.buildDeps(UserController.inject))
-}).asTransient()
+container
+  .register(UserController, (c) => {
+    return new UserController(c.buildDeps(UserController.inject));
+  })
+  .asTransient();
 
-const adapter = new FastifyAdapter(container)
-adapter.registerController(UserController)
+const adapter = new FastifyAdapter(container);
+adapter.registerController(UserController);
 
-await adapter.listen(3000)
-console.log('Server running on http://localhost:3000')
+await adapter.listen(3000);
+console.log('Server running on http://localhost:3000');
 ```
 
 ## API Reference
@@ -86,7 +90,7 @@ console.log('Server running on http://localhost:3000')
 ### `FastifyAdapter`
 
 ```typescript
-import { FastifyAdapter } from '@voxeljs/fastify'
+import { FastifyAdapter } from '@voxeljs/fastify';
 ```
 
 #### Constructor
@@ -130,23 +134,24 @@ const app = adapter.getApp(): FastifyInstance
 ```
 
 Returns the underlying Fastify instance. Use this to:
+
 - Register Fastify plugins
 - Add hooks
 - Configure middleware
 - Access advanced Fastify features
 
 ```typescript
-const app = adapter.getApp()
+const app = adapter.getApp();
 
 // Register a plugin
 await app.register(import('@fastify/cors'), {
-  origin: true
-})
+  origin: true,
+});
 
 // Add a hook
 app.addHook('onRequest', async (request, reply) => {
-  request.log.info({ url: request.url }, 'incoming request')
-})
+  request.log.info({ url: request.url }, 'incoming request');
+});
 ```
 
 ## Native Types
@@ -154,17 +159,17 @@ app.addHook('onRequest', async (request, reply) => {
 The adapter passes through native Fastify types. No wrapper abstractions.
 
 ```typescript
-import type { FastifyRequest, FastifyReply } from 'fastify'
+import type { FastifyRequest, FastifyReply } from 'fastify';
 
 class MyController {
-  static readonly inject = { service: 'MyService' } as const
-  
+  static readonly inject = { service: 'MyService' } as const;
+
   constructor(private deps: typeof MyController.inject) {}
-  
+
   async handler(req: FastifyRequest, reply: FastifyReply) {
     // req is a native FastifyRequest
     // reply is a native FastifyReply
-    return reply.send({ hello: 'world' })
+    return reply.send({ hello: 'world' });
   }
 }
 ```
@@ -207,14 +212,14 @@ The adapter catches errors in route handlers and returns a 500 response:
 For custom error handling, access the Fastify instance directly:
 
 ```typescript
-const app = adapter.getApp()
+const app = adapter.getApp();
 
 app.setErrorHandler((error, request, reply) => {
   if (error.validation) {
-    return reply.status(400).send({ error: 'Validation failed', details: error.validation })
+    return reply.status(400).send({ error: 'Validation failed', details: error.validation });
   }
-  return reply.status(500).send({ error: 'Internal server error' })
-})
+  return reply.status(500).send({ error: 'Internal server error' });
+});
 ```
 
 ## License
