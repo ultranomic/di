@@ -22,13 +22,16 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "dependencies": {
     "@voxeljs/core": "workspace:*"
   },
   "devDependencies": {
-    "fastify": "5.2.1"
+    "fastify": "5.7.4"
   },
   "peerDependencies": {
-    "fastify": "^5.0.0"
+    "fastify": "5.0.0"
   }
 }

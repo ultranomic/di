@@ -67,7 +67,10 @@ describe('TestModuleBuilder', () => {
 
       class UserService {
         static readonly inject = { logger: Logger as unknown as abstract new (...args: unknown[]) => Logger } as const;
-        constructor(private deps: typeof UserService.inject) {}
+        private deps: typeof UserService.inject;
+        constructor(deps: typeof UserService.inject) {
+          this.deps = deps;
+        }
         getUsers() {
           (this.deps.logger as unknown as Logger).log('Getting users');
           return ['user1'];

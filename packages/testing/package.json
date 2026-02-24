@@ -23,6 +23,9 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "dependencies": {
     "@voxeljs/core": "workspace:*"
   },

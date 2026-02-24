@@ -90,7 +90,10 @@ describe('Deps types', () => {
 
       class MyService {
         static readonly inject = [Logger] as const;
-        constructor(public logger: Logger) {}
+        logger: Logger;
+        constructor(logger: Logger) {
+          this.logger = logger;
+        }
       }
 
       type MyServiceDeps = InferInject<(typeof MyService)['inject']>;
@@ -108,10 +111,15 @@ describe('Deps types', () => {
 
       class MyService {
         static readonly inject = [Logger, Database] as const satisfies DepsTokens<typeof MyService>;
+        logger: Logger;
+        db: Database;
         constructor(
-          public logger: Logger,
-          public db: Database,
-        ) {}
+          logger: Logger,
+          db: Database,
+        ) {
+          this.logger = logger;
+          this.db = db;
+        }
       }
 
       expect(MyService.inject).toHaveLength(2);

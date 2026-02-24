@@ -166,7 +166,11 @@ describe('Module', () => {
       class Server {
         static readonly inject = [Config] as const satisfies DepsTokens<typeof Server>;
 
-        constructor(private config: Config) {}
+        private config: Config;
+
+        constructor(config: Config) {
+          this.config = config;
+        }
 
         getPort() {
           return this.config.getPort();
@@ -443,7 +447,11 @@ describe('Module', () => {
         class ServerService {
           static readonly inject = [ConfigService] as const satisfies DepsTokens<typeof ServerService>;
 
-          constructor(private config: ConfigService) {}
+          private config: ConfigService;
+
+          constructor(config: ConfigService) {
+            this.config = config;
+          }
 
           getPort() {
             return this.config.getPort();
@@ -548,7 +556,11 @@ describe('Module', () => {
         class HomeController {
           static readonly inject = [LoggerService] as const satisfies DepsTokens<typeof HomeController>;
 
-          constructor(private logger: LoggerService) {}
+          private logger: LoggerService;
+
+          constructor(logger: LoggerService) {
+            this.logger = logger;
+          }
 
           index() {
             return this.logger.log('home');

@@ -282,11 +282,12 @@ describe('Controller', () => {
           routes: [{ method: 'GET', path: '/', handler: 'list' }] as const satisfies ControllerRoute<UserController>[],
         };
 
-        constructor(
-          public logger: Logger,
-          public users: UserService,
-        ) {
+        logger: Logger;
+        users: UserService;
+        constructor(logger: Logger, users: UserService) {
           super();
+          this.logger = logger;
+          this.users = users;
         }
 
         async list() {
@@ -320,8 +321,10 @@ describe('Controller', () => {
           routes: [{ method: 'GET', path: '/', handler: 'query' }] as const satisfies ControllerRoute<DataController>[],
         };
 
-        constructor(public db: Database) {
+        db: Database;
+        constructor(db: Database) {
           super();
+          this.db = db;
         }
 
         async query() {
@@ -366,8 +369,10 @@ describe('Controller', () => {
           basePath: '/logged',
         };
 
-        constructor(public logger: Logger) {
+        logger: Logger;
+        constructor(logger: Logger) {
           super();
+          this.logger = logger;
         }
       }
 
