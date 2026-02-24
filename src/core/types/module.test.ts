@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import type { ModuleClass, ModuleMetadata, OnModuleDestroy, OnModuleInit } from './module.ts';
-import type { Token } from './token.ts';
 
 describe('Module types', () => {
   describe('OnModuleInit', () => {
@@ -98,7 +97,7 @@ describe('Module types', () => {
         imports: [],
         providers: [LoggerService],
         controllers: [],
-        exports: ['LoggerService'] as Token[],
+        exports: [LoggerService],
       };
 
       expect(config.providers).toContain(LoggerService);
@@ -113,22 +112,15 @@ describe('Module types', () => {
       expect(config.exports).toBeUndefined();
     });
 
-    it('should support string tokens in exports', () => {
+    it('should support class tokens in exports', () => {
+      class Logger {}
+      class Database {}
       const config: ModuleMetadata = {
-        exports: ['Logger', 'Database'] as Token[],
+        exports: [Logger, Database],
       };
 
-      expect(config.exports).toContain('Logger');
-      expect(config.exports).toContain('Database');
-    });
-
-    it('should support symbol tokens in exports', () => {
-      const LOGGER = Symbol('Logger');
-      const config: ModuleMetadata = {
-        exports: [LOGGER] as Token[],
-      };
-
-      expect(config.exports).toContain(LOGGER);
+      expect(config.exports).toContain(Logger);
+      expect(config.exports).toContain(Database);
     });
   });
 
@@ -147,18 +139,19 @@ describe('Module types', () => {
     });
 
     it('should support full module definition', () => {
+      class Database {}
       class DatabaseModule {
         static readonly imports: unknown[] = [];
         static readonly providers: unknown[] = [];
         static readonly controllers: unknown[] = [];
-        static readonly exports: Token[] = ['Database'];
+        static readonly exports = [Database];
       }
 
       class UserModule {
         static readonly imports = [DatabaseModule];
         static readonly providers: unknown[] = [];
         static readonly controllers: unknown[] = [];
-        static readonly exports: Token[] = [];
+        static readonly exports = [];
       }
 
       const userModule: ModuleClass = UserModule;

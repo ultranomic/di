@@ -1,5 +1,3 @@
-import type { TokenRegistry } from './token.ts';
-
 // ============================================================================
 // Constructor Parameter Injection Pattern Types
 // ============================================================================
@@ -7,9 +5,8 @@ import type { TokenRegistry } from './token.ts';
 /**
  * Validates that an inject array matches the constructor parameters.
  *
- * Each element in the inject array must be assignable to the corresponding
- * constructor parameter. This allows strings, symbols, or class constructors
- * as injection tokens.
+ * Each element in the inject array must be a class constructor that is
+ * assignable to the corresponding constructor parameter.
  *
  * @example
  * class MyClass {
@@ -20,28 +17,25 @@ import type { TokenRegistry } from './token.ts';
 // oxlint-disable-next-line typescript-eslint(no-explicit-any)
 export type DepsTokens<T extends abstract new (...args: any) => any> = T extends abstract new (...args: infer P) => any
   ? P extends Array<any> // oxlint-disable-line typescript-eslint(no-explicit-any)
-    ? { [K in keyof P]: (abstract new (...args: any[]) => P[K]) | string | symbol } // oxlint-disable-line typescript-eslint(no-explicit-any)
+    ? { [K in keyof P]: abstract new (...args: any[]) => P[K] } // oxlint-disable-line typescript-eslint(no-explicit-any)
     : never
   : never;
 
 /**
- * Extracts resolved types from an inject array.
+ * Extracts resolved types from an inject array of class tokens.
  *
- * Takes an inject tuple and resolves each token to its actual type.
- * Classes resolve to their instance type, strings/symbols resolve to
- * types from TokenRegistry (or unknown if not registered).
+ * Takes an inject tuple and resolves each token to its instance type.
+ * Classes resolve to their instance type.
  *
  * @example
- * const inject = [Foo, 'BarToken'] as const;
- * type Injected = InferInject<typeof inject>; // [Foo, unknown]
+ * const inject = [Foo, Bar] as const;
+ * type Injected = InferInject<typeof inject>; // [Foo, Bar]
  */
 // oxlint-disable-next-line typescript-eslint(no-explicit-any)
-export type InferInject<T extends readonly [...any[]], TRegistry extends TokenRegistry = TokenRegistry> = {
+export type InferInject<T extends readonly [...any[]]> = {
   [K in keyof T]: T[K] extends abstract new (...args: any[]) => infer R // oxlint-disable-line typescript-eslint(no-explicit-any)
     ? R
-    : T[K] extends keyof TRegistry
-      ? TRegistry[T[K]]
-      : unknown;
+    : never;
 };
 
 /**

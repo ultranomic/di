@@ -3,20 +3,15 @@ import { mock, MockBuilder } from './mock.ts';
 
 describe('mock', () => {
   describe('mock function', () => {
-    it('should create a MockBuilder for a string token', () => {
-      const builder = mock('Logger');
-      expect(builder).toBeInstanceOf(MockBuilder);
-    });
-
-    it('should create a MockBuilder for a symbol token', () => {
-      const token = Symbol('Database');
-      const builder = mock(token);
-      expect(builder).toBeInstanceOf(MockBuilder);
-    });
-
     it('should create a MockBuilder for a class token', () => {
-      abstract class ServiceBase {}
-      const builder = mock(ServiceBase);
+      abstract class LoggerBase {}
+      const builder = mock(LoggerBase);
+      expect(builder).toBeInstanceOf(MockBuilder);
+    });
+
+    it('should create a MockBuilder for a concrete class token', () => {
+      class Database {}
+      const builder = mock(Database);
       expect(builder).toBeInstanceOf(MockBuilder);
     });
   });
@@ -29,15 +24,15 @@ describe('mock', () => {
           error: (_msg: string) => {},
         };
 
-        const result = mock('Logger').use(implementation);
+        abstract class Logger {}
+        const result = mock(Logger).use(implementation);
 
         expect(result).toBe(implementation);
       });
 
       it('should return the implementation with methods', () => {
-        const mockService = mock<{ getUsers: () => string[]; getUser: (id: string) => { id: string; name: string } }>(
-          'UserService',
-        ).use({
+        abstract class UserService {}
+        const mockService = mock<UserService>().use({
           getUsers: () => ['user1', 'user2'],
           getUser: (id: string) => ({ id, name: 'Test' }),
         });
@@ -47,40 +42,40 @@ describe('mock', () => {
       });
 
       it('should work with function implementations', () => {
-        const mockFn = mock<(req: unknown) => { status: number }>('Handler').use((_req: unknown) => ({ status: 200 }));
+        abstract class Handler {}
+        const mockFn = mock<(req: unknown) => { status: number }>(Handler).use((_req: unknown) => ({
+          status: 200,
+        }));
 
         expect(mockFn({})).toEqual({ status: 200 });
       });
     });
 
     describe('getToken', () => {
-      it('should return the string token', () => {
-        const builder = mock('Logger');
-        expect(builder.getToken()).toBe('Logger');
-      });
-
-      it('should return the symbol token', () => {
-        const token = Symbol('Database');
-        const builder = mock(token);
-        expect(builder.getToken()).toBe(token);
-      });
-
       it('should return the class token', () => {
-        abstract class ServiceBase {}
-        const builder = mock(ServiceBase);
-        expect(builder.getToken()).toBe(ServiceBase);
+        abstract class Logger {}
+        const builder = mock(Logger);
+        expect(builder.getToken()).toBe(Logger);
+      });
+
+      it('should return a different class token', () => {
+        abstract class Database {}
+        const builder = mock(Database);
+        expect(builder.getToken()).toBe(Database);
       });
     });
   });
 
   describe('type inference', () => {
     it('should infer types from implementation', () => {
-      interface UserService {
+      abstract class UserService {}
+
+      interface UserServiceInterface {
         getUsers(): string[];
         getUser(id: string): { id: string; name: string };
       }
 
-      const mockUserService = mock<UserService>('UserService').use({
+      const mockUserService = mock<UserServiceInterface>().use({
         getUsers: () => ['user1'],
         getUser: (id: string) => ({ id, name: 'Test' }),
       });

@@ -1,18 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { Token, TokenRegistry } from './token.ts';
+import type { Token } from './token.ts';
 
 describe('Token types', () => {
   describe('Token', () => {
-    it('should accept string tokens', () => {
-      const stringToken: Token = 'Logger';
-      expect(stringToken).toBe('Logger');
-    });
-
-    it('should accept symbol tokens', () => {
-      const symbolToken: Token = Symbol('Database');
-      expect(typeof symbolToken).toBe('symbol');
-    });
-
     it('should accept abstract class tokens', () => {
       abstract class Logger {
         abstract log(message: string): void;
@@ -30,20 +20,16 @@ describe('Token types', () => {
       const classToken: Token<Database> = Database;
       expect(classToken).toBe(Database);
     });
-  });
 
-  describe('TokenRegistry', () => {
-    it('should be extendable via declaration merging', () => {
-      interface TestRegistry extends TokenRegistry {
-        Logger: { log(msg: string): void };
-        Database: { query(sql: string): Promise<unknown> };
+    it('should accept class with constructor parameters', () => {
+      class Service {
+        constructor(private config: { name: string }) {}
+        getName() {
+          return this.config.name;
+        }
       }
-
-      type TestToken = keyof TestRegistry;
-      const tokens: TestToken[] = ['Logger', 'Database'];
-
-      expect(tokens).toContain('Logger');
-      expect(tokens).toContain('Database');
+      const classToken: Token<Service> = Service;
+      expect(classToken).toBe(Service);
     });
   });
 
@@ -61,11 +47,15 @@ describe('Token types', () => {
       expect(token).toBe(Service);
     });
 
-    it('should work with generic token', () => {
-      const tokens: Token[] = ['StringToken', Symbol('SymbolToken')];
+    it('should preserve type parameter for generic classes', () => {
+      abstract class Repository<T> {
+        abstract find(id: string): Promise<T | null>;
+      }
 
-      expect(tokens[0]).toBe('StringToken');
-      expect(typeof tokens[1]).toBe('symbol');
+      type User = { id: string; name: string };
+      const userRepoToken: Token<Repository<User>> = Repository;
+
+      expect(userRepoToken).toBe(Repository);
     });
   });
 });

@@ -1,6 +1,5 @@
 import {
   Container,
-  type Token,
   type ResolverInterface,
   Module,
   type ModuleMetadata,
@@ -15,7 +14,7 @@ interface TestModuleConfig {
 }
 
 interface ProviderOverride {
-  token: Token;
+  token: abstract new (...args: unknown[]) => unknown;
   factory: (container: ResolverInterface) => unknown;
 }
 
@@ -26,11 +25,11 @@ export class TestingModule {
     this.container = container;
   }
 
-  get<T>(token: Token<T>): T {
+  get<T>(token: abstract new (...args: unknown[]) => T): T {
     return this.container.resolve(token);
   }
 
-  has(token: Token): boolean {
+  has(token: abstract new (...args: unknown[]) => unknown): boolean {
     return this.container.has(token);
   }
 }
@@ -39,7 +38,7 @@ export class TestModuleBuilder {
   private readonly config: TestModuleConfig;
   private readonly overrides: ProviderOverride[] = [];
   private readonly extraProviders: Array<{
-    token: Token;
+    token: abstract new (...args: unknown[]) => unknown;
     factory: (container: ResolverInterface) => unknown;
   }> = [];
 
@@ -47,7 +46,7 @@ export class TestModuleBuilder {
     this.config = config;
   }
 
-  overrideProvider<T>(token: Token<T>, implementation: T): TestModuleBuilder {
+  overrideProvider<T>(token: abstract new (...args: unknown[]) => T, implementation: T): TestModuleBuilder {
     this.overrides.push({
       token,
       factory: () => implementation,
@@ -55,12 +54,15 @@ export class TestModuleBuilder {
     return this;
   }
 
-  overrideProviderFactory<T>(token: Token<T>, factory: (container: ResolverInterface) => T): TestModuleBuilder {
+  overrideProviderFactory<T>(
+    token: abstract new (...args: unknown[]) => T,
+    factory: (container: ResolverInterface) => T,
+  ): TestModuleBuilder {
     this.overrides.push({ token, factory });
     return this;
   }
 
-  addProvider<T>(token: Token<T>, implementation: T): TestModuleBuilder {
+  addProvider<T>(token: abstract new (...args: unknown[]) => T, implementation: T): TestModuleBuilder {
     this.extraProviders.push({
       token,
       factory: () => implementation,
@@ -74,7 +76,7 @@ export class TestModuleBuilder {
 
     // Register overrides FIRST so they take precedence
     // Module registration will skip tokens that are already registered
-    const overrideTokens = new Set<Token>();
+    const overrideTokens = new Set<abstract new (...args: unknown[]) => unknown>();
     for (const override of this.overrides) {
       container.register(override.token, override.factory);
       overrideTokens.add(override.token);
@@ -96,7 +98,9 @@ export class TestModuleBuilder {
     return new TestingModule(container);
   }
 
-  private createTestModule(overrideTokens: Set<Token>): ModuleConstructor {
+  private createTestModule(
+    overrideTokens: Set<abstract new (...args: unknown[]) => unknown>,
+  ): ModuleConstructor {
     const providers = this.config.providers ?? [];
     const controllers = this.config.controllers ?? [];
 
@@ -115,34 +119,17 @@ export class TestModuleBuilder {
           if (typeof provider === 'function') {
             const ProviderClass = provider as {
               new (...args: unknown[]): unknown;
-              inject?: Record<string, Token> | readonly unknown[];
+              inject?: readonly unknown[];
             };
             // Skip if this provider is being overridden
-            if (overrideTokensRef.has(ProviderClass)) {
+            if (overrideTokensRef.has(ProviderClass as abstract new (...args: unknown[]) => unknown)) {
               continue;
             }
             if (ProviderClass.inject) {
               container.register(ProviderClass, (c: ResolverInterface) => {
-                // oxlint-disable-next-line typescript-eslint(no-non-null-assertion)
-                const inject = ProviderClass.inject!;
-                // Check if inject is an object (new DepsTokens pattern) or array (old pattern)
-                if (Array.isArray(inject)) {
-                  // Array pattern: dependencies as positional constructor parameters
-                  const deps = c.buildDeps(inject as readonly Token[]);
-                  return new ProviderClass(...(deps as unknown[]));
-                } else {
-                  // Object pattern: dependencies as named object parameter
-                  const injectObj = inject as Record<string, Token>;
-                  const tokens = Object.values(injectObj);
-                  const resolvedValues = c.buildDeps(tokens);
-                  // Build object with same keys as inject
-                  const depsObj: Record<string, unknown> = {};
-                  let i = 0;
-                  for (const key of Object.keys(injectObj)) {
-                    depsObj[key] = resolvedValues[i++];
-                  }
-                  return new ProviderClass(depsObj);
-                }
+                // Array pattern: dependencies as positional constructor parameters
+                const deps = c.buildDeps(ProviderClass.inject as readonly (abstract new (...args: unknown[]) => unknown)[]);
+                return new ProviderClass(...(deps as unknown[]));
               });
             } else {
               container.register(ProviderClass, () => new ProviderClass());

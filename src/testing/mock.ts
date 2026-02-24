@@ -1,12 +1,15 @@
 /**
- * Mock utilities for testing Voxel applications
+ * Mock utilities for testing DI applications
  *
  * The mock() function provides a fluent API for creating mock implementations
  * of providers for use in tests.
  *
  * @example
  * // Create a mock with a custom implementation
- * const mockUserService = mock('UserService').use({
+ * class UserService {
+ *   getUsers() { return [] }
+ * }
+ * const mockUserService = mock(UserService).use({
  *   getUsers: vi.fn().mockReturnValue(['user1']),
  *   getUser: vi.fn().mockReturnValue({ id: '1', name: 'Test' })
  * })
@@ -15,11 +18,9 @@
  * const module = await Test.createModule({
  *   controllers: [UserController]
  * })
- *   .overrideProvider('UserService', mockUserService)
+ *   .overrideProvider(UserService, mockUserService)
  *   .compile()
  */
-
-import type { Token } from '../core/index.js';
 
 /**
  * MockBuilder provides a fluent API for creating mock implementations
@@ -27,9 +28,9 @@ import type { Token } from '../core/index.js';
  * @template T - The type of the mock implementation
  */
 export class MockBuilder<T> {
-  private readonly token: Token<T>;
+  private readonly token: abstract new (...args: unknown[]) => T;
 
-  constructor(token: Token<T>) {
+  constructor(token: abstract new (...args: unknown[]) => T) {
     this.token = token;
   }
 
@@ -40,7 +41,8 @@ export class MockBuilder<T> {
    * @returns The mock implementation
    *
    * @example
-   * const mockService = mock('UserService').use({
+   * class UserService {}
+   * const mockService = mock(UserService).use({
    *   getUsers: () => ['user1'],
    *   createUser: (data) => ({ id: '1', ...data })
    * })
@@ -54,33 +56,30 @@ export class MockBuilder<T> {
    *
    * @returns The token
    */
-  getToken(): Token<T> {
+  getToken(): abstract new (...args: unknown[]) => T {
     return this.token;
   }
 }
 
 /**
- * Create a mock builder for a token
+ * Create a mock builder for a class token
  *
  * This function creates a MockBuilder that can be used to specify
  * a mock implementation for a provider.
  *
  * @template T - The type of the mock implementation
- * @param token - The token to mock
+ * @param token - The class token to mock
  * @returns A MockBuilder for creating the mock
  *
  * @example
- * // Create a mock for a string token
- * const mockUserService = mock<UserService>('UserService').use({
- *   getUsers: vi.fn().mockReturnValue(['user1'])
- * })
- *
- * @example
  * // Create a mock for a class token
+ * class Database {
+ *   query() { return [] }
+ * }
  * const mockDb = mock(Database).use({
  *   query: vi.fn().mockResolvedValue([{ id: 1 }])
  * })
  */
-export function mock<T>(token: Token<T>): MockBuilder<T> {
+export function mock<T>(token: abstract new (...args: unknown[]) => T): MockBuilder<T> {
   return new MockBuilder(token);
 }

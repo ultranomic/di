@@ -17,7 +17,7 @@ export type { ModuleMetadata } from '../types/module.ts';
  *     imports: [DatabaseModule],
  *     providers: [UserService, UserRepository],
  *     controllers: [UserController],
- *     exports: ['UserService'],
+ *     exports: [UserService],
  *   }
  *   // No register() needed - providers/controllers are auto-registered!
  * }

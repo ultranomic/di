@@ -1,34 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { InferInject, DepsTokens } from './deps.ts';
-import type { TokenRegistry } from './token.ts';
+import type { DepsTokens, InferInject } from './deps.ts';
 
 describe('Deps types', () => {
   describe('InferInject', () => {
-    it('should infer deps from string tokens with registry', () => {
-      interface TestRegistry extends TokenRegistry {
-        Logger: { log(msg: string): void };
-        Database: { query(sql: string): Promise<unknown> };
-      }
-
-      const inject = ['Logger', 'Database'] as const;
-
-      type TestDeps = InferInject<typeof inject, TestRegistry>;
-
-      const deps: TestDeps = [{ log: (_msg: string) => undefined }, { query: async (_sql: string) => null }];
-
-      expect(deps[0]).toBeDefined();
-      expect(deps[1]).toBeDefined();
-    });
-
-    it('should return unknown for unregistered string tokens', () => {
-      const inject = ['UnknownService'] as const;
-
-      type TestDeps = InferInject<typeof inject>;
-      const deps: TestDeps = [{ anything: 'goes' }];
-
-      expect(deps[0]).toBeDefined();
-    });
-
     it('should infer type from class tokens', () => {
       class Logger {
         log(msg: string) {
@@ -44,41 +18,26 @@ describe('Deps types', () => {
       expect(deps[0]).toBeInstanceOf(Logger);
     });
 
-    it('should work with mixed token types', () => {
-      class Config {
-        get(key: string) {
-          return key;
+    it('should infer types from multiple class tokens', () => {
+      class Logger {
+        log(msg: string) {
+          return msg;
         }
       }
 
-      interface TestRegistry extends TokenRegistry {
-        Logger: { log(msg: string): void };
+      class Database {
+        query(sql: string) {
+          return sql;
+        }
       }
 
-      const inject = ['Logger', Config] as const;
+      const inject = [Logger, Database] as const;
 
-      type MixedDeps = InferInject<typeof inject, TestRegistry>;
+      type TestDeps = InferInject<typeof inject>;
+      const deps: TestDeps = [new Logger(), new Database()];
 
-      const mockDeps: MixedDeps = [{ log: (_msg: string) => undefined }, new Config()];
-
-      expect(mockDeps[0]).toBeDefined();
-      expect(mockDeps[1]).toBeInstanceOf(Config);
-    });
-
-    it('should work with symbol tokens', () => {
-      const DB_SYMBOL = Symbol('Database');
-
-      interface TestRegistry extends TokenRegistry {
-        [DB_SYMBOL]: { connect(): void };
-      }
-
-      const inject = [DB_SYMBOL] as const;
-
-      type SymbolDeps = InferInject<typeof inject, TestRegistry>;
-
-      const mockDeps: SymbolDeps = [{ connect: () => undefined }];
-
-      expect(mockDeps[0]).toBeDefined();
+      expect(deps[0]).toBeInstanceOf(Logger);
+      expect(deps[1]).toBeInstanceOf(Database);
     });
 
     it('should infer deps from class with static inject array', () => {
@@ -132,6 +91,20 @@ describe('Deps types', () => {
       }
 
       expect(NoDepsService.inject).toHaveLength(0);
+    });
+
+    it('should work with single dependency', () => {
+      class Logger {}
+
+      class SingleDepService {
+        static readonly inject = [Logger] as const satisfies DepsTokens<typeof SingleDepService>;
+        logger: Logger;
+        constructor(logger: Logger) {
+          this.logger = logger;
+        }
+      }
+
+      expect(SingleDepService.inject).toHaveLength(1);
     });
   });
 });

@@ -348,6 +348,35 @@ describe('HonoAdapter', () => {
       const text = await response.text();
       expect(text).toBe('');
     });
+
+    it('should handle response-like objects with status and headers', async () => {
+      // This tests the branch at line 134 that checks for Response-like objects
+      class ResponseLikeController extends Controller {
+        static readonly metadata = {
+          basePath: '/response-like',
+          routes: [{ method: 'GET', path: '/', handler: 'index' }] as const,
+        };
+        index(): { status: number; headers: Headers } {
+          // Return an object that looks like a Response but isn't one
+          // This should be treated as a Response due to the duck-type check
+          return {
+            status: 200,
+            headers: new Headers({ 'content-type': 'application/json' }),
+          } as unknown as Response;
+        }
+      }
+
+      container.register(ResponseLikeController, (c) => {
+        return new ResponseLikeController(...c.buildDeps(ResponseLikeController.inject ?? []));
+      });
+      adapter.registerController(ResponseLikeController);
+
+      const port = 3672;
+      await adapter.listen(port);
+
+      const response = await fetch(`http://localhost:${port}/response-like/`);
+      expect(response.status).toBe(200);
+    });
   });
 
   describe('listen error handling', () => {
@@ -380,6 +409,31 @@ describe('HonoAdapter', () => {
       // Clean up
       await adapter.close();
     });
+
+    it('should reject when serve throws an error during listen', async () => {
+      class TestController extends Controller {
+        static readonly metadata = {
+          basePath: '/test',
+          routes: [{ method: 'GET', path: '/', handler: 'list' }] as const,
+        };
+        list(c: Context): Response {
+          return c.json({ items: [] });
+        }
+      }
+
+      container.register(TestController, (c) => {
+        return new TestController(...c.buildDeps(TestController.inject ?? []));
+      });
+      adapter.registerController(TestController);
+
+      // Create an adapter that will fail when listening due to invalid configuration
+      const badAdapter = new HonoAdapter(container);
+      badAdapter.registerController(TestController);
+
+      // Try to use a port that's likely to fail or cause issues
+      // Using port -1 should cause an error
+      await expect(badAdapter.listen(-1)).rejects.toThrow();
+    });
   });
 
   describe('close error handling', () => {
@@ -408,6 +462,40 @@ describe('HonoAdapter', () => {
       // Create a new adapter and close without listening - should resolve without error
       const newAdapter = new HonoAdapter(container);
       await expect(newAdapter.close()).resolves.toBeUndefined();
+    });
+
+    it('should reject when server close encounters an error', async () => {
+      class TestController extends Controller {
+        static readonly metadata = {
+          basePath: '/test',
+          routes: [{ method: 'GET', path: '/', handler: 'list' }] as const,
+        };
+        list(c: Context): Response {
+          return c.json({ items: [] });
+        }
+      }
+
+      const testContainer = new Container();
+      const testAdapter = new HonoAdapter(testContainer);
+
+      testContainer.register(TestController, (c) => {
+        return new TestController(...c.buildDeps(TestController.inject ?? []));
+      });
+      testAdapter.registerController(TestController);
+
+      const port = 3673;
+      await testAdapter.listen(port);
+
+      // Mock the server.close to simulate an error
+      const server = testAdapter['server'];
+      if (server) {
+        server.close = (cb: (err?: Error) => void) => {
+          cb(new Error('Close error'));
+        };
+      }
+
+      // This should reject because close callback receives an error
+      await expect(testAdapter.close()).rejects.toThrow('Close error');
     });
   });
 
@@ -498,6 +586,36 @@ describe('HonoAdapter', () => {
 
       const optionsResponse = await app.request('/headopts/', { method: 'OPTIONS' });
       expect(optionsResponse.status).toBe(200);
+    });
+
+    it('should handle custom HTTP methods via default case', async () => {
+      class CustomMethodController extends Controller {
+        static readonly metadata = {
+          basePath: '/custom',
+          routes: [
+            // Using a non-standard method to test default case in registerRoute
+            { method: 'PROPFIND' as const, path: '/', handler: 'propfind' },
+          ] as const,
+        };
+        propfind(c: Context): Response {
+          return c.json({ method: 'PROPFIND' });
+        }
+      }
+
+      container.register(CustomMethodController, (c) => {
+        return new CustomMethodController(...c.buildDeps(CustomMethodController.inject ?? []));
+      });
+      adapter.registerController(CustomMethodController);
+
+      const port = 3671;
+      await adapter.listen(port);
+
+      // Test custom method via app.request
+      const app = adapter.getApp();
+      const response = await app.request('/custom/', { method: 'PROPFIND' });
+      expect(response.status).toBe(200);
+      const data = (await response.json()) as { method: string };
+      expect(data.method).toBe('PROPFIND');
     });
   });
 

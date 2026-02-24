@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { Token } from '../types/token.ts';
 import { BindingScope } from './binding.ts';
 import { Container } from './container.ts';
 
@@ -11,18 +10,7 @@ describe('Container', () => {
   });
 
   describe('register', () => {
-    it('should register a provider with string token', () => {
-      container.register('Logger', () => ({ log: () => {} }));
-      expect(container.has('Logger')).toBe(true);
-    });
-
-    it('should register a provider with symbol token', () => {
-      const token = Symbol('Database');
-      container.register(token, () => ({ query: () => {} }));
-      expect(container.has(token)).toBe(true);
-    });
-
-    it('should register a provider with class token', () => {
+    it('should register a provider with abstract class token', () => {
       abstract class ServiceBase {}
       class Service extends ServiceBase {
         getValue() {
@@ -33,8 +21,21 @@ describe('Container', () => {
       expect(container.has(ServiceBase)).toBe(true);
     });
 
+    it('should register a provider with concrete class token', () => {
+      class Service {
+        log() {
+          return 'logged';
+        }
+      }
+      container.register(Service, () => new Service());
+      expect(container.has(Service)).toBe(true);
+    });
+
     it('should return BindingBuilder for fluent configuration', () => {
-      const builder = container.register('Logger', () => ({ log: () => {} }));
+      class Logger {
+        log() {}
+      }
+      const builder = container.register(Logger, () => new Logger());
       expect(builder).toBeDefined();
       expect(typeof builder.asSingleton).toBe('function');
       expect(typeof builder.asTransient).toBe('function');
@@ -42,73 +43,99 @@ describe('Container', () => {
     });
 
     it('should default to TRANSIENT scope', () => {
-      container.register('Logger', () => ({ log: () => {} }));
-      const binding = container.getBinding('Logger');
+      class Logger {
+        log() {}
+      }
+      container.register(Logger, () => new Logger());
+      const binding = container.getBinding(Logger);
       expect(binding?.scope).toBe(BindingScope.TRANSIENT);
     });
 
     it('should throw TokenCollisionError for duplicate token', () => {
-      container.register('Token', () => ({ value: 1 }));
-      expect(() => container.register('Token', () => ({ value: 2 }))).toThrow(/is already registered/);
+      class Token {
+        value: number;
+        constructor(v: number) {
+          this.value = v;
+        }
+      }
+      container.register(Token, () => new Token(1));
+      expect(() => container.register(Token, () => new Token(2))).toThrow(/is already registered/);
     });
   });
 
   describe('resolve', () => {
     it('should resolve registered provider', () => {
-      const logger = { log: (_msg: string) => {} };
-      container.register('Logger', () => logger);
+      class Logger {
+        log(_msg: string) {}
+      }
+      const logger = new Logger();
+      container.register(Logger, () => logger);
 
-      const result = container.resolve('Logger');
+      const result = container.resolve(Logger);
       expect(result).toBe(logger);
     });
 
     it('should resolve with factory receiving container', () => {
-      container.register('Config', () => ({ port: 3000 }));
-      container.register('Server', (c) => ({ port: (c.resolve('Config') as { port: number }).port }));
+      class Config {
+        port = 3000;
+      }
+      class Server {
+        port: number;
+        constructor(c: { resolve<T>(token: abstract new (...args: any[]) => T): T }) {
+          this.port = c.resolve(Config).port;
+        }
+      }
+      container.register(Config, () => new Config());
+      container.register(Server, (c) => new Server(c));
 
-      const server = container.resolve('Server') as { port: number };
+      const server = container.resolve(Server);
       expect(server.port).toBe(3000);
     });
 
     it('should throw for unregistered token', () => {
-      expect(() => container.resolve('Unknown')).toThrow(/Token 'Unknown' not found/);
-    });
-
-    it('should throw for unregistered symbol token', () => {
-      const token = Symbol('Unknown');
-      expect(() => container.resolve(token)).toThrow(/Token '.*' not found/);
+      class Unknown {}
+      expect(() => container.resolve(Unknown)).toThrow(/Token 'Unknown' not found/);
     });
 
     it('should create new instance for transient scope', () => {
-      container.register('Counter', () => ({ count: 0 }));
+      class Counter {
+        count = 0;
+      }
+      container.register(Counter, () => new Counter());
 
-      const instance1 = container.resolve('Counter');
-      const instance2 = container.resolve('Counter');
+      const instance1 = container.resolve(Counter);
+      const instance2 = container.resolve(Counter);
 
       expect(instance1).not.toBe(instance2);
     });
 
     it('should return same instance for singleton scope', () => {
-      container.register('Counter', () => ({ count: 0 })).asSingleton();
+      class Counter {
+        count = 0;
+      }
+      container.register(Counter, () => new Counter()).asSingleton();
 
-      const instance1 = container.resolve('Counter');
-      const instance2 = container.resolve('Counter');
+      const instance1 = container.resolve(Counter);
+      const instance2 = container.resolve(Counter);
 
       expect(instance1).toBe(instance2);
     });
 
     it('should cache singleton instance after first resolution', () => {
       let callCount = 0;
+      class Expensive {
+        data = 'expensive';
+      }
       container
-        .register('Expensive', () => {
+        .register(Expensive, () => {
           callCount++;
-          return { data: 'expensive' };
+          return new Expensive();
         })
         .asSingleton();
 
-      container.resolve('Expensive');
-      container.resolve('Expensive');
-      container.resolve('Expensive');
+      container.resolve(Expensive);
+      container.resolve(Expensive);
+      container.resolve(Expensive);
 
       expect(callCount).toBe(1);
     });
@@ -116,57 +143,80 @@ describe('Container', () => {
 
   describe('has', () => {
     it('should return true for registered token', () => {
-      container.register('Logger', () => ({}));
-      expect(container.has('Logger')).toBe(true);
+      class Logger {
+        log() {}
+      }
+      container.register(Logger, () => new Logger());
+      expect(container.has(Logger)).toBe(true);
     });
 
     it('should return false for unregistered token', () => {
-      expect(container.has('Unknown')).toBe(false);
+      class Unknown {}
+      expect(container.has(Unknown)).toBe(false);
     });
 
     it('should return false after clear', () => {
-      container.register('Logger', () => ({}));
+      class Logger {
+        log() {}
+      }
+      container.register(Logger, () => new Logger());
       container.clear();
-      expect(container.has('Logger')).toBe(false);
+      expect(container.has(Logger)).toBe(false);
     });
   });
 
   describe('getBinding', () => {
     it('should return binding for registered token', () => {
-      container.register('Logger', () => ({}));
-      const binding = container.getBinding('Logger');
+      class Logger {
+        log() {}
+      }
+      container.register(Logger, () => new Logger());
+      const binding = container.getBinding(Logger);
 
       expect(binding).toBeDefined();
-      expect(binding?.token).toBe('Logger');
+      expect(binding?.token).toBe(Logger);
       expect(binding?.scope).toBe(BindingScope.TRANSIENT);
     });
 
     it('should return undefined for unregistered token', () => {
-      const binding = container.getBinding('Unknown');
+      class Unknown {}
+      const binding = container.getBinding(Unknown);
       expect(binding).toBeUndefined();
     });
   });
 
   describe('clear', () => {
     it('should remove all bindings', () => {
-      container.register('A', () => ({}));
-      container.register('B', () => ({}));
-      container.register('C', () => ({}));
+      class A {
+        a = 1;
+      }
+      class B {
+        b = 2;
+      }
+      class C {
+        c = 3;
+      }
+      container.register(A, () => new A());
+      container.register(B, () => new B());
+      container.register(C, () => new C());
 
       container.clear();
 
-      expect(container.has('A')).toBe(false);
-      expect(container.has('B')).toBe(false);
-      expect(container.has('C')).toBe(false);
+      expect(container.has(A)).toBe(false);
+      expect(container.has(B)).toBe(false);
+      expect(container.has(C)).toBe(false);
     });
 
     it('should allow re-registration after clear', () => {
-      container.register('Logger', () => ({ version: 1 }));
+      class Logger {
+        version = 1;
+      }
+      container.register(Logger, () => new Logger());
       container.clear();
-      container.register('Logger', () => ({ version: 2 }));
+      container.register(Logger, () => new Logger());
 
-      const result = container.resolve('Logger');
-      expect(result).toEqual({ version: 2 });
+      const result = container.resolve(Logger);
+      expect(result.version).toBe(1);
     });
   });
 });
@@ -180,8 +230,11 @@ describe('BindingBuilder', () => {
 
   describe('asSingleton', () => {
     it('should set scope to SINGLETON', () => {
-      container.register('Service', () => ({})).asSingleton();
-      const binding = container.getBinding('Service');
+      class Service {
+        data = 'test';
+      }
+      container.register(Service, () => new Service()).asSingleton();
+      const binding = container.getBinding(Service);
 
       expect(binding?.scope).toBe(BindingScope.SINGLETON);
     });
@@ -189,16 +242,22 @@ describe('BindingBuilder', () => {
 
   describe('asTransient', () => {
     it('should set scope to TRANSIENT', () => {
-      container.register('Service', () => ({}));
-      const binding = container.getBinding('Service');
+      class Service {
+        data = 'test';
+      }
+      container.register(Service, () => new Service());
+      const binding = container.getBinding(Service);
       expect(binding?.scope).toBe(BindingScope.TRANSIENT);
     });
   });
 
   describe('asScoped', () => {
     it('should set scope to SCOPED', () => {
-      container.register('Service', () => ({})).asScoped();
-      const binding = container.getBinding('Service');
+      class Service {
+        data = 'test';
+      }
+      container.register(Service, () => new Service()).asScoped();
+      const binding = container.getBinding(Service);
 
       expect(binding?.scope).toBe(BindingScope.SCOPED);
     });
@@ -220,20 +279,21 @@ describe('BindingScope', () => {
 });
 
 describe('Token type inference', () => {
-  it('should work with typed string tokens', () => {
-    interface Logger {
-      log(msg: string): void;
+  it('should work with abstract class tokens', () => {
+    abstract class LoggerBase {
+      abstract log(msg: string): void;
+    }
+    class Logger implements LoggerBase {
+      log(_msg: string) {}
     }
     const container = new Container();
-    container.register('Logger' as Token<Logger>, () => ({
-      log: (_msg: string) => {},
-    }));
+    container.register(LoggerBase, () => new Logger());
 
-    const logger = container.resolve('Logger' as Token<Logger>);
+    const logger = container.resolve(LoggerBase);
     expect(typeof logger.log).toBe('function');
   });
 
-  it('should work with class tokens', () => {
+  it('should work with concrete class tokens', () => {
     class Database {
       connect() {
         return true;
@@ -246,5 +306,38 @@ describe('Token type inference', () => {
     const db = container.resolve(Database);
     expect(db).toBeInstanceOf(Database);
     expect(db.connect()).toBe(true);
+  });
+
+  it('should work with multiple class tokens', () => {
+    class Logger {
+      log(_msg: string) {}
+    }
+    class Database {
+      query(_sql: string) {
+        return [];
+      }
+    }
+    class Cache {
+      get(_key: string) {
+        return null;
+      }
+    }
+
+    const container = new Container();
+    container.register(Logger, () => new Logger());
+    container.register(Database, () => new Database());
+    container.register(Cache, () => new Cache());
+
+    expect(container.has(Logger)).toBe(true);
+    expect(container.has(Database)).toBe(true);
+    expect(container.has(Cache)).toBe(true);
+
+    const logger = container.resolve(Logger);
+    const db = container.resolve(Database);
+    const cache = container.resolve(Cache);
+
+    expect(logger).toBeInstanceOf(Logger);
+    expect(db).toBeInstanceOf(Database);
+    expect(cache).toBeInstanceOf(Cache);
   });
 });
