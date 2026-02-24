@@ -117,7 +117,7 @@ export class TestModuleBuilder {
           if (typeof provider === 'function') {
             const ProviderClass = provider as {
               new (...args: unknown[]): unknown
-              inject?: Record<string, Token>
+              inject?: Record<string, Token> | readonly unknown[]
             }
             // Skip if this provider is being overridden
             if (overrideTokensRef.has(ProviderClass)) {
@@ -125,8 +125,25 @@ export class TestModuleBuilder {
             }
             if (ProviderClass.inject) {
               container.register(ProviderClass, (c: ResolverInterface) => {
-                const deps = c.buildDeps(ProviderClass.inject as Record<string, Token>)
-                return new ProviderClass(deps)
+                const inject = ProviderClass.inject!
+                // Check if inject is an object (new DepsTokens pattern) or array (old pattern)
+                if (Array.isArray(inject)) {
+                  // Array pattern: dependencies as positional constructor parameters
+                  const deps = c.buildDeps(inject as readonly Token[])
+                  return new ProviderClass(...(deps as unknown[]))
+                } else {
+                  // Object pattern: dependencies as named object parameter
+                  const injectObj = inject as Record<string, Token>
+                  const tokens = Object.values(injectObj)
+                  const resolvedValues = c.buildDeps(tokens)
+                  // Build object with same keys as inject
+                  const depsObj: Record<string, unknown> = {}
+                  let i = 0
+                  for (const key of Object.keys(injectObj)) {
+                    depsObj[key] = resolvedValues[i++]
+                  }
+                  return new ProviderClass(depsObj)
+                }
               })
             } else {
               container.register(ProviderClass, () => new ProviderClass())

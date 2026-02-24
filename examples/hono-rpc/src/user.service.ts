@@ -1,3 +1,5 @@
+import type { ConstructorInfer } from '@voxeljs/core';
+
 /**
  * In-memory user service
  *
@@ -21,6 +23,8 @@ export interface UpdateUserInput {
 }
 
 export class UserService {
+  static readonly inject = [] as const satisfies ConstructorInfer<typeof UserService>;
+
   private users: Map<string, User> = new Map();
   private nextId = 1;
 

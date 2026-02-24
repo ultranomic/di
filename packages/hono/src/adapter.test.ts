@@ -1,4 +1,4 @@
-import { Container, Controller } from '@voxeljs/core';
+import { Container, Controller, ConstructorInfer } from '@voxeljs/core';
 import type { Context } from 'hono';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { HonoAdapter } from './adapter.ts';
@@ -13,12 +13,6 @@ class TestController extends Controller {
       { method: 'POST', path: '/', handler: 'create' },
     ] as const,
   };
-
-  static readonly inject = {} as const;
-
-  constructor(_deps: typeof TestController.inject) {
-    super();
-  }
 
   list(c: Context): Response {
     return c.json({ items: ['a', 'b', 'c'] });
@@ -39,24 +33,12 @@ class HealthController extends Controller {
     routes: [{ method: 'GET', path: '/', handler: 'check' }] as const,
   };
 
-  static readonly inject = {} as const;
-
-  constructor(_deps: typeof HealthController.inject) {
-    super();
-  }
-
   check(c: Context): Response {
     return c.json({ status: 'ok' });
   }
 }
 
 class ControllerWithoutMetadata extends Controller {
-  static readonly inject = {} as const;
-
-  constructor(_deps: typeof ControllerWithoutMetadata.inject) {
-    super();
-  }
-
   list(c: Context): Response {
     return c.json({ items: [] });
   }
@@ -66,11 +48,11 @@ class ControllerWithoutRoutes extends Controller {
   static readonly metadata = {
     basePath: '/empty',
   };
+}
 
-  static readonly inject = {} as const;
-
-  constructor(_deps: typeof ControllerWithoutRoutes.inject) {
-    super();
+class UserService {
+  getUsers() {
+    return ['user1', 'user2'];
   }
 }
 
@@ -80,14 +62,14 @@ class ControllerWithDependencies extends Controller {
     routes: [{ method: 'GET', path: '/', handler: 'list' }] as const,
   };
 
-  static readonly inject = { service: 'UserService' } as const;
+  static readonly inject = [UserService] as const satisfies ConstructorInfer<typeof ControllerWithDependencies>;
 
-  constructor(private deps: typeof ControllerWithDependencies.inject) {
+  constructor(private userService: UserService) {
     super();
   }
 
   list(c: Context): Response {
-    return c.json({ users: this.deps.service.getUsers() });
+    return c.json({ users: this.userService.getUsers() });
   }
 }
 
@@ -119,7 +101,7 @@ describe('HonoAdapter', () => {
   describe('registerController', () => {
     it('should register routes from controller metadata', () => {
       container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
+        return new TestController(...c.buildDeps(TestController.inject ?? []));
       });
 
       expect(() => adapter.registerController(TestController)).not.toThrow();
@@ -127,7 +109,7 @@ describe('HonoAdapter', () => {
 
     it('should handle controller without metadata gracefully', () => {
       container.register(ControllerWithoutMetadata, (c) => {
-        return new ControllerWithoutMetadata(c.buildDeps(ControllerWithoutMetadata.inject));
+        return new ControllerWithoutMetadata(...c.buildDeps(ControllerWithoutMetadata.inject ?? []));
       });
 
       expect(() => adapter.registerController(ControllerWithoutMetadata)).not.toThrow();
@@ -135,7 +117,7 @@ describe('HonoAdapter', () => {
 
     it('should handle controller with metadata but no routes', () => {
       container.register(ControllerWithoutRoutes, (c) => {
-        return new ControllerWithoutRoutes(c.buildDeps(ControllerWithoutRoutes.inject));
+        return new ControllerWithoutRoutes(...c.buildDeps(ControllerWithoutRoutes.inject ?? []));
       });
 
       expect(() => adapter.registerController(ControllerWithoutRoutes)).not.toThrow();
@@ -143,10 +125,10 @@ describe('HonoAdapter', () => {
 
     it('should register multiple controllers', () => {
       container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
+        return new TestController(...c.buildDeps(TestController.inject ?? []));
       });
       container.register(HealthController, (c) => {
-        return new HealthController(c.buildDeps(HealthController.inject));
+        return new HealthController(...c.buildDeps(HealthController.inject ?? []));
       });
 
       expect(() => adapter.registerController(TestController)).not.toThrow();
@@ -154,13 +136,9 @@ describe('HonoAdapter', () => {
     });
 
     it('should resolve controller dependencies', () => {
-      const mockUserService = {
-        getUsers: () => ['user1', 'user2'],
-      };
-
-      container.register('UserService', () => mockUserService);
+      container.register(UserService, () => new UserService());
       container.register(ControllerWithDependencies, (c) => {
-        return new ControllerWithDependencies(c.buildDeps(ControllerWithDependencies.inject));
+        return new ControllerWithDependencies(...c.buildDeps(ControllerWithDependencies.inject));
       });
 
       adapter.registerController(ControllerWithDependencies);
@@ -171,7 +149,7 @@ describe('HonoAdapter', () => {
   describe('listen and close', () => {
     it('should start server on specified port', async () => {
       container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
+        return new TestController(...c.buildDeps(TestController.inject ?? []));
       });
       adapter.registerController(TestController);
 
@@ -186,7 +164,7 @@ describe('HonoAdapter', () => {
 
     it('should close the server', async () => {
       container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
+        return new TestController(...c.buildDeps(TestController.inject ?? []));
       });
       adapter.registerController(TestController);
 
@@ -210,7 +188,7 @@ describe('HonoAdapter', () => {
 
     it('should handle route with path parameters', async () => {
       container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
+        return new TestController(...c.buildDeps(TestController.inject ?? []));
       });
       adapter.registerController(TestController);
 
@@ -225,7 +203,7 @@ describe('HonoAdapter', () => {
 
     it('should handle POST requests', async () => {
       container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
+        return new TestController(...c.buildDeps(TestController.inject ?? []));
       });
       adapter.registerController(TestController);
 
@@ -244,7 +222,7 @@ describe('HonoAdapter', () => {
 
     it('should return 404 for unmatched routes', async () => {
       container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
+        return new TestController(...c.buildDeps(TestController.inject ?? []));
       });
       adapter.registerController(TestController);
 
@@ -259,7 +237,7 @@ describe('HonoAdapter', () => {
   describe('basePath handling', () => {
     it('should combine basePath with route path', async () => {
       container.register(HealthController, (c) => {
-        return new HealthController(c.buildDeps(HealthController.inject));
+        return new HealthController(...c.buildDeps(HealthController.inject ?? []));
       });
       adapter.registerController(HealthController);
 
@@ -277,17 +255,13 @@ describe('HonoAdapter', () => {
         static readonly metadata = {
           routes: [{ method: 'GET', path: '/root', handler: 'index' }] as const,
         };
-        static readonly inject = {} as const;
-        constructor(_deps: typeof RootController.inject) {
-          super();
-        }
         index(c: Context): Response {
           return c.json({ root: true });
         }
       }
 
       container.register(RootController, (c) => {
-        return new RootController(c.buildDeps(RootController.inject));
+        return new RootController(...c.buildDeps(RootController.inject ?? []));
       });
       adapter.registerController(RootController);
 
@@ -308,17 +282,13 @@ describe('HonoAdapter', () => {
           basePath: '/error',
           routes: [{ method: 'GET', path: '/', handler: 'boom' }] as const,
         };
-        static readonly inject = {} as const;
-        constructor(_deps: typeof ErrorController.inject) {
-          super();
-        }
         boom(): never {
           throw new Error('Something went wrong');
         }
       }
 
       container.register(ErrorController, (c) => {
-        return new ErrorController(c.buildDeps(ErrorController.inject));
+        return new ErrorController(...c.buildDeps(ErrorController.inject ?? []));
       });
       adapter.registerController(ErrorController);
 
@@ -335,14 +305,10 @@ describe('HonoAdapter', () => {
           basePath: '/invalid',
           routes: [{ method: 'GET', path: '/', handler: 'nonexistent' }] as const,
         };
-        static readonly inject = {} as const;
-        constructor(_deps: typeof InvalidHandlerController.inject) {
-          super();
-        }
       }
 
       container.register(InvalidHandlerController, (c) => {
-        return new InvalidHandlerController(c.buildDeps(InvalidHandlerController.inject));
+        return new InvalidHandlerController(...c.buildDeps(InvalidHandlerController.inject ?? []));
       });
       adapter.registerController(InvalidHandlerController);
 
@@ -369,10 +335,6 @@ describe('HonoAdapter', () => {
             { method: 'DELETE', path: '/', handler: 'delete' },
           ] as const,
         };
-        static readonly inject = {} as const;
-        constructor(_deps: typeof AllMethodsController.inject) {
-          super();
-        }
         get(c: Context): Response {
           return c.json({ method: 'GET' });
         }
@@ -391,7 +353,7 @@ describe('HonoAdapter', () => {
       }
 
       container.register(AllMethodsController, (c) => {
-        return new AllMethodsController(c.buildDeps(AllMethodsController.inject));
+        return new AllMethodsController(...c.buildDeps(AllMethodsController.inject ?? []));
       });
       adapter.registerController(AllMethodsController);
 
@@ -423,7 +385,7 @@ describe('HonoAdapter', () => {
     it('routes registered through controllers are accessible on the app', async () => {
       const container = new Container();
       container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
+        return new TestController(...c.buildDeps(TestController.inject ?? []));
       });
 
       const adapter = new HonoAdapter(container);
@@ -437,7 +399,7 @@ describe('HonoAdapter', () => {
     it('the app can be used with hc client from hono/client', () => {
       const container = new Container();
       container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
+        return new TestController(...c.buildDeps(TestController.inject ?? []));
       });
 
       const adapter = new HonoAdapter(container);
@@ -458,7 +420,7 @@ describe('HonoAdapter', () => {
     it('client can make requests to registered routes via hc', async () => {
       const container = new Container();
       container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
+        return new TestController(...c.buildDeps(TestController.inject ?? []));
       });
 
       const adapter = new HonoAdapter(container);
@@ -481,7 +443,7 @@ describe('HonoAdapter', () => {
     it('client can make requests with path parameters', async () => {
       const container = new Container();
       container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
+        return new TestController(...c.buildDeps(TestController.inject ?? []));
       });
 
       const adapter = new HonoAdapter(container);
@@ -504,7 +466,7 @@ describe('HonoAdapter', () => {
     it('client can make POST requests', async () => {
       const container = new Container();
       container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
+        return new TestController(...c.buildDeps(TestController.inject ?? []));
       });
 
       const adapter = new HonoAdapter(container);
@@ -530,7 +492,7 @@ describe('HonoAdapter', () => {
     it('createRpcClient creates a typed client from adapter', async () => {
       const container = new Container();
       container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
+        return new TestController(...c.buildDeps(TestController.inject ?? []));
       });
 
       const adapter = new HonoAdapter(container);
@@ -551,10 +513,10 @@ describe('HonoAdapter', () => {
     it('multiple controllers work with RPC client', async () => {
       const container = new Container();
       container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
+        return new TestController(...c.buildDeps(TestController.inject ?? []));
       });
       container.register(HealthController, (c) => {
-        return new HealthController(c.buildDeps(HealthController.inject));
+        return new HealthController(...c.buildDeps(HealthController.inject ?? []));
       });
 
       const adapter = new HonoAdapter(container);
@@ -607,7 +569,7 @@ describe('HonoAdapter', () => {
     it('type inference works with registered controllers', async () => {
       const container = new Container();
       container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
+        return new TestController(...c.buildDeps(TestController.inject ?? []));
       });
 
       const adapter = new HonoAdapter(container);

@@ -1,42 +1,35 @@
 import { describe, expect, it } from 'vitest';
-import type { Deps, InferDeps } from './deps.ts';
-import type { Token, TokenRegistry } from './token.ts';
+import type { InferInject, DepsTokens } from './deps.ts';
+import type { TokenRegistry } from './token.ts';
 
 describe('Deps types', () => {
-  describe('InferDeps', () => {
+  describe('InferInject', () => {
     it('should infer deps from string tokens with registry', () => {
       interface TestRegistry extends TokenRegistry {
         Logger: { log(msg: string): void };
         Database: { query(sql: string): Promise<unknown> };
       }
 
-      const inject = {
-        logger: 'Logger',
-        db: 'Database',
-      } as const satisfies Record<string, Token>;
+      const inject = ['Logger', 'Database'] as const;
 
-      type TestDeps = InferDeps<typeof inject, TestRegistry>;
+      type TestDeps = InferInject<typeof inject, TestRegistry>;
 
-      const deps: TestDeps = {
-        logger: { log: (_msg: string) => undefined },
-        db: { query: async (_sql: string) => null },
-      };
+      const deps: TestDeps = [
+        { log: (_msg: string) => undefined },
+        { query: async (_sql: string) => null },
+      ];
 
-      expect(deps.logger).toBeDefined();
-      expect(deps.db).toBeDefined();
+      expect(deps[0]).toBeDefined();
+      expect(deps[1]).toBeDefined();
     });
 
     it('should return unknown for unregistered string tokens', () => {
-      const inject = {
-        unknown: 'UnknownService',
-      } as const satisfies Record<string, Token>;
+      const inject = ['UnknownService'] as const;
 
-      type TestDeps = InferDeps<typeof inject>;
-      const deps: TestDeps = {
-        unknown: { anything: 'goes' },
-      };
+      type TestDeps = InferInject<typeof inject>;
+      const deps: TestDeps = [{ anything: 'goes' }];
 
-      expect(deps.unknown).toBeDefined();
+      expect(deps[0]).toBeDefined();
     });
 
     it('should infer type from class tokens', () => {
@@ -46,44 +39,12 @@ describe('Deps types', () => {
         }
       }
 
-      const inject = {
-        logger: Logger,
-      } as const satisfies Record<string, Token>;
+      const inject = [Logger] as const;
 
-      type TestDeps = InferDeps<typeof inject>;
-      const deps: TestDeps = {
-        logger: new Logger(),
-      };
+      type TestDeps = InferInject<typeof inject>;
+      const deps: TestDeps = [new Logger()];
 
-      expect(deps.logger).toBeInstanceOf(Logger);
-    });
-  });
-
-  describe('Deps', () => {
-    it('should infer deps from class with static inject', () => {
-      interface TestRegistry extends TokenRegistry {
-        Logger: { log(msg: string): void };
-        Database: { query(sql: string): Promise<unknown> };
-      }
-
-      class MyService {
-        static readonly inject = {
-          logger: 'Logger',
-          db: 'Database',
-        } as const;
-
-        constructor(private deps: InferDeps<typeof MyService.inject, TestRegistry>) {}
-      }
-
-      type MyServiceDeps = Deps<typeof MyService>;
-
-      const mockDeps: MyServiceDeps = {
-        logger: { log: (_msg: string) => undefined },
-        db: { query: async (_sql: string) => null },
-      };
-
-      expect(mockDeps.logger).toBeDefined();
-      expect(mockDeps.db).toBeDefined();
+      expect(deps[0]).toBeInstanceOf(Logger);
     });
 
     it('should work with mixed token types', () => {
@@ -97,24 +58,17 @@ describe('Deps types', () => {
         Logger: { log(msg: string): void };
       }
 
-      class MixedService {
-        static readonly inject = {
-          logger: 'Logger',
-          config: Config,
-        } as const;
+      const inject = ['Logger', Config] as const;
 
-        constructor(private deps: InferDeps<typeof MixedService.inject, TestRegistry>) {}
-      }
+      type MixedDeps = InferInject<typeof inject, TestRegistry>;
 
-      type MixedDeps = Deps<typeof MixedService>;
+      const mockDeps: MixedDeps = [
+        { log: (_msg: string) => undefined },
+        new Config(),
+      ];
 
-      const mockDeps: MixedDeps = {
-        logger: { log: (_msg: string) => undefined },
-        config: new Config(),
-      };
-
-      expect(mockDeps.logger).toBeDefined();
-      expect(mockDeps.config).toBeInstanceOf(Config);
+      expect(mockDeps[0]).toBeDefined();
+      expect(mockDeps[1]).toBeInstanceOf(Config);
     });
 
     it('should work with symbol tokens', () => {
@@ -124,21 +78,55 @@ describe('Deps types', () => {
         [DB_SYMBOL]: { connect(): void };
       }
 
-      class SymbolService {
-        static readonly inject = {
-          db: DB_SYMBOL,
-        } as const;
+      const inject = [DB_SYMBOL] as const;
 
-        constructor(private deps: InferDeps<typeof SymbolService.inject, TestRegistry>) {}
+      type SymbolDeps = InferInject<typeof inject, TestRegistry>;
+
+      const mockDeps: SymbolDeps = [{ connect: () => undefined }];
+
+      expect(mockDeps[0]).toBeDefined();
+    });
+
+    it('should infer deps from class with static inject array', () => {
+      class Logger {
+        log(msg: string) {
+          return msg;
+        }
       }
 
-      type SymbolDeps = Deps<typeof SymbolService>;
+      class MyService {
+        static readonly inject = [Logger] as const;
+        constructor(public logger: Logger) {}
+      }
 
-      const mockDeps: SymbolDeps = {
-        db: { connect: () => undefined },
-      };
+      type MyServiceDeps = InferInject<typeof MyService['inject']>;
 
-      expect(mockDeps.db).toBeDefined();
+      const mockDeps: MyServiceDeps = [new Logger()];
+
+      expect(mockDeps[0]).toBeInstanceOf(Logger);
+    });
+  });
+
+  describe('DepsTokens', () => {
+    it('should validate inject array matches constructor params', () => {
+      class Logger {}
+      class Database {}
+
+      class MyService {
+        static readonly inject = [Logger, Database] as const satisfies DepsTokens<typeof MyService>;
+        constructor(public logger: Logger, public db: Database) {}
+      }
+
+      expect(MyService.inject).toHaveLength(2);
+    });
+
+    it('should work with empty constructor', () => {
+      class NoDepsService {
+        static readonly inject = [] as const satisfies DepsTokens<typeof NoDepsService>;
+        constructor() {}
+      }
+
+      expect(NoDepsService.inject).toHaveLength(0);
     });
   });
 });

@@ -1,6 +1,8 @@
+import type { ConstructorInfer } from '@voxeljs/core';
+
 /**
  * User Service
- * 
+ *
  * Demonstrates the Voxel service pattern with static inject property.
  * This service manages user data in memory (for demo purposes).
  */
@@ -16,12 +18,12 @@ export class UserService {
    * Static inject property defines dependencies
    * Voxel container uses this to inject dependencies
    */
-  static readonly inject = {} as const;
+  static readonly inject = [] as const satisfies ConstructorInfer<typeof UserService>;
 
   // In-memory user store (in real app, this would be a database)
   private users: Map<string, User> = new Map();
 
-  constructor(_deps: typeof UserService.inject) {
+  constructor() {
     // Initialize with some sample data
     this.users.set('1', {
       id: '1',

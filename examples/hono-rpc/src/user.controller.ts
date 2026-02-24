@@ -6,7 +6,7 @@
  */
 import type { Context } from 'hono';
 import { Controller } from '@voxeljs/core';
-import type { ControllerMetadata } from '@voxeljs/core';
+import type { ControllerMetadata, ConstructorInfer } from '@voxeljs/core';
 import type { CreateUserInput, UpdateUserInput, User, UserService } from './user.service.js';
 
 /**
@@ -25,9 +25,7 @@ export class UserController extends Controller {
   /**
    * Static inject property defines dependencies
    */
-  static readonly inject = {
-    userService: 'UserService',
-  } as const;
+  static readonly inject = ['UserService'] as const satisfies ConstructorInfer<typeof UserController>;
 
   /**
    * Static metadata defines controller routes
@@ -44,7 +42,7 @@ export class UserController extends Controller {
     ] as const,
   };
 
-  constructor(private deps: typeof UserController.inject) {
+  constructor(private userService: UserService) {
     super();
   }
 
@@ -53,7 +51,7 @@ export class UserController extends Controller {
    * Returns a list of users with count
    */
   findAll(c: Context): Response {
-    const users = (this.deps.userService as UserService).findAll();
+    const users = this.userService.findAll();
     const response: ApiResponse<User[]> = { data: users, count: users.length };
     return c.json(response);
   }
@@ -64,7 +62,7 @@ export class UserController extends Controller {
    */
   findById(c: Context): Response {
     const id = c.req.param('id');
-    const user = (this.deps.userService as UserService).findById(id);
+    const user = this.userService.findById(id);
 
     if (!user) {
       const error: ApiError = { error: `User with id ${id} not found` };
@@ -87,7 +85,7 @@ export class UserController extends Controller {
       return c.json(error, 400);
     }
 
-    const user = (this.deps.userService as UserService).create(body);
+    const user = this.userService.create(body);
     const response: ApiResponse<User> = { data: user };
     return c.json(response, 201);
   }
@@ -100,7 +98,7 @@ export class UserController extends Controller {
     const id = c.req.param('id');
     const body = await c.req.json<UpdateUserInput>();
 
-    const user = (this.deps.userService as UserService).update(id, body);
+    const user = this.userService.update(id, body);
 
     if (!user) {
       const error: ApiError = { error: `User with id ${id} not found` };
@@ -117,7 +115,7 @@ export class UserController extends Controller {
    */
   delete(c: Context): Response {
     const id = c.req.param('id');
-    const deleted = (this.deps.userService as UserService).delete(id);
+    const deleted = this.userService.delete(id);
 
     if (!deleted) {
       const error: ApiError = { error: `User with id ${id} not found` };

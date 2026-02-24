@@ -1,4 +1,5 @@
 import { Container, Controller } from '@voxeljs/core';
+import type { DepsTokens, Token } from '@voxeljs/core';
 import type { Request, Response } from 'express';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ExpressAdapter } from './adapter.ts';
@@ -13,18 +14,12 @@ class TestController extends Controller {
     ] as const,
   };
 
-  static readonly inject = {} as const;
-
-  constructor(_deps: typeof TestController.inject) {
-    super();
-  }
-
   list(_req: Request, res: Response): void {
     res.json({ items: ['a', 'b', 'c'] });
   }
 
   get(req: Request, res: Response): void {
-    res.json({ id: req.params.id });
+    res.json({ id: req.params['id'] });
   }
 
   create(_req: Request, res: Response): void {
@@ -38,24 +33,12 @@ class HealthController extends Controller {
     routes: [{ method: 'GET', path: '/', handler: 'check' }] as const,
   };
 
-  static readonly inject = {} as const;
-
-  constructor(_deps: typeof HealthController.inject) {
-    super();
-  }
-
   check(_req: Request, res: Response): void {
     res.json({ status: 'ok' });
   }
 }
 
 class ControllerWithoutMetadata extends Controller {
-  static readonly inject = {} as const;
-
-  constructor(_deps: typeof ControllerWithoutMetadata.inject) {
-    super();
-  }
-
   list(_req: Request, res: Response): void {
     res.json({ items: [] });
   }
@@ -65,11 +48,11 @@ class ControllerWithoutRoutes extends Controller {
   static readonly metadata = {
     basePath: '/empty',
   };
+}
 
-  static readonly inject = {} as const;
-
-  constructor(_deps: typeof ControllerWithoutRoutes.inject) {
-    super();
+class UserService {
+  getUsers() {
+    return ['user1', 'user2'];
   }
 }
 
@@ -79,14 +62,14 @@ class ControllerWithDependencies extends Controller {
     routes: [{ method: 'GET', path: '/', handler: 'list' }] as const,
   };
 
-  static readonly inject = { service: 'UserService' } as const;
+  static readonly inject = [UserService] as const satisfies DepsTokens<typeof ControllerWithDependencies>;
 
-  constructor(private deps: typeof ControllerWithDependencies.inject) {
+  constructor(private userService: UserService) {
     super();
   }
 
   list(_req: Request, res: Response): void {
-    res.json({ users: this.deps.service.getUsers() });
+    res.json({ users: this.userService.getUsers() });
   }
 }
 
@@ -117,49 +100,36 @@ describe('ExpressAdapter', () => {
 
   describe('registerController', () => {
     it('should register routes from controller metadata', () => {
-      container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
-      });
+      container.register(TestController, () => new TestController());
 
       expect(() => adapter.registerController(TestController)).not.toThrow();
     });
 
     it('should handle controller without metadata gracefully', () => {
-      container.register(ControllerWithoutMetadata, (c) => {
-        return new ControllerWithoutMetadata(c.buildDeps(ControllerWithoutMetadata.inject));
-      });
+      container.register(ControllerWithoutMetadata, () => new ControllerWithoutMetadata());
 
       expect(() => adapter.registerController(ControllerWithoutMetadata)).not.toThrow();
     });
 
     it('should handle controller with metadata but no routes', () => {
-      container.register(ControllerWithoutRoutes, (c) => {
-        return new ControllerWithoutRoutes(c.buildDeps(ControllerWithoutRoutes.inject));
-      });
+      container.register(ControllerWithoutRoutes, () => new ControllerWithoutRoutes());
 
       expect(() => adapter.registerController(ControllerWithoutRoutes)).not.toThrow();
     });
 
     it('should register multiple controllers', () => {
-      container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
-      });
-      container.register(HealthController, (c) => {
-        return new HealthController(c.buildDeps(HealthController.inject));
-      });
+      container.register(TestController, () => new TestController());
+      container.register(HealthController, () => new HealthController());
 
       expect(() => adapter.registerController(TestController)).not.toThrow();
       expect(() => adapter.registerController(HealthController)).not.toThrow();
     });
 
     it('should resolve controller dependencies', () => {
-      const mockUserService = {
-        getUsers: () => ['user1', 'user2'],
-      };
-
-      container.register('UserService', () => mockUserService);
+      container.register(UserService, () => new UserService());
       container.register(ControllerWithDependencies, (c) => {
-        return new ControllerWithDependencies(c.buildDeps(ControllerWithDependencies.inject));
+        const userService = c.resolve(UserService);
+        return new ControllerWithDependencies(userService);
       });
 
       adapter.registerController(ControllerWithDependencies);
@@ -169,9 +139,7 @@ describe('ExpressAdapter', () => {
 
   describe('listen and close', () => {
     it('should start server on specified port', async () => {
-      container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
-      });
+      container.register(TestController, () => new TestController());
       adapter.registerController(TestController);
 
       const port = 3456;
@@ -184,9 +152,7 @@ describe('ExpressAdapter', () => {
     });
 
     it('should close the server', async () => {
-      container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
-      });
+      container.register(TestController, () => new TestController());
       adapter.registerController(TestController);
 
       const port = 3457;
@@ -208,9 +174,7 @@ describe('ExpressAdapter', () => {
     });
 
     it('should handle route with path parameters', async () => {
-      container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
-      });
+      container.register(TestController, () => new TestController());
       adapter.registerController(TestController);
 
       const port = 3458;
@@ -223,9 +187,7 @@ describe('ExpressAdapter', () => {
     });
 
     it('should handle POST requests', async () => {
-      container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
-      });
+      container.register(TestController, () => new TestController());
       adapter.registerController(TestController);
 
       const port = 3459;
@@ -242,9 +204,7 @@ describe('ExpressAdapter', () => {
     });
 
     it('should return 404 for unmatched routes', async () => {
-      container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
-      });
+      container.register(TestController, () => new TestController());
       adapter.registerController(TestController);
 
       const port = 3460;
@@ -257,9 +217,7 @@ describe('ExpressAdapter', () => {
 
   describe('basePath handling', () => {
     it('should combine basePath with route path', async () => {
-      container.register(HealthController, (c) => {
-        return new HealthController(c.buildDeps(HealthController.inject));
-      });
+      container.register(HealthController, () => new HealthController());
       adapter.registerController(HealthController);
 
       const port = 3461;
@@ -276,18 +234,12 @@ describe('ExpressAdapter', () => {
         static readonly metadata = {
           routes: [{ method: 'GET', path: '/root', handler: 'index' }] as const,
         };
-        static readonly inject = {} as const;
-        constructor(_deps: typeof RootController.inject) {
-          super();
-        }
         index(_req: Request, res: Response): void {
           res.json({ root: true });
         }
       }
 
-      container.register(RootController, (c) => {
-        return new RootController(c.buildDeps(RootController.inject));
-      });
+      container.register(RootController, () => new RootController());
       adapter.registerController(RootController);
 
       const port = 3462;
@@ -307,21 +259,15 @@ describe('ExpressAdapter', () => {
           basePath: '/error',
           routes: [{ method: 'GET', path: '/', handler: 'boom' }] as const,
         };
-        static readonly inject = {} as const;
-        constructor(_deps: typeof ErrorController.inject) {
-          super();
-        }
         boom(): never {
           throw new Error('Something went wrong');
         }
       }
 
-      container.register(ErrorController, (c) => {
-        return new ErrorController(c.buildDeps(ErrorController.inject));
-      });
+      container.register(ErrorController, () => new ErrorController());
       adapter.registerController(ErrorController);
 
-      const port = 3463;
+      const port = 34463;
       await adapter.listen(port);
 
       const response = await fetch(`http://localhost:${port}/error/`);
@@ -342,10 +288,6 @@ describe('ExpressAdapter', () => {
             { method: 'DELETE', path: '/', handler: 'delete' },
           ] as const,
         };
-        static readonly inject = {} as const;
-        constructor(_deps: typeof AllMethodsController.inject) {
-          super();
-        }
         get(_req: Request, res: Response): void {
           res.json({ method: 'GET' });
         }
@@ -363,9 +305,7 @@ describe('ExpressAdapter', () => {
         }
       }
 
-      container.register(AllMethodsController, (c) => {
-        return new AllMethodsController(c.buildDeps(AllMethodsController.inject));
-      });
+      container.register(AllMethodsController, () => new AllMethodsController());
       adapter.registerController(AllMethodsController);
 
       const port = 3464;

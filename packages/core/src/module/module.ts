@@ -1,6 +1,8 @@
-import type { ContainerInterface } from '../container/interfaces.ts';
+import type { ContainerInterface, ResolverInterface } from '../container/interfaces.ts';
 import type { ModuleMetadata, OnModuleDestroy, OnModuleInit } from '../types/module.ts';
 import type { Token } from '../types/token.ts';
+
+export type { ModuleMetadata } from '../types/module.ts';
 
 /**
  * Abstract base class for Voxel modules
@@ -21,6 +23,15 @@ import type { Token } from '../types/token.ts';
  * }
  *
  * @example
+ * // Provider with dependencies using array-based inject
+ * class DatabaseService {
+ *   static readonly inject = [ConfigService] as const;
+ *   constructor(
+ *     private config: ConfigService,
+ *   ) {}
+ * }
+ *
+ * @example
  * // Module with custom registration (e.g., for dependencies)
  * class ServerModule extends Module {
  *   static readonly metadata: ModuleMetadata = {
@@ -30,9 +41,10 @@ import type { Token } from '../types/token.ts';
  *   override register(container: ContainerInterface): void {
  *     super.register(container) // Auto-registers ConfigService
  *     // Custom registration for services with dependencies
- *     container.register(ServerService, (c) => new ServerService({
- *       config: c.resolve(ConfigService),
- *     }))
+ *     container.register(ServerService, (c) => {
+ *       const config = c.resolve(ConfigService);
+ *       return new ServerService(config);
+ *     })
  *   }
  * }
  */
@@ -61,7 +73,7 @@ export abstract class Module implements OnModuleInit, OnModuleDestroy {
       for (const provider of metadata.providers) {
         // Register provider with the class itself as the token
         const ProviderClass = provider as new (...args: unknown[]) => unknown;
-        container.register(ProviderClass, () => new ProviderClass());
+        container.register(ProviderClass, (c) => this.createInstance(ProviderClass, c));
       }
     }
 
@@ -70,9 +82,37 @@ export abstract class Module implements OnModuleInit, OnModuleDestroy {
       for (const controller of metadata.controllers) {
         // Register controller with the class itself as the token
         const ControllerClass = controller as new (...args: unknown[]) => unknown;
-        container.register(ControllerClass, () => new ControllerClass());
+        container.register(ControllerClass, (c) => this.createInstance(ControllerClass, c));
       }
     }
+  }
+
+  /**
+   * Creates an instance of a class using the array-based inject pattern.
+   *
+   * Classes declare dependencies via `static inject = [Dep1, Dep2] as const`
+   * and receive them as individual constructor parameters.
+   *
+   * @param Class - The class constructor
+   * @param container - The container to resolve dependencies from
+   * @returns A new instance of the class
+   */
+  protected createInstance<TClass extends new (...args: any) => any>(
+    Class: TClass,
+    container: ResolverInterface,
+  ): InstanceType<TClass> {
+    const ClassWithInject = Class as typeof Class & {
+      inject?: readonly unknown[];
+    };
+
+    // Check if class has an inject property
+    if ('inject' in ClassWithInject && ClassWithInject.inject && Array.isArray(ClassWithInject.inject)) {
+      const deps = container.buildDeps(ClassWithInject.inject as readonly Token[]);
+      return new Class(...(deps as unknown[]));
+    }
+
+    // No inject property - instantiate without arguments
+    return new Class();
   }
 
   /**
@@ -97,7 +137,7 @@ export abstract class Module implements OnModuleInit, OnModuleDestroy {
    *   await this.connectToDatabase()
    * }
    */
-  async onModuleInit(): Promise<void> {
+  onModuleInit(): Promise<void> | void {
     // Default implementation does nothing
   }
 
@@ -111,7 +151,7 @@ export abstract class Module implements OnModuleInit, OnModuleDestroy {
    *   await this.closeConnections()
    * }
    */
-  async onModuleDestroy(): Promise<void> {
+  onModuleDestroy(): Promise<void> | void {
     // Default implementation does nothing
   }
 }

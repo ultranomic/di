@@ -1,4 +1,5 @@
 import type { ContainerInterface, ResolverInterface } from '../container/interfaces.ts';
+import type { InferInject } from '../types/deps.ts';
 import { NonExportedTokenError } from '../errors/non-exported-token.ts';
 import type { Token } from '../types/token.ts';
 
@@ -134,12 +135,9 @@ export class ModuleContainer implements ContainerInterface {
     return this.baseContainer.getBinding(token);
   }
 
-  buildDeps<TInjectMap extends Record<string, Token>>(injectMap: TInjectMap): Record<string, unknown> {
-    const deps: Record<string, unknown> = {};
-    for (const [key, token] of Object.entries(injectMap)) {
-      deps[key] = this.resolve(token);
-    }
-    return deps;
+  buildDeps<TTokens extends readonly Token[]>(tokens: TTokens): InferInject<TTokens> {
+    const resolvedTokens = tokens.map((token) => this.resolve(token));
+    return resolvedTokens as InferInject<TTokens>;
   }
 
   clear(): void {

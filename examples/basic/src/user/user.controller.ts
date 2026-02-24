@@ -6,23 +6,14 @@
  */
 import type { Request, Response } from 'express';
 import { Controller } from '@voxeljs/core';
-import type { ControllerMetadata } from '@voxeljs/core';
-
-interface UserService {
-  findAll(): Array<{ id: string; name: string; email: string; createdAt: Date }>;
-  findById(id: string): { id: string; name: string; email: string; createdAt: Date } | undefined;
-  create(data: { name: string; email: string }): { id: string; name: string; email: string; createdAt: Date };
-  update(id: string, data: { name?: string; email?: string }): { id: string; name: string; email: string; createdAt: Date } | undefined;
-  delete(id: string): boolean;
-}
+import type { ControllerMetadata, ConstructorInfer } from '@voxeljs/core';
+import type { UserService } from './user.service.ts';
 
 export class UserController extends Controller {
   /**
    * Static inject property defines dependencies
    */
-  static readonly inject = {
-    userService: 'UserService',
-  } as const;
+  static readonly inject = ['UserService'] as const satisfies ConstructorInfer<typeof UserController>;
 
   /**
    * Static metadata defines controller routes
@@ -39,7 +30,7 @@ export class UserController extends Controller {
     ] as const,
   };
 
-  constructor(private deps: typeof UserController.inject) {
+  constructor(private userService: UserService) {
     super();
   }
 
@@ -47,7 +38,7 @@ export class UserController extends Controller {
    * GET /users - Get all users
    */
   findAll(_req: Request, res: Response): void {
-    const users = (this.deps.userService as UserService).findAll();
+    const users = this.userService.findAll();
     res.json({ data: users, count: users.length });
   }
 
@@ -56,7 +47,7 @@ export class UserController extends Controller {
    */
   findById(req: Request, res: Response): void {
     const { id } = req.params;
-    const user = (this.deps.userService as UserService).findById(id);
+    const user = this.userService.findById(typeof id === 'string' ? id : id[0]);
 
     if (!user) {
       res.status(404).json({ error: `User with id ${id} not found` });
@@ -77,7 +68,7 @@ export class UserController extends Controller {
       return;
     }
 
-    const user = (this.deps.userService as UserService).create({ name, email });
+    const user = this.userService.create({ name, email });
     res.status(201).json({ data: user });
   }
 
@@ -88,7 +79,7 @@ export class UserController extends Controller {
     const { id } = req.params;
     const { name, email } = req.body as { name?: string; email?: string };
 
-    const user = (this.deps.userService as UserService).update(id, { name, email });
+    const user = this.userService.update(typeof id === 'string' ? id : id[0], { name, email });
 
     if (!user) {
       res.status(404).json({ error: `User with id ${id} not found` });
@@ -103,7 +94,7 @@ export class UserController extends Controller {
    */
   delete(req: Request, res: Response): void {
     const { id } = req.params;
-    const deleted = (this.deps.userService as UserService).delete(id);
+    const deleted = this.userService.delete(typeof id === 'string' ? id : id[0]);
 
     if (!deleted) {
       res.status(404).json({ error: `User with id ${id} not found` });

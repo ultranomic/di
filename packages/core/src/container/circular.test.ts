@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import type { Token } from '../types/token.ts';
 import { Container } from './container.ts';
 
 describe('Circular Dependencies', () => {
@@ -11,83 +12,77 @@ describe('Circular Dependencies', () => {
   describe('basic circular dependency', () => {
     it('should resolve ServiceA -> ServiceB -> ServiceA without throwing', () => {
       class ServiceA {
-        static readonly inject = { serviceB: 'ServiceB' } as const;
-        constructor(private deps: typeof ServiceA.inject) {}
+        static readonly inject = ['ServiceB'] as const;
+        constructor(private _serviceB: unknown) {}
         getValue() {
           return 'A';
-        }
-        getBValue() {
-          return this.deps.serviceB.getValue();
         }
       }
 
       class ServiceB {
-        static readonly inject = { serviceA: 'ServiceA' } as const;
-        constructor(private deps: typeof ServiceB.inject) {}
+        static readonly inject = ['ServiceA'] as const;
+        constructor(private _serviceA: unknown) {}
         getValue() {
           return 'B';
         }
-        getAValue() {
-          return this.deps.serviceA.getValue();
-        }
       }
 
-      container.register('ServiceA', (c) => new ServiceA({ serviceB: c.resolve('ServiceB') }));
-      container.register('ServiceB', (c) => new ServiceB({ serviceA: c.resolve('ServiceA') }));
+      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
+      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject)));
 
       expect(() => container.resolve('ServiceA')).not.toThrow();
     });
 
     it('should allow accessing circular dependency properties after resolution', () => {
       class ServiceA {
-        static readonly inject = { serviceB: 'ServiceB' } as const;
-        constructor(private deps: typeof ServiceA.inject) {}
+        static readonly inject = ['ServiceB'] as const;
+        constructor(private serviceB: unknown) {}
         getValue() {
           return 'A';
         }
         getBValue() {
-          return this.deps.serviceB.getValue();
+          return (this.serviceB as { getValue: () => string }).getValue();
         }
       }
 
       class ServiceB {
-        static readonly inject = { serviceA: 'ServiceA' } as const;
-        constructor(private deps: typeof ServiceB.inject) {}
+        static readonly inject = ['ServiceA'] as const;
+        constructor(private _serviceA: unknown) {}
         getValue() {
           return 'B';
         }
       }
 
-      container.register('ServiceA', (c) => new ServiceA({ serviceB: c.resolve('ServiceB') }));
-      container.register('ServiceB', (c) => new ServiceB({ serviceA: c.resolve('ServiceA') }));
+      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
+      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject)));
 
-      const serviceA = container.resolve('ServiceA');
+      const serviceA = container.resolve('ServiceA') as ServiceA;
 
       expect(serviceA.getBValue()).toBe('B');
     });
 
     it('should work with both directions of circular dependency', () => {
       class ServiceA {
-        static readonly inject = { serviceB: 'ServiceB' } as const;
-        constructor(private deps: typeof ServiceA.inject) {}
+        static readonly inject = ['ServiceB'] as const;
+        constructor(private _serviceB: unknown) {}
         getValue() {
           return 'A';
         }
       }
 
       class ServiceB {
-        static readonly inject = { serviceA: 'ServiceA' } as const;
-        constructor(private deps: typeof ServiceB.inject) {}
+        static readonly inject = ['ServiceA'] as const;
+        constructor(private _serviceA: unknown) {}
         getValue() {
           return 'B';
         }
       }
 
-      container.register('ServiceA', (c) => new ServiceA({ serviceB: c.resolve('ServiceB') }));
-      container.register('ServiceB', (c) => new ServiceB({ serviceA: c.resolve('ServiceA') }));
+      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
+      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject)));
 
-      const serviceA = container.resolve('ServiceA');
-      const serviceB = container.resolve('ServiceB');
+      const serviceA = container.resolve('ServiceA') as ServiceA;
+      const serviceB = container.resolve('ServiceB') as ServiceB;
 
       expect(serviceA.getValue()).toBe('A');
       expect(serviceB.getValue()).toBe('B');
@@ -97,64 +92,61 @@ describe('Circular Dependencies', () => {
   describe('proxy edge cases', () => {
     it('should handle await on proxy without TypeError (then returns undefined)', async () => {
       class ServiceA {
-        static readonly inject = { serviceB: 'ServiceB' } as const;
-        constructor(private deps: typeof ServiceA.inject) {}
+        static readonly inject = ['ServiceB'] as const;
+        constructor(private serviceB: unknown) {}
       }
 
       class ServiceB {
-        static readonly inject = { serviceA: 'ServiceA' } as const;
-        constructor(private deps: typeof ServiceB.inject) {}
+        static readonly inject = ['ServiceA'] as const;
+        constructor(private _serviceA: unknown) {}
       }
 
-      container.register('ServiceA', (c) => new ServiceA({ serviceB: c.resolve('ServiceB') }));
-      container.register('ServiceB', (c) => new ServiceB({ serviceA: c.resolve('ServiceA') }));
+      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
+      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject)));
 
-      const serviceA = container.resolve('ServiceA');
+      const serviceA = container.resolve('ServiceA') as ServiceA;
 
-      const result = await serviceA.deps.serviceB;
+      const result = await (serviceA as unknown as { serviceB: unknown }).serviceB;
       expect(result).toBeDefined();
     });
 
     it('should handle toString on proxy for logging', () => {
       class ServiceA {
-        static readonly inject = { serviceB: 'ServiceB' } as const;
-        constructor(private deps: typeof ServiceA.inject) {}
+        static readonly inject = ['ServiceB'] as const;
+        constructor(private serviceB: unknown) {}
       }
 
       class ServiceB {
-        static readonly inject = { serviceA: 'ServiceA' } as const;
-        constructor(private deps: typeof ServiceB.inject) {}
+        static readonly inject = ['ServiceA'] as const;
+        constructor(private _serviceA: unknown) {}
       }
 
-      container.register('ServiceA', (c) => new ServiceA({ serviceB: c.resolve('ServiceB') }));
-      container.register('ServiceB', (c) => new ServiceB({ serviceA: c.resolve('ServiceA') }));
+      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
+      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject)));
 
-      const serviceA = container.resolve('ServiceA');
+      const serviceA = container.resolve('ServiceA') as ServiceA;
 
-      const str = String(serviceA.deps.serviceB);
+      const str = String((serviceA as unknown as { serviceB: unknown }).serviceB);
       expect(typeof str).toBe('string');
     });
 
     it('should handle console.log style inspection', () => {
       class ServiceA {
-        static readonly inject = { serviceB: 'ServiceB' } as const;
-        constructor(private deps: typeof ServiceA.inject) {}
+        static readonly inject = ['ServiceB'] as const;
+        constructor(private serviceB: unknown) {}
       }
 
       class ServiceB {
-        static readonly inject = { serviceA: 'ServiceA' } as const;
-        constructor(private deps: typeof ServiceB.inject) {}
+        static readonly inject = ['ServiceA'] as const;
+        constructor(private _serviceA: unknown) {}
       }
 
-      container.register('ServiceA', (c) => new ServiceA({ serviceB: c.resolve('ServiceB') }));
-      container.register('ServiceB', (c) => new ServiceB({ serviceA: c.resolve('ServiceA') }));
+      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
+      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject)));
 
-      const serviceA = container.resolve('ServiceA');
+      const serviceA = container.resolve('ServiceA') as ServiceA;
 
-      // After resolution, serviceA.deps.serviceB is the actual instance, not a proxy.
-      // The circular proxy is used for serviceB.deps.serviceA during construction.
-      // Verify the object can be converted to string without error.
-      const str = Object.prototype.toString.call(serviceA.deps.serviceB);
+      const str = Object.prototype.toString.call((serviceA as unknown as { serviceB: unknown }).serviceB);
       expect(typeof str).toBe('string');
     });
 
@@ -162,26 +154,24 @@ describe('Circular Dependencies', () => {
       let capturedProxy: { toString: () => string } | null = null;
 
       class ServiceA {
-        static readonly inject = { serviceB: 'ServiceB' } as const;
-        constructor(private deps: typeof ServiceA.inject) {}
+        static readonly inject = ['ServiceB'] as const;
+        constructor(private _serviceB: unknown) {}
       }
 
       class ServiceB {
-        static readonly inject = { serviceA: 'ServiceA' } as const;
-        constructor(deps: typeof ServiceB.inject) {
-          // Capture proxy during construction before instance is set
-          capturedProxy = deps.serviceA as { toString: () => string };
+        static readonly inject = ['ServiceA'] as const;
+        constructor(serviceA: unknown) {
+          capturedProxy = serviceA as { toString: () => string };
         }
       }
 
-      container.register('ServiceA', (c) => new ServiceA({ serviceB: c.resolve('ServiceB') }));
-      container.register('ServiceB', (c) => new ServiceB({ serviceA: c.resolve('ServiceA') }));
+      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
+      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject)));
 
       container.resolve('ServiceA');
 
-      // Call toString on the captured proxy
       expect(capturedProxy).not.toBeNull();
-      const result = capturedProxy?.toString();
+      const result = (capturedProxy as unknown as { toString: () => string }).toString();
       expect(result).toBe('[CircularProxy: ServiceA]');
     });
 
@@ -189,24 +179,22 @@ describe('Circular Dependencies', () => {
       let capturedProxy: { [Symbol.toStringTag]?: string } | null = null;
 
       class ServiceA {
-        static readonly inject = { serviceB: 'ServiceB' } as const;
-        constructor(private deps: typeof ServiceA.inject) {}
+        static readonly inject = ['ServiceB'] as const;
+        constructor(private _serviceB: unknown) {}
       }
 
       class ServiceB {
-        static readonly inject = { serviceA: 'ServiceA' } as const;
-        constructor(deps: typeof ServiceB.inject) {
-          // Capture proxy during construction
-          capturedProxy = deps.serviceA as { [Symbol.toStringTag]?: string };
+        static readonly inject = ['ServiceA'] as const;
+        constructor(serviceA: unknown) {
+          capturedProxy = serviceA as { [Symbol.toStringTag]?: string };
         }
       }
 
-      container.register('ServiceA', (c) => new ServiceA({ serviceB: c.resolve('ServiceB') }));
-      container.register('ServiceB', (c) => new ServiceB({ serviceA: c.resolve('ServiceA') }));
+      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
+      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject)));
 
       container.resolve('ServiceA');
 
-      // Access Symbol.toStringTag on the captured proxy
       expect(capturedProxy).not.toBeNull();
       expect(capturedProxy?.[Symbol.toStringTag]).toBe('CircularProxy');
     });
@@ -214,72 +202,72 @@ describe('Circular Dependencies', () => {
     it('should forward property access through proxy after instance is resolved', () => {
       let capturedProxy: { getValue: () => string } | null = null;
       class ServiceA {
-        static readonly inject = { serviceB: 'ServiceB' } as const;
-        constructor(private deps: typeof ServiceA.inject) {}
+        static readonly inject = ['ServiceB'] as const;
+        constructor(private _serviceB: unknown) {}
         getValue() {
           return 'A';
         }
       }
 
       class ServiceB {
-        static readonly inject = { serviceA: 'ServiceA' } as const;
-        constructor(deps: typeof ServiceB.inject) {
-          capturedProxy = deps.serviceA as { getValue: () => string };
+        static readonly inject = ['ServiceA'] as const;
+        constructor(serviceA: unknown) {
+          capturedProxy = serviceA as { getValue: () => string };
         }
       }
 
-      container.register('ServiceA', (c) => new ServiceA({ serviceB: c.resolve('ServiceB') })).asSingleton();
-      container.register('ServiceB', (c) => new ServiceB({ serviceA: c.resolve('ServiceA') })).asSingleton();
+      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject))).asSingleton();
+      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject))).asSingleton();
 
       container.resolve('ServiceA');
 
       expect(capturedProxy).not.toBeNull();
-      expect(capturedProxy?.getValue()).toBe('A');
+      expect((capturedProxy as unknown as { getValue: () => string }).getValue()).toBe('A');
     });
 
     it('should forward non-function property access through proxy after instance is resolved', () => {
       let capturedProxy: { value: string } | null = null;
 
       class ServiceA {
-        static readonly inject = { serviceB: 'ServiceB' } as const;
-        constructor(private deps: typeof ServiceA.inject) {}
+        static readonly inject = ['ServiceB'] as const;
+        constructor(private _serviceB: unknown) {}
         readonly value = 'test-value';
       }
 
       class ServiceB {
-        static readonly inject = { serviceA: 'ServiceA' } as const;
-        constructor(deps: typeof ServiceB.inject) {
-          capturedProxy = deps.serviceA as { value: string };
+        static readonly inject = ['ServiceA'] as const;
+        constructor(serviceA: unknown) {
+          capturedProxy = serviceA as { value: string };
         }
       }
 
-      container.register('ServiceA', (c) => new ServiceA({ serviceB: c.resolve('ServiceB') })).asSingleton();
-      container.register('ServiceB', (c) => new ServiceB({ serviceA: c.resolve('ServiceA') })).asSingleton();
+      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject))).asSingleton();
+      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject))).asSingleton();
 
       container.resolve('ServiceA');
 
       expect(capturedProxy).not.toBeNull();
-      expect(capturedProxy?.value).toBe('test-value');
+      expect((capturedProxy as unknown as { value: string }).value).toBe('test-value');
     });
 
     it('should return undefined for then property on circular proxy', () => {
       let capturedThen: unknown = 'not-set';
 
       class ServiceA {
-        static readonly inject = { serviceB: 'ServiceB' } as const;
-        constructor(private deps: typeof ServiceA.inject) {}
+        static readonly inject = ['ServiceB'] as const;
+        constructor(private _serviceB: unknown) {}
       }
 
       class ServiceB {
-        static readonly inject = { serviceA: 'ServiceA' } as const;
-        constructor(deps: typeof ServiceB.inject) {
-          const proxy = deps.serviceA as { then: unknown };
+        static readonly inject = ['ServiceA'] as const;
+        constructor(serviceA: unknown) {
+          const proxy = serviceA as { then: unknown };
           capturedThen = proxy.then;
         }
       }
 
-      container.register('ServiceA', (c) => new ServiceA({ serviceB: c.resolve('ServiceB') }));
-      container.register('ServiceB', (c) => new ServiceB({ serviceA: c.resolve('ServiceA') }));
+      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
+      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject)));
 
       container.resolve('ServiceA');
 
@@ -289,18 +277,18 @@ describe('Circular Dependencies', () => {
     it('should return undefined for non-existent property on proxy', () => {
       let accessedValue: unknown = 'not-set';
       class ServiceA {
-        static readonly inject = { serviceB: 'ServiceB' } as const;
-        constructor(private deps: typeof ServiceA.inject) {}
+        static readonly inject = ['ServiceB'] as const;
+        constructor(private _serviceB: unknown) {}
       }
       class ServiceB {
-        static readonly inject = { serviceA: 'ServiceA' } as const;
-        constructor(deps: typeof ServiceB.inject) {
-          const proxy = deps.serviceA as { nonExistent: unknown };
+        static readonly inject = ['ServiceA'] as const;
+        constructor(serviceA: unknown) {
+          const proxy = serviceA as { nonExistent: unknown };
           accessedValue = proxy.nonExistent;
         }
       }
-      container.register('ServiceA', (c) => new ServiceA({ serviceB: c.resolve('ServiceB') }));
-      container.register('ServiceB', (c) => new ServiceB({ serviceA: c.resolve('ServiceA') }));
+      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
+      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject)));
       container.resolve('ServiceA');
 
       expect(accessedValue).toBeUndefined();
@@ -310,23 +298,23 @@ describe('Circular Dependencies', () => {
   describe('singleton circular dependencies', () => {
     it('should resolve singleton circular dependencies correctly', () => {
       class ServiceA {
-        static readonly inject = { serviceB: 'ServiceB' } as const;
-        constructor(private deps: typeof ServiceA.inject) {}
+        static readonly inject = ['ServiceB'] as const;
+        constructor(private _serviceB: unknown) {}
         getValue() {
           return 'A';
         }
       }
 
       class ServiceB {
-        static readonly inject = { serviceA: 'ServiceA' } as const;
-        constructor(private deps: typeof ServiceB.inject) {}
+        static readonly inject = ['ServiceA'] as const;
+        constructor(private _serviceA: unknown) {}
         getValue() {
           return 'B';
         }
       }
 
-      container.register('ServiceA', (c) => new ServiceA({ serviceB: c.resolve('ServiceB') })).asSingleton();
-      container.register('ServiceB', (c) => new ServiceB({ serviceA: c.resolve('ServiceA') })).asSingleton();
+      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject))).asSingleton();
+      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject))).asSingleton();
 
       const serviceA1 = container.resolve('ServiceA');
       const serviceA2 = container.resolve('ServiceA');
@@ -336,29 +324,29 @@ describe('Circular Dependencies', () => {
 
     it('should forward method calls through circular proxy', () => {
       class ServiceA {
-        static readonly inject = { serviceB: 'ServiceB' } as const;
-        constructor(private deps: typeof ServiceA.inject) {}
+        static readonly inject = ['ServiceB'] as const;
+        constructor(private _serviceB: unknown) {}
         getValue() {
           return 'A';
         }
       }
 
       class ServiceB {
-        static readonly inject = { serviceA: 'ServiceA' } as const;
-        constructor(private deps: typeof ServiceB.inject) {}
+        static readonly inject = ['ServiceA'] as const;
+        constructor(private serviceA: unknown) {}
         getValue() {
           return 'B';
         }
         getAValue() {
-          return this.deps.serviceA.getValue();
+          return (this.serviceA as ServiceA).getValue();
         }
       }
 
-      container.register('ServiceA', (c) => new ServiceA({ serviceB: c.resolve('ServiceB') })).asSingleton();
-      container.register('ServiceB', (c) => new ServiceB({ serviceA: c.resolve('ServiceA') })).asSingleton();
+      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject))).asSingleton();
+      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject))).asSingleton();
 
-      const serviceA = container.resolve('ServiceA');
-      const serviceB = container.resolve('ServiceB');
+      const serviceA = container.resolve('ServiceA') as ServiceA;
+      const serviceB = container.resolve('ServiceB') as ServiceB;
 
       expect(serviceA.getValue()).toBe('A');
       expect(serviceB.getValue()).toBe('B');
@@ -369,48 +357,48 @@ describe('Circular Dependencies', () => {
   describe('complex circular dependencies', () => {
     it('should handle three-way circular dependency', () => {
       class ServiceA {
-        static readonly inject = { serviceB: 'ServiceB' } as const;
-        constructor(private deps: typeof ServiceA.inject) {}
+        static readonly inject = ['ServiceB'] as const;
+        constructor(private _serviceB: unknown) {}
         getValue() {
           return 'A';
         }
       }
 
       class ServiceB {
-        static readonly inject = { serviceC: 'ServiceC' } as const;
-        constructor(private deps: typeof ServiceB.inject) {}
+        static readonly inject = ['ServiceC'] as const;
+        constructor(private _serviceC: unknown) {}
         getValue() {
           return 'B';
         }
       }
 
       class ServiceC {
-        static readonly inject = { serviceA: 'ServiceA' } as const;
-        constructor(private deps: typeof ServiceC.inject) {}
+        static readonly inject = ['ServiceA'] as const;
+        constructor(private _serviceA: unknown) {}
         getValue() {
           return 'C';
         }
       }
 
-      container.register('ServiceA', (c) => new ServiceA({ serviceB: c.resolve('ServiceB') }));
-      container.register('ServiceB', (c) => new ServiceB({ serviceC: c.resolve('ServiceC') }));
-      container.register('ServiceC', (c) => new ServiceC({ serviceA: c.resolve('ServiceA') }));
+      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
+      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject)));
+      container.register('ServiceC', (c) => new ServiceC(...c.buildDeps(ServiceC.inject)));
 
       expect(() => container.resolve('ServiceA')).not.toThrow();
     });
 
     it('should handle self-referencing dependency', () => {
       class Service {
-        static readonly inject = { self: 'Service' } as const;
-        constructor(private deps: typeof Service.inject) {}
+        static readonly inject = ['Service'] as const;
+        constructor(private _self: unknown) {}
         getValue() {
           return 'value';
         }
       }
 
-      container.register('Service', (c) => new Service({ self: c.resolve('Service') }));
+      container.register('Service', (c) => new Service(...c.buildDeps(Service.inject)));
 
-      const service = container.resolve('Service');
+      const service = container.resolve('Service') as Service;
       expect(service.getValue()).toBe('value');
     });
   });

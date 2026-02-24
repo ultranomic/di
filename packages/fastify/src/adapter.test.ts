@@ -1,4 +1,5 @@
 import { Container, Controller } from '@voxeljs/core';
+import type { DepsTokens } from '@voxeljs/core';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { FastifyAdapter } from './adapter.ts';
@@ -13,18 +14,12 @@ class TestController extends Controller {
     ] as const,
   };
 
-  static readonly inject = {} as const;
-
-  constructor(_deps: typeof TestController.inject) {
-    super();
-  }
-
   list(_req: FastifyRequest, reply: FastifyReply): void {
     reply.send({ items: ['a', 'b', 'c'] });
   }
 
   get(req: FastifyRequest, reply: FastifyReply): void {
-    reply.send({ id: req.params.id });
+    reply.send({ id: (req.params as Record<string, string>)['id'] });
   }
 
   create(_req: FastifyRequest, reply: FastifyReply): void {
@@ -38,24 +33,12 @@ class HealthController extends Controller {
     routes: [{ method: 'GET', path: '/', handler: 'check' }] as const,
   };
 
-  static readonly inject = {} as const;
-
-  constructor(_deps: typeof HealthController.inject) {
-    super();
-  }
-
   check(_req: FastifyRequest, reply: FastifyReply): void {
     reply.send({ status: 'ok' });
   }
 }
 
 class ControllerWithoutMetadata extends Controller {
-  static readonly inject = {} as const;
-
-  constructor(_deps: typeof ControllerWithoutMetadata.inject) {
-    super();
-  }
-
   list(_req: FastifyRequest, reply: FastifyReply): void {
     reply.send({ items: [] });
   }
@@ -65,11 +48,11 @@ class ControllerWithoutRoutes extends Controller {
   static readonly metadata = {
     basePath: '/empty',
   };
+}
 
-  static readonly inject = {} as const;
-
-  constructor(_deps: typeof ControllerWithoutRoutes.inject) {
-    super();
+class UserService {
+  getUsers() {
+    return ['user1', 'user2'];
   }
 }
 
@@ -79,14 +62,14 @@ class ControllerWithDependencies extends Controller {
     routes: [{ method: 'GET', path: '/', handler: 'list' }] as const,
   };
 
-  static readonly inject = { service: 'UserService' } as const;
+  static readonly inject = [UserService] as const satisfies DepsTokens<typeof ControllerWithDependencies>;
 
-  constructor(private deps: typeof ControllerWithDependencies.inject) {
+  constructor(private userService: UserService) {
     super();
   }
 
   list(_req: FastifyRequest, reply: FastifyReply): void {
-    reply.send({ users: this.deps.service.getUsers() });
+    reply.send({ users: this.userService.getUsers() });
   }
 }
 
@@ -117,49 +100,36 @@ describe('FastifyAdapter', () => {
 
   describe('registerController', () => {
     it('should register routes from controller metadata', () => {
-      container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
-      });
+      container.register(TestController, () => new TestController());
 
       expect(() => adapter.registerController(TestController)).not.toThrow();
     });
 
     it('should handle controller without metadata gracefully', () => {
-      container.register(ControllerWithoutMetadata, (c) => {
-        return new ControllerWithoutMetadata(c.buildDeps(ControllerWithoutMetadata.inject));
-      });
+      container.register(ControllerWithoutMetadata, () => new ControllerWithoutMetadata());
 
       expect(() => adapter.registerController(ControllerWithoutMetadata)).not.toThrow();
     });
 
     it('should handle controller with metadata but no routes', () => {
-      container.register(ControllerWithoutRoutes, (c) => {
-        return new ControllerWithoutRoutes(c.buildDeps(ControllerWithoutRoutes.inject));
-      });
+      container.register(ControllerWithoutRoutes, () => new ControllerWithoutRoutes());
 
       expect(() => adapter.registerController(ControllerWithoutRoutes)).not.toThrow();
     });
 
     it('should register multiple controllers', () => {
-      container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
-      });
-      container.register(HealthController, (c) => {
-        return new HealthController(c.buildDeps(HealthController.inject));
-      });
+      container.register(TestController, () => new TestController());
+      container.register(HealthController, () => new HealthController());
 
       expect(() => adapter.registerController(TestController)).not.toThrow();
       expect(() => adapter.registerController(HealthController)).not.toThrow();
     });
 
     it('should resolve controller dependencies', () => {
-      const mockUserService = {
-        getUsers: () => ['user1', 'user2'],
-      };
-
-      container.register('UserService', () => mockUserService);
+      container.register(UserService, () => new UserService());
       container.register(ControllerWithDependencies, (c) => {
-        return new ControllerWithDependencies(c.buildDeps(ControllerWithDependencies.inject));
+        const userService = c.resolve(UserService);
+        return new ControllerWithDependencies(userService);
       });
 
       adapter.registerController(ControllerWithDependencies);
@@ -169,9 +139,7 @@ describe('FastifyAdapter', () => {
 
   describe('listen and close', () => {
     it('should start server on specified port', async () => {
-      container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
-      });
+      container.register(TestController, () => new TestController());
       adapter.registerController(TestController);
 
       const port = 3556;
@@ -184,9 +152,7 @@ describe('FastifyAdapter', () => {
     });
 
     it('should close the server', async () => {
-      container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
-      });
+      container.register(TestController, () => new TestController());
       adapter.registerController(TestController);
 
       const port = 3557;
@@ -208,9 +174,7 @@ describe('FastifyAdapter', () => {
     });
 
     it('should handle route with path parameters', async () => {
-      container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
-      });
+      container.register(TestController, () => new TestController());
       adapter.registerController(TestController);
 
       const port = 3558;
@@ -223,9 +187,7 @@ describe('FastifyAdapter', () => {
     });
 
     it('should handle POST requests', async () => {
-      container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
-      });
+      container.register(TestController, () => new TestController());
       adapter.registerController(TestController);
 
       const port = 3559;
@@ -242,9 +204,7 @@ describe('FastifyAdapter', () => {
     });
 
     it('should return 404 for unmatched routes', async () => {
-      container.register(TestController, (c) => {
-        return new TestController(c.buildDeps(TestController.inject));
-      });
+      container.register(TestController, () => new TestController());
       adapter.registerController(TestController);
 
       const port = 3560;
@@ -257,9 +217,7 @@ describe('FastifyAdapter', () => {
 
   describe('basePath handling', () => {
     it('should combine basePath with route path', async () => {
-      container.register(HealthController, (c) => {
-        return new HealthController(c.buildDeps(HealthController.inject));
-      });
+      container.register(HealthController, () => new HealthController());
       adapter.registerController(HealthController);
 
       const port = 3561;
@@ -276,18 +234,12 @@ describe('FastifyAdapter', () => {
         static readonly metadata = {
           routes: [{ method: 'GET', path: '/root', handler: 'index' }] as const,
         };
-        static readonly inject = {} as const;
-        constructor(_deps: typeof RootController.inject) {
-          super();
-        }
         index(_req: FastifyRequest, reply: FastifyReply): void {
           reply.send({ root: true });
         }
       }
 
-      container.register(RootController, (c) => {
-        return new RootController(c.buildDeps(RootController.inject));
-      });
+      container.register(RootController, () => new RootController());
       adapter.registerController(RootController);
 
       const port = 3562;
@@ -305,18 +257,12 @@ describe('FastifyAdapter', () => {
           basePath: '/trailing/',
           routes: [{ method: 'GET', path: '/test', handler: 'test' }] as const,
         };
-        static readonly inject = {} as const;
-        constructor(_deps: typeof TrailingSlashController.inject) {
-          super();
-        }
         test(_req: FastifyRequest, reply: FastifyReply): void {
           reply.send({ trailing: true });
         }
       }
 
-      container.register(TrailingSlashController, (c) => {
-        return new TrailingSlashController(c.buildDeps(TrailingSlashController.inject));
-      });
+      container.register(TrailingSlashController, () => new TrailingSlashController());
       adapter.registerController(TrailingSlashController);
 
       const port = 3567;
@@ -333,20 +279,14 @@ describe('FastifyAdapter', () => {
         static readonly metadata = {
           basePath: '/nolead',
           // Testing edge case where path doesn't start with /
-          routes: [{ method: 'GET', path: 'test' as string, handler: 'test' }],
+          routes: [{ method: 'GET', path: 'test', handler: 'test' }] as const,
         };
-        static readonly inject = {} as const;
-        constructor(_deps: typeof NoLeadingSlashController.inject) {
-          super();
-        }
         test(_req: FastifyRequest, reply: FastifyReply): void {
           reply.send({ nolead: true });
         }
       }
 
-      container.register(NoLeadingSlashController, (c) => {
-        return new NoLeadingSlashController(c.buildDeps(NoLeadingSlashController.inject));
-      });
+      container.register(NoLeadingSlashController, () => new NoLeadingSlashController());
       adapter.registerController(NoLeadingSlashController);
 
       const port = 3569;
@@ -366,17 +306,11 @@ describe('FastifyAdapter', () => {
           basePath: '/error',
           routes: [{ method: 'GET', path: '/', handler: 'boom' }] as const,
         };
-        static readonly inject = {} as const;
-        constructor(_deps: typeof ErrorController.inject) {
-          super();
-        }
         boom(): never {
           throw new Error('Something went wrong');
         }
       }
-      container.register(ErrorController, (c) => {
-        return new ErrorController(c.buildDeps(ErrorController.inject));
-      });
+      container.register(ErrorController, () => new ErrorController());
       adapter.registerController(ErrorController);
       const port = 3563;
       await adapter.listen(port);
@@ -390,15 +324,9 @@ describe('FastifyAdapter', () => {
           basePath: '/invalid',
           routes: [{ method: 'GET', path: '/', handler: 'nonexistent' }] as const,
         };
-        static readonly inject = {} as const;
-        constructor(_deps: typeof InvalidHandlerController.inject) {
-          super();
-        }
       }
 
-      container.register(InvalidHandlerController, (c) => {
-        return new InvalidHandlerController(c.buildDeps(InvalidHandlerController.inject));
-      });
+      container.register(InvalidHandlerController, () => new InvalidHandlerController());
       adapter.registerController(InvalidHandlerController);
 
       const port = 3565;
@@ -416,19 +344,13 @@ describe('FastifyAdapter', () => {
           basePath: '/async',
           routes: [{ method: 'GET', path: '/', handler: 'getData' }] as const,
         };
-        static readonly inject = {} as const;
-        constructor(_deps: typeof AsyncController.inject) {
-          super();
-        }
         async getData(_req: FastifyRequest, reply: FastifyReply): Promise<void> {
           await new Promise((resolve) => globalThis.setTimeout(resolve, 10));
           reply.send({ async: true });
         }
       }
 
-      container.register(AsyncController, (c) => {
-        return new AsyncController(c.buildDeps(AsyncController.inject));
-      });
+      container.register(AsyncController, () => new AsyncController());
       adapter.registerController(AsyncController);
 
       const port = 3566;
@@ -446,19 +368,13 @@ describe('FastifyAdapter', () => {
           basePath: '/nonerror',
           routes: [{ method: 'GET', path: '/', handler: 'throw' }] as const,
         };
-        static readonly inject = {} as const;
-        constructor(_deps: typeof NonErrorController.inject) {
-          super();
-        }
         throw(): never {
           //
           throw 'string error';
         }
       }
 
-      container.register(NonErrorController, (c) => {
-        return new NonErrorController(c.buildDeps(NonErrorController.inject));
-      });
+      container.register(NonErrorController, () => new NonErrorController());
       adapter.registerController(NonErrorController);
 
       const port = 3568;
@@ -484,10 +400,6 @@ describe('FastifyAdapter', () => {
             { method: 'DELETE', path: '/', handler: 'delete' },
           ] as const,
         };
-        static readonly inject = {} as const;
-        constructor(_deps: typeof AllMethodsController.inject) {
-          super();
-        }
         get(_req: FastifyRequest, reply: FastifyReply): void {
           reply.send({ method: 'GET' });
         }
@@ -505,9 +417,7 @@ describe('FastifyAdapter', () => {
         }
       }
 
-      container.register(AllMethodsController, (c) => {
-        return new AllMethodsController(c.buildDeps(AllMethodsController.inject));
-      });
+      container.register(AllMethodsController, () => new AllMethodsController());
       adapter.registerController(AllMethodsController);
 
       const port = 3564;

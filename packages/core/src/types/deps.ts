@@ -1,30 +1,62 @@
-import type { Token, TokenRegistry } from './token.ts';
+import type { TokenRegistry } from './token.ts';
 
-type ResolveToken<TToken, TRegistry extends TokenRegistry> = TToken extends keyof TRegistry
-  ? TRegistry[TToken]
-  : TToken extends abstract new (...args: unknown[]) => infer R
-    ? R
-    : unknown;
-
-export type InferDeps<TInjectMap extends Record<string, Token>, TRegistry extends TokenRegistry = TokenRegistry> = {
-  [K in keyof TInjectMap]: ResolveToken<TInjectMap[K], TRegistry>;
-};
-
-export type Deps<TClass extends { inject: Record<string, Token> }> = InferDeps<TClass['inject']>;
+// ============================================================================
+// Constructor Parameter Injection Pattern Types
+// ============================================================================
 
 /**
- * InjectableClass represents a class constructor with static inject property
+ * Validates that an inject array matches the constructor parameters.
  *
- * @template TInject - The type of the inject map (Record<string, Token>)
+ * Each element in the inject array must be assignable to the corresponding
+ * constructor parameter. This allows strings, symbols, or class constructors
+ * as injection tokens.
+ *
+ * @example
+ * class MyClass {
+ *   static readonly inject = [Foo, Bar] as const satisfies DepsTokens<typeof MyClass>;
+ *   constructor(public foo: Foo, public bar: Bar) {}
+ * }
+ */
+export type DepsTokens<T extends abstract new (...args: any) => any> = T extends abstract new (
+  ...args: infer P
+) => any
+  ? P extends Array<any>
+    ? { [K in keyof P]: (abstract new (...args: any[]) => P[K]) | string | symbol }
+    : never
+  : never;
+
+/**
+ * Extracts resolved types from an inject array.
+ *
+ * Takes an inject tuple and resolves each token to its actual type.
+ * Classes resolve to their instance type, strings/symbols resolve to
+ * types from TokenRegistry (or unknown if not registered).
+ *
+ * @example
+ * const inject = [Foo, 'BarToken'] as const;
+ * type Injected = InferInject<typeof inject>; // [Foo, unknown]
+ */
+export type InferInject<T extends readonly [...any[]], TRegistry extends TokenRegistry = TokenRegistry> = {
+  [K in keyof T]: T[K] extends abstract new (...args: any[]) => infer R
+    ? R
+    : T[K] extends keyof TRegistry
+      ? TRegistry[T[K]]
+      : unknown;
+};
+
+/**
+ * InjectableClass represents a class using the array-based inject pattern.
+ *
+ * @template TInject - The type of the inject array (readonly tuple of tokens)
  * @template TInstance - The type of instance the class creates
  */
-export type InjectableClass<TInject extends Record<string, Token> = Record<string, Token>, TInstance = unknown> = (new (
-  deps: InferDeps<TInject>,
+export type InjectableClass<TInject extends readonly [...any[]] = readonly [...any[]], TInstance = unknown> = (new (
+  ...args: InferInject<TInject>
 ) => TInstance) & {
   inject: TInject;
 };
 
 /**
- * Helper type to extract the inject map from a class
+ * Helper type to extract the inject array from a class
  */
 export type ExtractInject<T> = T extends { inject: infer I } ? I : never;

@@ -64,9 +64,9 @@ describe('Container', () => {
 
     it('should resolve with factory receiving container', () => {
       container.register('Config', () => ({ port: 3000 }));
-      container.register('Server', (c) => ({ port: c.resolve('Config').port }));
+      container.register('Server', (c) => ({ port: (c.resolve('Config') as { port: number }).port }));
 
-      const server = container.resolve('Server');
+      const server = container.resolve('Server') as { port: number };
       expect(server.port).toBe(3000);
     });
 

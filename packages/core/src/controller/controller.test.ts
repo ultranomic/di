@@ -3,6 +3,7 @@ import type { ControllerRoute } from '../types/controller.ts';
 import type { ControllerMetadata } from './controller.ts';
 import { Controller } from './controller.ts';
 import type { ControllerConstructor, RouteInfo } from './interfaces.ts';
+import type { DepsTokens } from '../types/deps.ts';
 
 describe('Controller', () => {
   describe('static metadata', () => {
@@ -126,8 +127,11 @@ describe('Controller', () => {
           routes: [
             { method: 'GET', path: '/', handler: 'list' },
             { method: 'GET', path: '/:id', handler: 'get' },
-          ] as const satisfies ControllerRoute<UserController>[],
+          ] as const,
         };
+
+        list() {}
+        get() {}
       }
 
       const routeInfoList: RouteInfo = {
@@ -233,8 +237,8 @@ describe('Controller', () => {
       }
 
       const routes = SimplePathController.metadata?.routes ?? [];
-      expect(routes[0].path).toBe('/health');
-      expect(routes[1].path).toBe('/status');
+      expect(routes[0]!.path).toBe('/health');
+      expect(routes[1]!.path).toBe('/status');
     });
 
     it('should support path parameters', () => {
@@ -251,8 +255,129 @@ describe('Controller', () => {
       }
 
       const routes = ParamsController.metadata?.routes ?? [];
-      expect(routes[0].path).toBe('/users/:id');
-      expect(routes[1].path).toBe('/users/:userId/posts/:postId');
+      expect(routes[0]!.path).toBe('/users/:id');
+      expect(routes[1]!.path).toBe('/users/:userId/posts/:postId');
+    });
+  });
+
+  describe('new inject pattern', () => {
+    it('should support the new array-based inject pattern with DepsTokens', () => {
+      class Logger {
+        log(msg: string) {
+          return `logged: ${msg}`;
+        }
+      }
+
+      class UserService {
+        findAll() {
+          return [{ id: '1', name: 'John' }];
+        }
+      }
+
+      class UserController extends Controller {
+        static readonly inject = [Logger, UserService] as const satisfies DepsTokens<typeof UserController>;
+
+        static readonly metadata: ControllerMetadata = {
+          basePath: '/users',
+          routes: [
+            { method: 'GET', path: '/', handler: 'list' },
+          ] as const satisfies ControllerRoute<UserController>[],
+        };
+
+        constructor(
+          public logger: Logger,
+          public users: UserService,
+        ) {
+          super();
+        }
+
+        async list() {
+          this.logger.log('Fetching users');
+          return this.users.findAll();
+        }
+      }
+
+      const logger = new Logger();
+      const users = new UserService();
+      const controller = new UserController(logger, users);
+
+      expect(controller).toBeInstanceOf(Controller);
+      expect(controller.logger).toBe(logger);
+      expect(controller.users).toBe(users);
+      expect(controller.logger.log('test')).toBe('logged: test');
+    });
+
+    it('should allow controllers with a single dependency', () => {
+      class Database {
+        query(sql: string) {
+          return `executing: ${sql}`;
+        }
+      }
+
+      class DataController extends Controller {
+        static readonly inject = [Database] as const satisfies DepsTokens<typeof DataController>;
+
+        static readonly metadata: ControllerMetadata = {
+          basePath: '/data',
+          routes: [
+            { method: 'GET', path: '/', handler: 'query' },
+          ] as const satisfies ControllerRoute<DataController>[],
+        };
+
+        constructor(public db: Database) {
+          super();
+        }
+
+        async query() {
+          return this.db.query('SELECT * FROM data');
+        }
+      }
+
+      const db = new Database();
+      const controller = new DataController(db);
+
+      expect(controller.db).toBe(db);
+      expect(controller.db.query('SELECT 1')).toBe('executing: SELECT 1');
+    });
+
+    it('should allow controllers without dependencies (no inject)', () => {
+      class NoDepsController extends Controller {
+        static readonly metadata: ControllerMetadata = {
+          basePath: '/health',
+          routes: [
+            { method: 'GET', path: '/', handler: 'check' },
+          ] as const satisfies ControllerRoute<NoDepsController>[],
+        };
+
+        async check() {
+          return { status: 'ok' };
+        }
+      }
+
+      const controller = new NoDepsController();
+      expect(controller).toBeInstanceOf(Controller);
+      expect(NoDepsController.inject).toBeUndefined();
+    });
+
+    it('should support inject with ControllerConstructor type', () => {
+      class Logger {
+        log(msg: string) {}
+      }
+
+      class LoggedController extends Controller {
+        static readonly inject = [Logger] as const satisfies DepsTokens<typeof LoggedController>;
+        static readonly metadata: ControllerMetadata = {
+          basePath: '/logged',
+        };
+
+        constructor(public logger: Logger) {
+          super();
+        }
+      }
+
+      const ControllerClass: ControllerConstructor = LoggedController;
+      expect(ControllerClass.inject).toBeDefined();
+      expect(ControllerClass.metadata?.basePath).toBe('/logged');
     });
   });
 });
