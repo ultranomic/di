@@ -62,8 +62,38 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check if current version has a tag
+        id: tag-check
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          TAG_NAME="v$CURRENT_VERSION"
+
+          echo "Current package version: $CURRENT_VERSION"
+          echo "Checking for tag: $TAG_NAME"
+
+          # Output the current version for later use
+          echo "current-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+          # Get the previous release tag for changelog comparison
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD 2>/dev/null || echo "")
+          echo "previous-tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
+
+          # Check if the tag exists
+          if git tag -l "$TAG_NAME" | grep -q "^${TAG_NAME}$"; then
+            echo "Tag $TAG_NAME exists - version was released, will bump"
+            echo "should-bump=true" >> $GITHUB_OUTPUT
+            echo "## ✅ Version Bump Required" >> $GITHUB_STEP_SUMMARY
+            echo "Tag \`$TAG_NAME\` exists - proceeding with version bump." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Tag $TAG_NAME does not exist - version not yet released, skipping bump"
+            echo "should-bump=false" >> $GITHUB_OUTPUT
+            echo "## ⏭️ Version Bump Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "Tag \`$TAG_NAME\` does not exist - current version has not been released yet." >> $GITHUB_STEP_SUMMARY
+          fi
+
       - name: Auto-bump version if needed
         id: auto-version
+        if: steps.tag-check.outputs.should-bump == 'true'
         uses: ultranomic/auto-version-action@v1
         with:
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
@@ -155,26 +185,34 @@ jobs:
         if: steps.version-check.outputs.skip == 'false'
         run: |
           VERSION="${{ steps.version-check.outputs.version }}"
-          CURRENT_VERSION="${{ steps.auto-version.outputs.current-version }}"
+          # Use auto-version output if available (version was bumped), otherwise use previous-tag (version was not bumped)
+          if [ -n "${{ steps.auto-version.outputs.current-version }}" ]; then
+            CURRENT_VERSION="${{ steps.auto-version.outputs.current-version }}"
+          elif [ -n "${{ steps.tag-check.outputs.previous-tag }}" ]; then
+            CURRENT_VERSION="${{ steps.tag-check.outputs.previous-tag }}"
+          else
+            CURRENT_VERSION="${{ steps.tag-check.outputs.current-version }}"
+          fi
+          CHANGELOG="${{ steps.auto-version.outputs.changelog || '- Various improvements and fixes' }}"
 
           # Create release notes using a temporary file to handle special characters safely
-          cat > release_notes.md << 'RELEASE_EOF'
+          cat > release_notes.md << RELEASE_EOF
           Version ${{ steps.version-check.outputs.version }} of ${{ steps.version-check.outputs.name }} is now available!
 
           ## What's Changed
 
-          ${{ steps.auto-version.outputs.changelog || '- Various improvements and fixes' }}
+          $CHANGELOG
 
           ## Installation
 
-          ```bash
+          \`\`\`bash
           pnpm add ${{ steps.version-check.outputs.name }}@${{ steps.version-check.outputs.version }}
           npm install ${{ steps.version-check.outputs.name }}@${{ steps.version-check.outputs.version }}
-          ```
+          \`\`\`
 
           ---
 
-          **Full Changelog**: https://github.com/${{ github.repository }}/compare/v${{ steps.auto-version.outputs.current-version }}...v${{ steps.version-check.outputs.version }}
+          **Full Changelog**: https://github.com/${{ github.repository }}/compare/${CURRENT_VERSION}...v${{ steps.version-check.outputs.version }}
           RELEASE_EOF
 
           gh release create "v$VERSION" \
@@ -190,8 +228,9 @@ jobs:
           echo "🏷️ Created GitHub release: [v${{ steps.version-check.outputs.version }}](https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version-check.outputs.version }})" >> $GITHUB_STEP_SUMMARY
 
           # Add changelog to summary if available
-          if [ -n "${{ steps.auto-version.outputs.changelog }}" ]; then
+          CHANGELOG="${{ steps.auto-version.outputs.changelog }}"
+          if [ -n "$CHANGELOG" ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "## 📋 What's Changed" >> $GITHUB_STEP_SUMMARY
-            echo "${{ steps.auto-version.outputs.changelog }}" >> $GITHUB_STEP_SUMMARY
+            echo "$CHANGELOG" >> $GITHUB_STEP_SUMMARY
           fi
