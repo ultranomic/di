@@ -1,4 +1,4 @@
-import { access, readFile, rm } from 'node:fs/promises';
+import { access, mkdir, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createProject, type ProjectTemplate } from './commands/new.ts';
@@ -105,6 +105,48 @@ describe('createProject', () => {
 
     expect(content).toContain('findAll');
     expect(content).toContain('findById');
+  });
+
+  it('should use current working directory when targetDir is not provided', async () => {
+    // Save original cwd
+    const originalCwd = process.cwd();
+    const customCwd = join(testDir, 'cwd-test');
+
+    try {
+      // Create and change to custom directory
+      await mkdir(customCwd, { recursive: true });
+      process.chdir(customCwd);
+
+      // Call createProject without targetDir (undefined)
+      await createProject('no-target-dir-project');
+
+      // Verify project was created in the current working directory
+      const projectPath = join(customCwd, 'no-target-dir-project');
+      await expect(access(projectPath)).resolves.toBeUndefined();
+      await expect(access(join(projectPath, 'package.json'))).resolves.toBeUndefined();
+    } finally {
+      // Restore original cwd
+      process.chdir(originalCwd);
+    }
+  });
+
+  it('should use current working directory when targetDir is explicitly undefined', async () => {
+    const originalCwd = process.cwd();
+    const customCwd = join(testDir, 'undefined-test');
+
+    try {
+      await mkdir(customCwd, { recursive: true });
+      process.chdir(customCwd);
+
+      // Call with explicitly undefined targetDir
+      await createProject('undefined-target-project', undefined);
+
+      const projectPath = join(customCwd, 'undefined-target-project');
+      await expect(access(projectPath)).resolves.toBeUndefined();
+      await expect(access(join(projectPath, 'src', 'index.ts'))).resolves.toBeUndefined();
+    } finally {
+      process.chdir(originalCwd);
+    }
   });
 });
 

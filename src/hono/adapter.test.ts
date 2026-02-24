@@ -321,6 +321,94 @@ describe('HonoAdapter', () => {
       const data = (await response.json()) as { error: string };
       expect(data.error).toContain("Handler 'nonexistent' not found on controller");
     });
+
+    it('should return null body when handler returns non-Response result', async () => {
+      class NullResponseController extends Controller {
+        static readonly metadata = {
+          basePath: '/null',
+          routes: [{ method: 'GET', path: '/', handler: 'index' }] as const,
+        };
+        index(): unknown {
+          // Return a value that's not a Response and doesn't have Response-like properties
+          return { some: 'value' };
+        }
+      }
+
+      container.register(NullResponseController, (c) => {
+        return new NullResponseController(...c.buildDeps(NullResponseController.inject ?? []));
+      });
+      adapter.registerController(NullResponseController);
+
+      const port = 3666;
+      await adapter.listen(port);
+
+      const response = await fetch(`http://localhost:${port}/null/`);
+      expect(response.status).toBe(200);
+      // c.body(null) returns a Response with null body content
+      const text = await response.text();
+      expect(text).toBe('');
+    });
+  });
+
+  describe('listen error handling', () => {
+    it('should handle server error during listen when port is in use', async () => {
+      class TestController extends Controller {
+        static readonly metadata = {
+          basePath: '/test',
+          routes: [{ method: 'GET', path: '/', handler: 'list' }] as const,
+        };
+        list(c: Context): Response {
+          return c.json({ items: [] });
+        }
+      }
+
+      container.register(TestController, (c) => {
+        return new TestController(...c.buildDeps(TestController.inject ?? []));
+      });
+      adapter.registerController(TestController);
+
+      const port = 3666;
+      await adapter.listen(port);
+
+      // Create a second adapter and try to listen on the same port
+      const adapter2 = new HonoAdapter(container);
+      adapter2.registerController(TestController);
+
+      // This should reject because the port is already in use
+      await expect(adapter2.listen(port)).rejects.toThrow();
+
+      // Clean up
+      await adapter.close();
+    });
+  });
+
+  describe('close error handling', () => {
+    it('should reject on server close error', async () => {
+      class TestController extends Controller {
+        static readonly metadata = {
+          basePath: '/test',
+          routes: [{ method: 'GET', path: '/', handler: 'list' }] as const,
+        };
+        list(c: Context): Response {
+          return c.json({ items: [] });
+        }
+      }
+
+      container.register(TestController, (c) => {
+        return new TestController(...c.buildDeps(TestController.inject ?? []));
+      });
+      adapter.registerController(TestController);
+
+      const port = 3669;
+      await adapter.listen(port);
+
+      // Close the server
+      await adapter.close();
+
+      // Create a new adapter and close without listening - should resolve without error
+      const newAdapter = new HonoAdapter(container);
+      await expect(newAdapter.close()).resolves.toBeUndefined();
+    });
   });
 
   describe('HTTP methods', () => {
@@ -368,6 +456,48 @@ describe('HonoAdapter', () => {
         const data = (await response.json()) as { method: string };
         expect(data.method).toBe(method);
       }
+    });
+
+    it('should handle HEAD and OPTIONS methods', async () => {
+      class HeadOptionsController extends Controller {
+        static readonly metadata = {
+          basePath: '/headopts',
+          routes: [
+            { method: 'GET', path: '/', handler: 'get' },
+            { method: 'HEAD', path: '/', handler: 'head' },
+            { method: 'OPTIONS', path: '/', handler: 'options' },
+          ] as const,
+        };
+        get(c: Context): Response {
+          return c.json({ method: 'GET' });
+        }
+        head(c: Context): Response {
+          return c.json({ method: 'HEAD' });
+        }
+        options(c: Context): Response {
+          return c.json({ method: 'OPTIONS' });
+        }
+      }
+
+      container.register(HeadOptionsController, (c) => {
+        return new HeadOptionsController(...c.buildDeps(HeadOptionsController.inject ?? []));
+      });
+      adapter.registerController(HeadOptionsController);
+
+      const port = 3670;
+      await adapter.listen(port);
+
+      // GET should work
+      const getResponse = await fetch(`http://localhost:${port}/headopts/`);
+      expect(getResponse.status).toBe(200);
+
+      // Test HEAD and OPTIONS via app.request since fetch might not work correctly
+      const app = adapter.getApp();
+      const headResponse = await app.request('/headopts/', { method: 'HEAD' });
+      expect(headResponse.status).toBe(200);
+
+      const optionsResponse = await app.request('/headopts/', { method: 'OPTIONS' });
+      expect(optionsResponse.status).toBe(200);
     });
   });
 

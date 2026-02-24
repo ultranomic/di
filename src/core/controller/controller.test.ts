@@ -5,6 +5,18 @@ import { Controller } from './controller.ts';
 import type { ControllerConstructor, RouteInfo } from './interfaces.ts';
 import type { DepsTokens } from '../types/deps.ts';
 
+describe('Controller base class coverage', () => {
+  it('should have undefined inject property on base Controller class', () => {
+    // Access the base Controller class's inject property directly
+    expect(Controller.inject).toBeUndefined();
+  });
+
+  it('should have undefined metadata property on base Controller class', () => {
+    // Access the base Controller class's metadata property directly
+    expect(Controller.metadata).toBeUndefined();
+  });
+});
+
 describe('Controller', () => {
   describe('static metadata', () => {
     it('should allow defining static metadata on a controller', () => {

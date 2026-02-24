@@ -181,6 +181,38 @@ describe('TestModuleBuilder', () => {
     });
   });
 
+  describe('providers with non-function values (line 115 else branch)', () => {
+    it('should skip non-function providers in the providers array', async () => {
+      // This tests the else branch at line 115 in test-module.ts
+      // When a provider is not a function, it should be skipped
+      const nonFunctionProvider = { value: 'not a function' };
+
+      // Use type assertion to bypass TypeScript for this invalid input test
+      const testingModule = await Test.createModule({
+        providers: [nonFunctionProvider] as unknown as readonly (abstract new (...args: unknown[]) => unknown)[],
+      }).compile();
+
+      // The non-function provider should be silently skipped
+      expect(testingModule).toBeInstanceOf(TestingModule);
+    });
+
+    it('should handle mixed function and non-function providers', async () => {
+      class ValidService {
+        getValue() {
+          return 'valid';
+        }
+      }
+
+      const testingModule = await Test.createModule({
+        providers: [ValidService, { invalid: true }] as unknown as readonly (abstract new (...args: unknown[]) => unknown)[],
+      }).compile();
+
+      // ValidService should be registered, invalid one skipped
+      const service = testingModule.get(ValidService) as ValidService;
+      expect(service.getValue()).toBe('valid');
+    });
+  });
+
   describe('with imports', () => {
     it('should import existing modules', async () => {
       class ConfigModule extends Module {
@@ -199,6 +231,80 @@ describe('TestModuleBuilder', () => {
 
       const config = testingModule.get('Config') as { port: number };
       expect(config.port).toBe(3000);
+    });
+  });
+});
+
+describe('TestModuleBuilder additional coverage', () => {
+  describe('providers with array inject pattern (lines 131-132)', () => {
+    it('should handle providers with array inject pattern', async () => {
+      class Logger {
+        log() {
+          return 'logged';
+        }
+      }
+
+      class UserService {
+        static readonly inject = [Logger] as const;
+        constructor(private logger: Logger) {}
+        getUsers() {
+          return [`user - ${this.logger.log()}`];
+        }
+      }
+
+      const testingModule = await Test.createModule({
+        providers: [Logger, UserService],
+      }).compile();
+
+      const service = testingModule.get(UserService) as UserService;
+      expect(service.getUsers()).toEqual(['user - logged']);
+    });
+
+    it('should handle providers without inject property (line 148)', async () => {
+      class SimpleService {
+        getValue() {
+          return 'simple';
+        }
+      }
+
+      const testingModule = await Test.createModule({
+        providers: [SimpleService],
+      }).compile();
+
+      const service = testingModule.get(SimpleService) as SimpleService;
+      expect(service.getValue()).toBe('simple');
+    });
+
+    it('should handle mixed providers with and without inject', async () => {
+      class Config {
+        getValue() {
+          return 42;
+        }
+      }
+
+      class ServiceWithDeps {
+        static readonly inject = [Config] as const;
+        constructor(private config: Config) {}
+        getValue() {
+          return this.config.getValue() * 2;
+        }
+      }
+
+      class SimpleService {
+        getName() {
+          return 'simple';
+        }
+      }
+
+      const testingModule = await Test.createModule({
+        providers: [Config, ServiceWithDeps, SimpleService],
+      }).compile();
+
+      const serviceWithDeps = testingModule.get(ServiceWithDeps) as ServiceWithDeps;
+      expect(serviceWithDeps.getValue()).toBe(84);
+
+      const simpleService = testingModule.get(SimpleService) as SimpleService;
+      expect(simpleService.getName()).toBe('simple');
     });
   });
 });
