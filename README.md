@@ -1,10 +1,10 @@
-# Ultrasonic DI
+# Ultranomic DI
 
 A dependency injection framework for TypeScript. No decorators, no reflect-metadata. Just classes with static properties.
 
-## Why Ultrasonic DI?
+## Why Ultranomic DI?
 
-Most DI frameworks lean heavily on decorators and runtime metadata. Ultrasonic DI takes a different path. Everything is explicit. Dependencies are declared in static properties. Types flow naturally from those declarations.
+Most DI frameworks lean heavily on decorators and runtime metadata. Ultranomic DI takes a different path. Everything is explicit. Dependencies are declared in static properties. Types flow naturally from those declarations.
 
 ```typescript
 import type { DepsTokens } from '@ultranomic/di';
@@ -179,7 +179,7 @@ node main.ts
 
 ### Dependency Injection
 
-Ultrasonic DI's container manages object creation and dependency resolution. Register a provider with a class token, then resolve it.
+Ultranomic DI's container manages object creation and dependency resolution. Register a provider with a class token, then resolve it.
 
 ```typescript
 import { Container } from '@ultranomic/di';
@@ -232,7 +232,7 @@ class ServiceB {
   constructor(private serviceA: ServiceA) {}
 }
 
-// This works. Ultrasonic DI uses proxies to break the cycle.
+// This works. Ultranomic DI uses proxies to break the cycle.
 container.register(ServiceA, (c) => new ServiceA(...c.buildDeps(ServiceA.inject))).asSingleton();
 container.register(ServiceB, (c) => new ServiceB(...c.buildDeps(ServiceB.inject))).asSingleton();
 ```
@@ -335,7 +335,7 @@ class Database implements OnModuleInit, OnModuleDestroy {
 
 ### HTTP Adapters
 
-Ultrasonic DI ships with three adapters. They all work the same way.
+Ultranomic DI ships with three adapters. They all work the same way.
 
 ```typescript
 // Express
@@ -360,7 +360,7 @@ Adapters pass through native request and response types. No wrapper abstractions
 
 ## Error Messages
 
-Ultrasonic DI errors include context to help debug issues.
+Ultranomic DI errors include context to help debug issues.
 
 ```
 TokenNotFoundError: Token 'Logger' not found
