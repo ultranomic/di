@@ -62,41 +62,41 @@ export class ModuleContainer implements ContainerInterface {
     token: Token<T>,
     factory: (container: ResolverInterface) => T,
   ): import('../container/binding.ts').BindingBuilder<T> {
-    // Track this token as belonging to this module
     const isExported = this.currentModuleExports.has(token);
     this.trackToken(token, isExported);
 
-    // Wrap the factory to ensure it uses this container for resolution
-    const wrappedFactory = (_resolver: ResolverInterface) => {
-      return factory(this);
-    };
+    // Wrap the factory to use this container for dependency resolution
+    const wrappedFactory = (_resolver: ResolverInterface) => factory(this);
 
     return this.baseContainer.register(token, wrappedFactory);
   }
 
   resolve<T>(token: Token<T>): T {
-    // Check if this token has an owner and if it's accessible
     const owner = this.allModulesOwners.get(token);
 
-    if (owner && owner.module !== this.moduleName) {
-      // Token is from a different module - check if we can access it
-
-      // First check if the module is accessible (imported)
-      if (!this.accessibleModules.has(owner.module)) {
-        // The module isn't even imported - get all exported tokens from accessible modules
-        const accessibleTokens = this.getAccessibleTokens();
-        throw new NonExportedTokenError(token, this.moduleName, owner.module, accessibleTokens);
-      }
-
-      // Module is imported - now check if token is exported
-      if (!owner.isExported) {
-        // Module is imported but token isn't exported
-        const exportedTokens = this.getExportedTokensForModule(owner.module);
-        throw new NonExportedTokenError(token, this.moduleName, owner.module, exportedTokens);
-      }
+    // Check if this token is from another module and validate access
+    if (owner !== undefined && owner.module !== this.moduleName) {
+      this.validateTokenAccess(token, owner);
     }
 
     return this.baseContainer.resolve(token);
+  }
+
+  /**
+   * Validate that the current module can access a token from another module
+   */
+  private validateTokenAccess(token: Token, owner: TokenOwner): void {
+    // Check if the module is accessible (imported)
+    if (!this.accessibleModules.has(owner.module)) {
+      const accessibleTokens = this.getAccessibleTokens();
+      throw new NonExportedTokenError(token, this.moduleName, owner.module, accessibleTokens);
+    }
+
+    // Check if token is exported from the imported module
+    if (!owner.isExported) {
+      const exportedTokens = this.getExportedTokensForModule(owner.module);
+      throw new NonExportedTokenError(token, this.moduleName, owner.module, exportedTokens);
+    }
   }
 
   /**
@@ -114,25 +114,20 @@ export class ModuleContainer implements ContainerInterface {
   }
 
   has(token: Token): boolean {
-    // Only return true for tokens that are accessible from this module
     const owner = this.allModulesOwners.get(token);
 
-    if (!owner) {
-      // No owner yet, defer to base container
+    // No owner yet, defer to base container
+    if (owner === undefined) {
       return this.baseContainer.has(token);
     }
 
+    // Our own token - always accessible
     if (owner.module === this.moduleName) {
-      // Our own token - always accessible
       return this.baseContainer.has(token);
     }
 
     // From another module - check if exported and module is accessible
-    if (!this.accessibleModules.has(owner.module)) {
-      return false;
-    }
-
-    return owner.isExported && this.baseContainer.has(token);
+    return this.accessibleModules.has(owner.module) && owner.isExported && this.baseContainer.has(token);
   }
 
   getBinding<T>(token: Token<T>): import('../container/binding.ts').Binding<T> | undefined {

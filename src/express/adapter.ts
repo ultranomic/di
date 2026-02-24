@@ -1,6 +1,7 @@
 import express, { type Express, type Request, type Response } from 'express';
 import type { Server } from 'node:http';
 import type { ControllerConstructor, ResolverInterface, HttpMethod } from '../core/index.js';
+import { joinPath } from '../core/utils/path.js';
 
 export class ExpressAdapter {
   private readonly app: Express;
@@ -26,7 +27,7 @@ export class ExpressAdapter {
     const basePath = metadata.basePath ?? '';
 
     for (const route of metadata.routes) {
-      const fullPath = this.joinPath(basePath, route.path);
+      const fullPath = joinPath(basePath, route.path);
       const method = route.method.toLowerCase() as Lowercase<HttpMethod>;
 
       const handler = async (req: Request, res: Response): Promise<void> => {
@@ -53,18 +54,6 @@ export class ExpressAdapter {
 
       this.app[method](fullPath, handler);
     }
-  }
-
-  private joinPath(basePath: string, routePath: string): string {
-    if (basePath === '') {
-      return routePath;
-    }
-    if (routePath === '/' || routePath === '') {
-      return basePath;
-    }
-    const normalizedBase = basePath.endsWith('/') ? basePath.slice(0, -1) : basePath;
-    const normalizedRoute = routePath.startsWith('/') ? routePath : '/' + routePath;
-    return normalizedBase + normalizedRoute;
   }
 
   async listen(port: number): Promise<void> {

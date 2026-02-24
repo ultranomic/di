@@ -64,23 +64,21 @@ export abstract class Module implements OnModuleInit, OnModuleDestroy {
     const ctor = this.constructor as typeof Module;
     const metadata = ctor.metadata;
 
-    if (!metadata) {
+    if (metadata === undefined) {
       return;
     }
 
     // Auto-register providers from metadata
-    if (metadata.providers) {
+    if (metadata.providers !== undefined) {
       for (const provider of metadata.providers) {
-        // Register provider with the class itself as the token
         const ProviderClass = provider as new (...args: unknown[]) => unknown;
         container.register(ProviderClass, (c) => this.createInstance(ProviderClass, c));
       }
     }
 
     // Auto-register controllers from metadata
-    if (metadata.controllers) {
+    if (metadata.controllers !== undefined) {
       for (const controller of metadata.controllers) {
-        // Register controller with the class itself as the token
         const ControllerClass = controller as new (...args: unknown[]) => unknown;
         container.register(ControllerClass, (c) => this.createInstance(ControllerClass, c));
       }
@@ -106,13 +104,13 @@ export abstract class Module implements OnModuleInit, OnModuleDestroy {
       inject?: readonly unknown[];
     };
 
-    // Check if class has an inject property
-    if ('inject' in ClassWithInject && ClassWithInject.inject && Array.isArray(ClassWithInject.inject)) {
+    const hasInject = 'inject' in ClassWithInject && ClassWithInject.inject !== undefined && Array.isArray(ClassWithInject.inject);
+
+    if (hasInject) {
       const deps = container.buildDeps(ClassWithInject.inject as readonly Token[]);
       return new Class(...(deps as unknown[]));
     }
 
-    // No inject property - instantiate without arguments
     return new Class();
   }
 
@@ -125,7 +123,8 @@ export abstract class Module implements OnModuleInit, OnModuleDestroy {
    */
   getExportedTokens(): Token[] {
     const ctor = this.constructor as typeof Module;
-    return ctor.metadata?.exports ? [...ctor.metadata.exports] : [];
+    const exports = ctor.metadata?.exports;
+    return exports !== undefined ? [...exports] : [];
   }
 
   /**

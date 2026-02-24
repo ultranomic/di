@@ -39,3 +39,6 @@ export {
   TokenCollisionError,
   TokenNotFoundError,
 } from './errors/index.ts';
+
+// Utils
+export { joinPath } from './utils/path.ts';

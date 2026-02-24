@@ -1,6 +1,7 @@
 import { Hono, type Context } from 'hono';
 import { serve, type ServerType } from '@hono/node-server';
 import type { ControllerConstructor, ResolverInterface, HttpMethod } from '../core/index.js';
+import { joinPath } from '../core/utils/path.js';
 
 /**
  * Hono adapter with RPC type inference support
@@ -55,19 +56,16 @@ export class HonoAdapter {
     const basePath = metadata.basePath ?? '';
 
     for (const route of metadata.routes) {
-      const fullPath = this.joinPath(basePath, route.path);
+      const fullPath = joinPath(basePath, route.path);
       const method = route.method.toUpperCase() as HttpMethod;
       const handler = this.createHandler(ControllerClass, route.handler);
 
-      // Use chain pattern methods for proper RPC type inference
-      // app.on() doesn't preserve types for RPC client
       this.registerRoute(method, fullPath, handler);
     }
   }
 
   /**
    * Registers a route using the appropriate HTTP method
-   * Uses chain pattern methods (get, post, etc.) for proper RPC type inference
    */
   private registerRoute(method: HttpMethod, path: string, handler: (c: Context) => Promise<Response>): void {
     switch (method) {
@@ -87,15 +85,12 @@ export class HonoAdapter {
         this.app.delete(path, handler);
         break;
       case 'HEAD':
-        // Use on() for HEAD method as it's not in the base Hono type
         this.app.on('HEAD', path, handler);
         break;
       case 'OPTIONS':
-        // Use on() for OPTIONS method as it's not in the base Hono type
         this.app.on('OPTIONS', path, handler);
         break;
       default:
-        // Fallback to app.on() for any other methods
         this.app.on(method, path, handler);
         break;
     }
@@ -118,7 +113,6 @@ export class HonoAdapter {
         }
 
         const syncResult = (handlerMethod as (c: Context) => unknown).call(controller, c);
-
         const result = await Promise.resolve(syncResult);
 
         if (result instanceof Response) {
@@ -144,18 +138,6 @@ export class HonoAdapter {
         );
       }
     };
-  }
-
-  private joinPath(basePath: string, routePath: string): string {
-    if (basePath === '') {
-      return routePath;
-    }
-    if (routePath === '/' || routePath === '') {
-      return basePath;
-    }
-    const normalizedBase = basePath.endsWith('/') ? basePath.slice(0, -1) : basePath;
-    const normalizedRoute = routePath.startsWith('/') ? routePath : '/' + routePath;
-    return normalizedBase + normalizedRoute;
   }
 
   async listen(port: number): Promise<void> {
