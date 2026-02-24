@@ -1,7 +1,8 @@
-import type { ContainerInterface, ResolverInterface } from '../container/interfaces.ts';
+import type { ContainerInterface } from '../container/interfaces.ts';
 import type { InferInject } from '../types/deps.ts';
 import { NonExportedTokenError } from '../errors/non-exported-token.ts';
 import type { Token } from '../types/token.ts';
+import type { RegisterOptions } from '../container/binding.ts';
 
 /**
  * Information about a token's owner module
@@ -58,17 +59,13 @@ export class ModuleContainer implements ContainerInterface {
     this.allModulesOwners.set(token, owner);
   }
 
-  register<T>(
-    token: Token<T>,
-    factory: (container: ResolverInterface) => T,
-  ): import('../container/binding.ts').BindingBuilder<T> {
+  register<T extends abstract new (...args: unknown[]) => unknown>(
+    token: T,
+    options?: RegisterOptions,
+  ): void {
     const isExported = this.currentModuleExports.has(token);
     this.trackToken(token, isExported);
-
-    // Wrap the factory to use this container for dependency resolution
-    const wrappedFactory = (_resolver: ResolverInterface) => factory(this);
-
-    return this.baseContainer.register(token, wrappedFactory);
+    this.baseContainer.register(token, options);
   }
 
   resolve<T>(token: Token<T>): T {
