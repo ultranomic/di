@@ -32,3 +32,6 @@ pnpm-debug.log*
 .test-results/
 
 opencode.json
+
+# Git worktrees
+.worktrees/
