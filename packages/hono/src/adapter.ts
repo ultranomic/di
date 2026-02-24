@@ -1,6 +1,6 @@
-import { Hono, type Context } from 'hono'
-import { serve, type ServerType } from '@hono/node-server'
-import type { ControllerConstructor, ResolverInterface, HttpMethod } from '@voxeljs/core'
+import { Hono, type Context } from 'hono';
+import { serve, type ServerType } from '@hono/node-server';
+import type { ControllerConstructor, ResolverInterface, HttpMethod } from '@voxeljs/core';
 
 /**
  * Hono adapter with RPC type inference support
@@ -18,13 +18,13 @@ import type { ControllerConstructor, ResolverInterface, HttpMethod } from '@voxe
  * ```
  */
 export class HonoAdapter {
-  private readonly app: Hono
-  private readonly container: ResolverInterface
-  private server: ServerType | undefined
+  private readonly app: Hono;
+  private readonly container: ResolverInterface;
+  private server: ServerType | undefined;
 
   constructor(container: ResolverInterface) {
-    this.container = container
-    this.app = new Hono({ strict: false })
+    this.container = container;
+    this.app = new Hono({ strict: false });
   }
 
   /**
@@ -43,25 +43,25 @@ export class HonoAdapter {
    * ```
    */
   getApp(): Hono {
-    return this.app
+    return this.app;
   }
 
   registerController(ControllerClass: ControllerConstructor): void {
-    const metadata = ControllerClass.metadata
+    const metadata = ControllerClass.metadata;
     if (metadata?.routes === undefined) {
-      return
+      return;
     }
 
-    const basePath = metadata.basePath ?? ''
+    const basePath = metadata.basePath ?? '';
 
     for (const route of metadata.routes) {
-      const fullPath = this.joinPath(basePath, route.path)
-      const method = route.method.toUpperCase() as HttpMethod
-      const handler = this.createHandler(ControllerClass, route.handler)
+      const fullPath = this.joinPath(basePath, route.path);
+      const method = route.method.toUpperCase() as HttpMethod;
+      const handler = this.createHandler(ControllerClass, route.handler);
 
       // Use chain pattern methods for proper RPC type inference
       // app.on() doesn't preserve types for RPC client
-      this.registerRoute(method, fullPath, handler)
+      this.registerRoute(method, fullPath, handler);
     }
   }
 
@@ -72,57 +72,57 @@ export class HonoAdapter {
   private registerRoute(method: HttpMethod, path: string, handler: (c: Context) => Promise<Response>): void {
     switch (method) {
       case 'GET':
-        this.app.get(path, handler)
-        break
+        this.app.get(path, handler);
+        break;
       case 'POST':
-        this.app.post(path, handler)
-        break
+        this.app.post(path, handler);
+        break;
       case 'PUT':
-        this.app.put(path, handler)
-        break
+        this.app.put(path, handler);
+        break;
       case 'PATCH':
-        this.app.patch(path, handler)
-        break
+        this.app.patch(path, handler);
+        break;
       case 'DELETE':
-        this.app.delete(path, handler)
-        break
+        this.app.delete(path, handler);
+        break;
       case 'HEAD':
         // Use on() for HEAD method as it's not in the base Hono type
-        this.app.on('HEAD', path, handler)
-        break
+        this.app.on('HEAD', path, handler);
+        break;
       case 'OPTIONS':
         // Use on() for OPTIONS method as it's not in the base Hono type
-        this.app.on('OPTIONS', path, handler)
-        break
+        this.app.on('OPTIONS', path, handler);
+        break;
       default:
         // Fallback to app.on() for any other methods
-        this.app.on(method, path, handler)
-        break
+        this.app.on(method, path, handler);
+        break;
     }
   }
 
   /**
    * Creates a route handler with error handling
    */
-  private createHandler(ControllerClass: ControllerConstructor, handlerName: string): (c: Context) => Promise<Response> {
+  private createHandler(
+    ControllerClass: ControllerConstructor,
+    handlerName: string,
+  ): (c: Context) => Promise<Response> {
     return async (c: Context): Promise<Response> => {
       try {
-        const controller = this.container.resolve(ControllerClass)
-        const handlerMethod = controller[handlerName as keyof typeof controller]
+        const controller = this.container.resolve(ControllerClass);
+        const handlerMethod = controller[handlerName as keyof typeof controller];
 
         if (typeof handlerMethod !== 'function') {
-          return c.json({ error: `Handler '${handlerName}' not found on controller` }, 500)
+          return c.json({ error: `Handler '${handlerName}' not found on controller` }, 500);
         }
 
-        const syncResult = (handlerMethod as (c: Context) => unknown).call(
-          controller,
-          c
-        )
+        const syncResult = (handlerMethod as (c: Context) => unknown).call(controller, c);
 
-        const result = await Promise.resolve(syncResult)
+        const result = await Promise.resolve(syncResult);
 
         if (result instanceof Response) {
-          return result
+          return result;
         }
         if (
           result !== null &&
@@ -131,28 +131,31 @@ export class HonoAdapter {
           'headers' in result &&
           typeof (result as Response).status === 'number'
         ) {
-          return result as Response
+          return result as Response;
         }
 
-        return c.body(null)
+        return c.body(null);
       } catch (error) {
-        return c.json({
-          error: error instanceof Error ? error.message : 'Internal server error',
-        }, 500)
+        return c.json(
+          {
+            error: error instanceof Error ? error.message : 'Internal server error',
+          },
+          500,
+        );
       }
-    }
+    };
   }
 
   private joinPath(basePath: string, routePath: string): string {
     if (basePath === '') {
-      return routePath
+      return routePath;
     }
     if (routePath === '/' || routePath === '') {
-      return basePath
+      return basePath;
     }
-    const normalizedBase = basePath.endsWith('/') ? basePath.slice(0, -1) : basePath
-    const normalizedRoute = routePath.startsWith('/') ? routePath : '/' + routePath
-    return normalizedBase + normalizedRoute
+    const normalizedBase = basePath.endsWith('/') ? basePath.slice(0, -1) : basePath;
+    const normalizedRoute = routePath.startsWith('/') ? routePath : '/' + routePath;
+    return normalizedBase + normalizedRoute;
   }
 
   async listen(port: number): Promise<void> {
@@ -162,35 +165,35 @@ export class HonoAdapter {
           fetch: (req) => this.app.fetch(req),
           port,
           hostname: '0.0.0.0',
-        })
+        });
 
         this.server.once('listening', () => {
-          resolve()
-        })
+          resolve();
+        });
 
         this.server.once('error', (err: Error) => {
-          reject(err)
-        })
+          reject(err);
+        });
       } catch (err) {
-        reject(err)
+        reject(err);
       }
-    })
+    });
   }
 
   async close(): Promise<void> {
     return new Promise((resolve, reject) => {
       if (this.server === undefined) {
-        resolve()
-        return
+        resolve();
+        return;
       }
       this.server.close((err: Error | undefined) => {
         if (err !== undefined && err !== null) {
-          reject(err)
+          reject(err);
         } else {
-          this.server = undefined
-          resolve()
+          this.server = undefined;
+          resolve();
         }
-      })
-    })
+      });
+    });
   }
 }

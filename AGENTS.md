@@ -7,6 +7,7 @@ Voxel is a NestJS-like dependency injection framework WITHOUT decorators or refl
 **Key Philosophy**: Explicit over implicit, type-safe by default.
 
 The framework provides:
+
 - Dependency injection with singleton, transient, and request-scoped lifecycles
 - Module system with proper encapsulation
 - Controller-based HTTP routing with type-safe path parameters
@@ -16,6 +17,7 @@ The framework provides:
 ## Architecture
 
 ### Core Packages
+
 - `@voxeljs/core` - DI container, module system, controllers, services, lifecycle
 - `@voxeljs/express` - Express HTTP adapter
 - `@voxeljs/fastify` - Fastify HTTP adapter
@@ -43,6 +45,7 @@ Modules encapsulate providers, controllers, and imports. Key concepts:
 ### Controllers and Routes
 
 Controllers define HTTP routes using a static `routes` array. The `satisfies ControllerRoute<Controller>[]` pattern enables:
+
 - Type-safe handler name validation
 - Path parameter inference for `req.params`
 
@@ -57,9 +60,9 @@ class UserService {
     db: 'Database',
     logger: 'Logger'
   } as const
-  
+
   constructor(private deps: typeof UserService.inject) {}
-  
+
   async getUser(id: string) {
     this.deps.logger.info(`Getting user ${id}`)
     return this.deps.db.query(...)
@@ -73,25 +76,25 @@ class UserService {
 // CORRECT: Static routes array with type inference
 class UserController {
   static readonly inject = {
-    users: 'UserService'
-  } as const
-  
+    users: 'UserService',
+  } as const;
+
   static readonly routes = [
     { method: 'GET', path: '/users/:id', handler: 'getUser' },
-    { method: 'POST', path: '/users', handler: 'createUser' }
-  ] as const satisfies ControllerRoute<UserController>[]
-  
+    { method: 'POST', path: '/users', handler: 'createUser' },
+  ] as const satisfies ControllerRoute<UserController>[];
+
   constructor(private deps: typeof UserController.inject) {}
-  
+
   async getUser(req: Request, res: Response) {
     // req.params.id is typed!
-    const user = await this.deps.users.getUser(req.params.id)
-    res.json(user)
+    const user = await this.deps.users.getUser(req.params.id);
+    res.json(user);
   }
-  
+
   async createUser(req: Request, res: Response) {
-    const user = await this.deps.users.createUser(req.body)
-    res.status(201).json(user)
+    const user = await this.deps.users.createUser(req.body);
+    res.status(201).json(user);
   }
 }
 ```
@@ -101,10 +104,10 @@ class UserController {
 ```typescript
 // CORRECT: Static imports/exports
 class UserModule {
-  static readonly imports = [DatabaseModule, LoggerModule]
-  static readonly providers = [UserService]
-  static readonly controllers = [UserController]
-  static readonly exports = [UserService]
+  static readonly imports = [DatabaseModule, LoggerModule];
+  static readonly providers = [UserService];
+  static readonly controllers = [UserController];
+  static readonly exports = [UserService];
 }
 ```
 
@@ -112,9 +115,9 @@ class UserModule {
 
 ```typescript
 // CORRECT: Fluent binding API
-container.register('Logger', Logger).asSingleton()
-container.register('Database', Database).asTransient()
-container.register('RequestContext', RequestContext).asScoped()
+container.register('Logger', Logger).asSingleton();
+container.register('Database', Database).asTransient();
+container.register('RequestContext', RequestContext).asScoped();
 ```
 
 ### Circular Dependencies
@@ -124,16 +127,15 @@ Voxel supports circular dependencies via proxy pattern:
 ```typescript
 // This works - circular dependencies are allowed
 class ServiceA {
-  static readonly inject = { serviceB: 'ServiceB' } as const
+  static readonly inject = { serviceB: 'ServiceB' } as const;
   constructor(private deps: typeof ServiceA.inject) {}
 }
 
 class ServiceB {
-  static readonly inject = { serviceA: 'ServiceA' } as const
+  static readonly inject = { serviceA: 'ServiceA' } as const;
   constructor(private deps: typeof ServiceB.inject) {}
 }
 ```
-
 
 ### Import Conventions
 
@@ -141,12 +143,12 @@ Always use `.ts` extension for local file imports, not `.js`:
 
 ```typescript
 // CORRECT: Use .ts extension
-import { UserService } from './services/user.service.ts'
-import { UserController } from './controllers/user.controller.ts'
+import { UserService } from './services/user.service.ts';
+import { UserController } from './controllers/user.controller.ts';
 
 // WRONG: Do not use .js extension
-import { UserService } from './services/user.service.js'
-import { UserController } from './controllers/user.controller.js'
+import { UserService } from './services/user.service.js';
+import { UserController } from './controllers/user.controller.js';
 ```
 
 This ensures consistency in the codebase and aligns with TypeScript source files.
@@ -159,23 +161,23 @@ This ensures consistency in the codebase and aligns with TypeScript source files
 - **Pattern**: Arrange-Act-Assert
 
 ```typescript
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi } from 'vitest';
 
 describe('UserService', () => {
   it('should return user by id', async () => {
     // Arrange
-    const mockDb = { query: vi.fn().mockResolvedValue({ id: '1' }) }
-    const mockLogger = { info: vi.fn() }
-    const service = new UserService({ db: mockDb, logger: mockLogger })
-    
+    const mockDb = { query: vi.fn().mockResolvedValue({ id: '1' }) };
+    const mockLogger = { info: vi.fn() };
+    const service = new UserService({ db: mockDb, logger: mockLogger });
+
     // Act
-    const result = await service.getUser('1')
-    
+    const result = await service.getUser('1');
+
     // Assert
-    expect(result).toEqual({ id: '1' })
-    expect(mockLogger.info).toHaveBeenCalledWith('Getting user 1')
-  })
-})
+    expect(result).toEqual({ id: '1' });
+    expect(mockLogger.info).toHaveBeenCalledWith('Getting user 1');
+  });
+});
 ```
 
 ## Commit Conventions
@@ -209,7 +211,7 @@ Use conventional commits:
 - Maintain 100% test coverage
 - Follow existing patterns in codebase
 - Write clear error messages with context
- Keep AGENTS.md synchronized with source code changes (update when logic, patterns, or conventions change)
+  Keep AGENTS.md synchronized with source code changes (update when logic, patterns, or conventions change)
 
 ## Common Patterns
 
@@ -228,13 +230,13 @@ TokenNotFoundError: Token 'Logger' not found
 
 ```typescript
 class DatabaseService implements OnModuleInit, OnModuleDestroy {
-  static readonly inject = { config: 'Config' } as const
+  static readonly inject = { config: 'Config' } as const;
   constructor(private deps: typeof DatabaseService.inject) {}
-  
+
   async onModuleInit() {
     // Connect to database
   }
-  
+
   async onModuleDestroy() {
     // Close connections
   }
@@ -246,18 +248,18 @@ class DatabaseService implements OnModuleInit, OnModuleDestroy {
 ```typescript
 // Request-scoped via child container
 class RequestContext {
-  static readonly inject = {} as const
+  static readonly inject = {} as const;
   constructor(private deps: typeof RequestContext.inject) {}
-  
+
   // New instance per request
 }
 
 // In adapter
 app.use((req, res, next) => {
-  const scope = container.createScope()
-  req.container = scope
-  next()
-})
+  const scope = container.createScope();
+  req.container = scope;
+  next();
+});
 ```
 
 ## Project Structure

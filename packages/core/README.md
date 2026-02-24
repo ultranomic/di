@@ -11,15 +11,15 @@ pnpm add @voxeljs/core
 ## Quick Start
 
 ```typescript
-import { Container } from '@voxeljs/core'
+import { Container } from '@voxeljs/core';
 
-const container = new Container()
+const container = new Container();
 
 // Register a service
-container.register('Logger', (c) => new ConsoleLogger()).asSingleton()
+container.register('Logger', (c) => new ConsoleLogger()).asSingleton();
 
 // Resolve it
-const logger = container.resolve('Logger')
+const logger = container.resolve('Logger');
 ```
 
 ## Container
@@ -30,35 +30,35 @@ The container manages dependency registration and resolution.
 
 ```typescript
 // Register with a string token
-container.register('Logger', (c) => new ConsoleLogger())
+container.register('Logger', (c) => new ConsoleLogger());
 
 // Register with a class token
 container.register(UserService, (c) => {
-  return new UserService(c.buildDeps(UserService.inject))
-})
+  return new UserService(c.buildDeps(UserService.inject));
+});
 
 // Register with a symbol token
-container.register(Symbol('Config'), (c) => new Config())
+container.register(Symbol('Config'), (c) => new Config());
 ```
 
 ### Scopes
 
 ```typescript
 // Singleton - one instance shared everywhere
-container.register('Cache', CacheService).asSingleton()
+container.register('Cache', CacheService).asSingleton();
 
 // Transient - new instance on every resolve
-container.register('Validator', Validator).asTransient()
+container.register('Validator', Validator).asTransient();
 
 // Scoped - one instance per scope
-container.register('RequestContext', RequestContext).asScoped()
+container.register('RequestContext', RequestContext).asScoped();
 ```
 
 ### Resolve
 
 ```typescript
-const logger = container.resolve('Logger')
-const userService = container.resolve(UserService)
+const logger = container.resolve('Logger');
+const userService = container.resolve(UserService);
 ```
 
 ### Build Dependencies
@@ -67,25 +67,25 @@ const userService = container.resolve(UserService)
 class UserService {
   static readonly inject = {
     db: 'Database',
-    logger: 'Logger'
-  } as const
-  
+    logger: 'Logger',
+  } as const;
+
   constructor(private deps: typeof UserService.inject) {}
 }
 
 container.register(UserService, (c) => {
-  return new UserService(c.buildDeps(UserService.inject))
-})
+  return new UserService(c.buildDeps(UserService.inject));
+});
 ```
 
 ### Child Containers
 
 ```typescript
 // Create a child container for request scoping
-const childContainer = container.createScope()
+const childContainer = container.createScope();
 
 // Scoped providers are unique per child container
-const ctx1 = childContainer.resolve('RequestContext')
+const ctx1 = childContainer.resolve('RequestContext');
 ```
 
 ## Modules
@@ -93,13 +93,13 @@ const ctx1 = childContainer.resolve('RequestContext')
 Modules organize related providers and controllers.
 
 ```typescript
-import { Module } from '@voxeljs/core'
+import { Module } from '@voxeljs/core';
 
 class DatabaseModule extends Module {
   static readonly metadata = {
     providers: [Database, Migrator],
-    exports: [Database]
-  }
+    exports: [Database],
+  };
 }
 
 class UserModule extends Module {
@@ -107,8 +107,8 @@ class UserModule extends Module {
     imports: [DatabaseModule],
     providers: [UserService, UserRepository],
     controllers: [UserController],
-    exports: [UserService]
-  }
+    exports: [UserService],
+  };
 }
 ```
 
@@ -124,25 +124,25 @@ class UserModule extends Module {
 Controllers group related routes.
 
 ```typescript
-import { Controller } from '@voxeljs/core'
-import type { ControllerRoute } from '@voxeljs/core'
+import { Controller } from '@voxeljs/core';
+import type { ControllerRoute } from '@voxeljs/core';
 
 class UserController extends Controller {
-  static readonly inject = { users: UserService } as const
-  
+  static readonly inject = { users: UserService } as const;
+
   static readonly routes = [
     { method: 'GET', path: '/users', handler: 'list' },
     { method: 'GET', path: '/users/:id', handler: 'get' },
-    { method: 'POST', path: '/users', handler: 'create' }
-  ] as const satisfies ControllerRoute<UserController>[]
-  
+    { method: 'POST', path: '/users', handler: 'create' },
+  ] as const satisfies ControllerRoute<UserController>[];
+
   constructor(private deps: typeof UserController.inject) {
-    super()
+    super();
   }
-  
+
   async list(req: Request, res: Response) {
-    const users = await this.deps.users.findAll()
-    res.json(users)
+    const users = await this.deps.users.findAll();
+    res.json(users);
   }
 }
 ```
@@ -161,17 +161,17 @@ The `satisfies ControllerRoute<T>[]` pattern enables type inference for path par
 Services can hook into module lifecycle.
 
 ```typescript
-import type { OnModuleInit, OnModuleDestroy } from '@voxeljs/core'
+import type { OnModuleInit, OnModuleDestroy } from '@voxeljs/core';
 
 class Database implements OnModuleInit, OnModuleDestroy {
-  static readonly inject = { config: 'Config' } as const
-  
+  static readonly inject = { config: 'Config' } as const;
+
   constructor(private deps: typeof Database.inject) {}
-  
+
   async onModuleInit() {
     // Connect to database
   }
-  
+
   async onModuleDestroy() {
     // Close connections
   }
@@ -207,23 +207,23 @@ type Token<T = unknown> = string | symbol | abstract new (...args: unknown[]) =>
 
 ```typescript
 interface ControllerRoute<T> {
-  method: HttpMethod
-  path: string
-  handler: keyof T
+  method: HttpMethod;
+  path: string;
+  handler: keyof T;
 }
 ```
 
 ### ExtractPathParams
 
 ```typescript
-type Params = ExtractPathParams<'/users/:userId/posts/:postId'>
+type Params = ExtractPathParams<'/users/:userId/posts/:postId'>;
 // { userId: string; postId: string }
 ```
 
 ### InferInject
 
 ```typescript
-type Deps = InferInject<['Database', 'Logger'], TokenRegistry>
+type Deps = InferInject<['Database', 'Logger'], TokenRegistry>;
 ```
 
 ## License

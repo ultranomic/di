@@ -366,11 +366,7 @@ describe('Resolution with static inject', () => {
       class MixedService {
         static readonly inject = ['Logger', ConfigBase, CACHE_TOKEN] as const;
 
-        constructor(
-          _logger: unknown,
-          _config: ConfigBase,
-          _cache: unknown,
-        ) {}
+        constructor(_logger: unknown, _config: ConfigBase, _cache: unknown) {}
       }
 
       container.register('Logger', () => ({ log: (_msg: string) => {} }));

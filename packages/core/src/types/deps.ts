@@ -17,9 +17,7 @@ import type { TokenRegistry } from './token.ts';
  *   constructor(public foo: Foo, public bar: Bar) {}
  * }
  */
-export type DepsTokens<T extends abstract new (...args: any) => any> = T extends abstract new (
-  ...args: infer P
-) => any
+export type DepsTokens<T extends abstract new (...args: any) => any> = T extends abstract new (...args: infer P) => any
   ? P extends Array<any>
     ? { [K in keyof P]: (abstract new (...args: any[]) => P[K]) | string | symbol }
     : never

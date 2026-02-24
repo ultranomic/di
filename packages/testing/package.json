@@ -1,6 +1,14 @@
 {
   "name": "@voxeljs/testing",
   "version": "0.0.1",
+  "keywords": [
+    "dependency-injection",
+    "di",
+    "mock",
+    "testing",
+    "voxel"
+  ],
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,8 +23,6 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "keywords": ["voxel", "di", "testing", "mock", "dependency-injection"],
-  "license": "MIT",
   "dependencies": {
     "@voxeljs/core": "workspace:*"
   },

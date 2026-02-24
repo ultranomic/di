@@ -279,9 +279,7 @@ describe('Controller', () => {
 
         static readonly metadata: ControllerMetadata = {
           basePath: '/users',
-          routes: [
-            { method: 'GET', path: '/', handler: 'list' },
-          ] as const satisfies ControllerRoute<UserController>[],
+          routes: [{ method: 'GET', path: '/', handler: 'list' }] as const satisfies ControllerRoute<UserController>[],
         };
 
         constructor(
@@ -319,9 +317,7 @@ describe('Controller', () => {
 
         static readonly metadata: ControllerMetadata = {
           basePath: '/data',
-          routes: [
-            { method: 'GET', path: '/', handler: 'query' },
-          ] as const satisfies ControllerRoute<DataController>[],
+          routes: [{ method: 'GET', path: '/', handler: 'query' }] as const satisfies ControllerRoute<DataController>[],
         };
 
         constructor(public db: Database) {

@@ -607,7 +607,10 @@ describe('ModuleRegistry', () => {
       class AppService {
         static readonly inject = [Logger, Database] as const satisfies DepsTokens<typeof AppService>;
 
-        constructor(private logger: Logger, private database: Database) {}
+        constructor(
+          private logger: Logger,
+          private database: Database,
+        ) {}
 
         getData() {
           return this.database.query();
@@ -622,14 +625,7 @@ describe('ModuleRegistry', () => {
 
         register(container: ContainerInterface): void {
           container
-            .register(
-              'AppService',
-              (c) =>
-                new AppService(
-                  c.resolve('Logger'),
-                  c.resolve('Database'),
-                ),
-            )
+            .register('AppService', (c) => new AppService(c.resolve('Logger'), c.resolve('Database')))
             .asSingleton();
         }
       }
@@ -675,15 +671,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container
-            .register(
-              'UserService',
-              (c) =>
-                new UserService(
-                  c.resolve('InternalLogger'),
-                ),
-            )
-            .asSingleton();
+          container.register('UserService', (c) => new UserService(c.resolve('InternalLogger'))).asSingleton();
         }
       }
 
@@ -722,15 +710,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container
-            .register(
-              'UserService',
-              (c) =>
-                new UserService(
-                  c.resolve('InternalLogger'),
-                ),
-            )
-            .asSingleton();
+          container.register('UserService', (c) => new UserService(c.resolve('InternalLogger'))).asSingleton();
         }
       }
 
@@ -775,15 +755,7 @@ describe('ModuleRegistry', () => {
 
         register(container: ContainerInterface): void {
           container.register('InternalLogger', () => new InternalLogger()).asSingleton();
-          container
-            .register(
-              'PublicService',
-              (c) =>
-                new PublicService(
-                  c.resolve('InternalLogger'),
-                ),
-            )
-            .asSingleton();
+          container.register('PublicService', (c) => new PublicService(c.resolve('InternalLogger'))).asSingleton();
         }
       }
 
@@ -843,15 +815,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container
-            .register(
-              'UserService',
-              (c) =>
-                new UserService(
-                  c.resolve('SecretService'),
-                ),
-            )
-            .asSingleton();
+          container.register('UserService', (c) => new UserService(c.resolve('SecretService'))).asSingleton();
         }
       }
 

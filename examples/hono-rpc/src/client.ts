@@ -62,16 +62,18 @@ export type AppType = {
           id: string;
         };
       };
-      output: {
-        data: {
-          id: string;
-          name: string;
-          email: string;
-          createdAt: string;
-        };
-      } | {
-        error: string;
-      };
+      output:
+        | {
+            data: {
+              id: string;
+              name: string;
+              email: string;
+              createdAt: string;
+            };
+          }
+        | {
+            error: string;
+          };
     };
     $put: {
       input: {
@@ -83,16 +85,18 @@ export type AppType = {
           email?: string;
         };
       };
-      output: {
-        data: {
-          id: string;
-          name: string;
-          email: string;
-          createdAt: string;
-        };
-      } | {
-        error: string;
-      };
+      output:
+        | {
+            data: {
+              id: string;
+              name: string;
+              email: string;
+              createdAt: string;
+            };
+          }
+        | {
+            error: string;
+          };
     };
     $delete: {
       input: {

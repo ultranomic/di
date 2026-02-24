@@ -1,12 +1,19 @@
 {
   "name": "@voxeljs/cli",
   "version": "0.0.1",
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "keywords": [
+    "cli",
+    "generator",
+    "scaffold",
+    "voxel"
+  ],
+  "license": "MIT",
   "bin": {
     "voxel": "./dist/index.js"
   },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -18,8 +25,6 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "keywords": ["voxel", "cli", "scaffold", "generator"],
-  "license": "MIT",
   "devDependencies": {
     "@types/node": "^22.0.0",
     "vitest": "4.0.18"

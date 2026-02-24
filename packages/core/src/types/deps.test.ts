@@ -14,10 +14,7 @@ describe('Deps types', () => {
 
       type TestDeps = InferInject<typeof inject, TestRegistry>;
 
-      const deps: TestDeps = [
-        { log: (_msg: string) => undefined },
-        { query: async (_sql: string) => null },
-      ];
+      const deps: TestDeps = [{ log: (_msg: string) => undefined }, { query: async (_sql: string) => null }];
 
       expect(deps[0]).toBeDefined();
       expect(deps[1]).toBeDefined();
@@ -62,10 +59,7 @@ describe('Deps types', () => {
 
       type MixedDeps = InferInject<typeof inject, TestRegistry>;
 
-      const mockDeps: MixedDeps = [
-        { log: (_msg: string) => undefined },
-        new Config(),
-      ];
+      const mockDeps: MixedDeps = [{ log: (_msg: string) => undefined }, new Config()];
 
       expect(mockDeps[0]).toBeDefined();
       expect(mockDeps[1]).toBeInstanceOf(Config);
@@ -99,7 +93,7 @@ describe('Deps types', () => {
         constructor(public logger: Logger) {}
       }
 
-      type MyServiceDeps = InferInject<typeof MyService['inject']>;
+      type MyServiceDeps = InferInject<(typeof MyService)['inject']>;
 
       const mockDeps: MyServiceDeps = [new Logger()];
 
@@ -114,7 +108,10 @@ describe('Deps types', () => {
 
       class MyService {
         static readonly inject = [Logger, Database] as const satisfies DepsTokens<typeof MyService>;
-        constructor(public logger: Logger, public db: Database) {}
+        constructor(
+          public logger: Logger,
+          public db: Database,
+        ) {}
       }
 
       expect(MyService.inject).toHaveLength(2);

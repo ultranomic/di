@@ -46,6 +46,7 @@ pnpm test:coverage
 Save QA evidence to `.sisyphus/evidence/task-{N}-{scenario-slug}.{ext}`
 
 Examples:
+
 - `.sisyphus/evidence/task-05-container.txt`
 - `.sisyphus/evidence/task-08-circular.txt`
 
@@ -79,8 +80,8 @@ Document patterns and successful approaches:
 The `typeof Class.inject` pattern works well for inferring dependency types:
 
 class Service {
-  static readonly inject = { db: 'Database' } as const
-  constructor(private deps: typeof Service.inject) {}
+static readonly inject = { db: 'Database' } as const
+constructor(private deps: typeof Service.inject) {}
 }
 
 This gives `deps.db` proper typing.
@@ -148,6 +149,7 @@ pnpm format
 Core DI functionality. Changes here affect all other packages.
 
 Key files:
+
 - `src/container/container.ts` - Main container class
 - `src/container/resolver.ts` - Dependency resolution
 - `src/container/circular-proxy.ts` - Circular dependency handling
@@ -159,11 +161,12 @@ Key files:
 HTTP adapters. Each adapter must implement the same interface.
 
 Pattern:
+
 ```typescript
 interface HttpAdapter {
-  registerController(controller: ControllerClass): void
-  listen(port: number): Promise<void>
-  close(): Promise<void>
+  registerController(controller: ControllerClass): void;
+  listen(port: number): Promise<void>;
+  close(): Promise<void>;
 }
 ```
 
@@ -172,6 +175,7 @@ interface HttpAdapter {
 Testing utilities. Must work with all adapters.
 
 Key exports:
+
 - `Test.createModule()` - Fluent module builder
 - `mock(token).use(implementation)` - Mock replacement
 
@@ -180,6 +184,7 @@ Key exports:
 Project scaffolding. Keep minimal.
 
 Commands:
+
 - `voxel new <name>` - Create new project
 
 ## Error Message Guidelines
@@ -192,6 +197,7 @@ All errors must include:
 4. **Suggestion** - How to fix it
 
 Example:
+
 ```
 TokenNotFoundError: Token 'Logger' not found in UserService
   Resolution path: App -> UserModule -> UserService

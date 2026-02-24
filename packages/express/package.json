@@ -1,6 +1,13 @@
 {
   "name": "@voxeljs/express",
   "version": "0.0.1",
+  "keywords": [
+    "adapter",
+    "express",
+    "http",
+    "voxel"
+  ],
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,16 +22,14 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "keywords": ["voxel", "express", "http", "adapter"],
-  "license": "MIT",
-  "peerDependencies": {
-    "express": "^4.0.0 || ^5.0.0"
-  },
   "dependencies": {
     "@voxeljs/core": "workspace:*"
   },
   "devDependencies": {
-    "express": "5.2.1",
-    "@types/express": "5.0.6"
+    "@types/express": "5.0.6",
+    "express": "5.2.1"
+  },
+  "peerDependencies": {
+    "express": "^4.0.0 || ^5.0.0"
   }
 }
