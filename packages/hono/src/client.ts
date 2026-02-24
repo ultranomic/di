@@ -1,6 +1,5 @@
 import { hc } from 'hono/client';
 import type { Hono } from 'hono';
-import type { HonoAdapter } from './adapter.js';
 
 /**
  * Re-export Hono's hc (client) utility for creating type-safe API clients
@@ -17,7 +16,7 @@ export type InferHonoAppType<T> = T extends { getApp(): infer R } ? R : never;
  * Type helper to extract the routes schema from a Hono app
  * Useful for getting the typed client interface
  */
-export type InferRoutesFromApp<T> = T extends Hono<infer E, infer S> ? S : never;
+export type InferRoutesFromApp<T> = T extends Hono<infer _E, infer S> ? S : never;
 
 /**
  * Create a typed RPC client from a HonoAdapter instance

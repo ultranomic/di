@@ -23,6 +23,7 @@
  * abstract class LoggerBase {}
  * const loggerToken: Token<LoggerBase> = LoggerBase
  */
+// oxlint-disable-next-line typescript-eslint(no-explicit-any)
 export type Token<T = unknown> = string | symbol | (abstract new (...args: any[]) => T);
 
 /**

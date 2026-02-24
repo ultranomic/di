@@ -1,5 +1,5 @@
 import { Container, Controller } from '@voxeljs/core';
-import type { DepsTokens, Token } from '@voxeljs/core';
+import type { DepsTokens } from '@voxeljs/core';
 import type { Request, Response } from 'express';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ExpressAdapter } from './adapter.ts';

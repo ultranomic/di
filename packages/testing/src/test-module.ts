@@ -119,6 +119,7 @@ export class TestModuleBuilder {
             }
             if (ProviderClass.inject) {
               container.register(ProviderClass, (c: ResolverInterface) => {
+                // oxlint-disable-next-line typescript-eslint(no-non-null-assertion)
                 const inject = ProviderClass.inject!;
                 // Check if inject is an object (new DepsTokens pattern) or array (old pattern)
                 if (Array.isArray(inject)) {

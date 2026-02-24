@@ -97,6 +97,7 @@ export abstract class Module implements OnModuleInit, OnModuleDestroy {
    * @param container - The container to resolve dependencies from
    * @returns A new instance of the class
    */
+  // oxlint-disable-next-line typescript-eslint(no-explicit-any)
   protected createInstance<TClass extends new (...args: any) => any>(
     Class: TClass,
     container: ResolverInterface,

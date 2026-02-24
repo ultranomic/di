@@ -237,8 +237,8 @@ describe('Controller', () => {
       }
 
       const routes = SimplePathController.metadata?.routes ?? [];
-      expect(routes[0]!.path).toBe('/health');
-      expect(routes[1]!.path).toBe('/status');
+      expect(routes[0]?.path).toBe('/health');
+      expect(routes[1]?.path).toBe('/status');
     });
 
     it('should support path parameters', () => {
@@ -255,8 +255,8 @@ describe('Controller', () => {
       }
 
       const routes = ParamsController.metadata?.routes ?? [];
-      expect(routes[0]!.path).toBe('/users/:id');
-      expect(routes[1]!.path).toBe('/users/:userId/posts/:postId');
+      expect(routes[0]?.path).toBe('/users/:id');
+      expect(routes[1]?.path).toBe('/users/:userId/posts/:postId');
     });
   });
 
@@ -357,7 +357,7 @@ describe('Controller', () => {
 
     it('should support inject with ControllerConstructor type', () => {
       class Logger {
-        log(msg: string) {}
+        log(_msg: string) {}
       }
 
       class LoggedController extends Controller {

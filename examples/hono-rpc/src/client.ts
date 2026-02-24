@@ -6,7 +6,7 @@
  * 2. Using the createRpcClient utility
  * 3. Making typed requests with full autocomplete support
  */
-import { hc, createRpcClient, type InferHonoAppType } from '@voxeljs/hono';
+import { hc, createRpcClient } from '@voxeljs/hono';
 import type { HonoAdapter } from '@voxeljs/hono';
 
 /**
@@ -18,7 +18,7 @@ import type { HonoAdapter } from '@voxeljs/hono';
 export type AppType = {
   '/health': {
     $get: {
-      input: {};
+      input: {}; // oxlint-disable-line typescript-eslint(no-empty-object-type)
       output: {
         status: string;
         timestamp: string;
@@ -27,7 +27,7 @@ export type AppType = {
   };
   '/users': {
     $get: {
-      input: {};
+      input: {}; // oxlint-disable-line typescript-eslint(no-empty-object-type)
       output: {
         data: Array<{
           id: string;
@@ -104,7 +104,7 @@ export type AppType = {
           id: string;
         };
       };
-      output: {};
+      output: {}; // oxlint-disable-line typescript-eslint(no-empty-object-type)
     };
   };
 };

@@ -560,6 +560,7 @@ describe('HonoAdapter', () => {
       const app = adapter.getApp();
 
       // Type test - should compile without errors
+      // oxlint-disable-next-line eslint(no-unused-vars)
       type RoutesType = InferRoutesFromApp<typeof app>;
 
       // This is a compile-time type test
