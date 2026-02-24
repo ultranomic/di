@@ -3,13 +3,20 @@ import type { Token } from '../types/token.ts';
 /**
  * Binding scope determines the lifecycle of a provider
  */
-export const BindingScope = {
-  SINGLETON: 'SINGLETON',
-  TRANSIENT: 'TRANSIENT',
-  SCOPED: 'SCOPED',
+export const Scope = {
+  SINGLETON: 'singleton',
+  TRANSIENT: 'transient',
+  SCOPED: 'scoped',
 } as const;
 
-export type BindingScope = (typeof BindingScope)[keyof typeof BindingScope];
+export type Scope = (typeof Scope)[keyof typeof Scope];
+
+/**
+ * RegisterOptions for class registration
+ */
+export interface RegisterOptions {
+  scope?: Scope;
+}
 
 /**
  * Forward declaration of Container type to avoid circular dependency
@@ -20,58 +27,14 @@ export type ContainerLike = {
 
 /**
  * Binding represents a provider registration in the container
- *
- * @template T - The type of value the binding produces
  */
 export interface Binding<T = unknown> {
   /** The token used to identify this binding */
   readonly token: Token<T>;
-  /** Factory function that creates the value */
-  readonly factory: (container: ContainerLike) => T;
+  /** The class constructor */
+  readonly classConstructor: abstract new (...args: unknown[]) => T;
   /** The scope of this binding */
-  scope: BindingScope;
+  scope: Scope;
   /** Cached instance for singleton scope */
   instance?: T;
-}
-
-/**
- * BindingBuilder provides a fluent API for configuring bindings
- *
- * @template T - The type of value the binding produces
- */
-export class BindingBuilder<T> {
-  private readonly binding: Binding<T>;
-
-  constructor(binding: Binding<T>) {
-    this.binding = binding;
-  }
-
-  /**
-   * Configure the binding as a singleton
-   *
-   * Singletons are instantiated once and cached for the lifetime
-   * of the container.
-   */
-  asSingleton(): void {
-    this.binding.scope = BindingScope.SINGLETON;
-  }
-
-  /**
-   * Configure the binding as transient
-   *
-   * Transient bindings create a new instance on every resolution.
-   * This is the default scope.
-   */
-  asTransient(): void {
-    this.binding.scope = BindingScope.TRANSIENT;
-  }
-
-  /**
-   * Configure the binding as request-scoped
-   *
-   * Request-scoped bindings create one instance per request scope.
-   */
-  asScoped(): void {
-    this.binding.scope = BindingScope.SCOPED;
-  }
 }
