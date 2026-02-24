@@ -16,8 +16,8 @@ export type { ModuleClass, ModuleMetadata, OnModuleDestroy, OnModuleInit } from 
 export type { Token } from './types/token.ts';
 
 // Container
-export { BindingBuilder, BindingScope } from './container/binding.ts';
-export type { Binding, ContainerLike } from './container/binding.ts';
+export { Scope } from './container/binding.ts';
+export type { Binding, ContainerLike, RegisterOptions } from './container/binding.ts';
 export { Container } from './container/container.ts';
 export type { ContainerInterface, ResolverInterface } from './container/interfaces.ts';
 
