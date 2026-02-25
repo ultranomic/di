@@ -154,11 +154,11 @@ import { UserController } from './controllers/user.controller.ts';
 
 const container = new Container();
 
-// Register providers
-container.register(UserService, (c) => new UserService(...c.buildDeps(UserService.inject))).asSingleton();
+// Register providers - container auto-instantiates using static inject
+container.register(UserService);
 
 // Register controllers
-container.register(UserController, (c) => new UserController(...c.buildDeps(UserController.inject)));
+container.register(UserController);
 
 // Create adapter and register routes
 const adapter = new ExpressAdapter(container);
@@ -179,12 +179,15 @@ node main.ts
 
 ### Dependency Injection
 
-Ultranomic DI's container manages object creation and dependency resolution. Register a provider with a class token, then resolve it.
+Ultranomic DI's container manages object creation and dependency resolution. Register a class, then resolve it. The container automatically instantiates using the class's `static inject` property.
 
 ```typescript
 import { Container } from '@ultranomic/di';
+import type { DepsTokens } from '@ultranomic/di';
 
 class Logger {
+  static readonly inject = [] as const satisfies DepsTokens<Logger>;
+
   log(message: string) {
     console.log(message);
   }
@@ -192,8 +195,8 @@ class Logger {
 
 const container = new Container();
 
-// Register with a class token
-container.register(Logger, () => new Logger()).asSingleton();
+// Register with a class token - defaults to singleton scope
+container.register(Logger);
 
 // Resolve it
 const logger = container.resolve(Logger);
@@ -203,18 +206,27 @@ const logger = container.resolve(Logger);
 
 Three scopes control instance lifetime:
 
-- **Singleton**: One instance shared everywhere. Created once, cached forever.
+- **Singleton**: One instance shared everywhere. Created once, cached forever. (default)
 - **Transient**: New instance on every resolution.
 - **Scoped**: One instance per scope (useful for request contexts).
 
 ```typescript
-class CacheService {}
-class Validator {}
-class RequestContext {}
+import { Scope } from '@ultranomic/di';
+import type { DepsTokens } from '@ultranomic/di';
 
-container.register(CacheService, () => new CacheService()).asSingleton();
-container.register(Validator, () => new Validator()).asTransient();
-container.register(RequestContext, () => new RequestContext()).asScoped();
+class CacheService {
+  static readonly inject = [] as const satisfies DepsTokens<CacheService>;
+}
+class Validator {
+  static readonly inject = [] as const satisfies DepsTokens<Validator>;
+}
+class RequestContext {
+  static readonly inject = [] as const satisfies DepsTokens<RequestContext>;
+}
+
+container.register(CacheService);                                    // singleton (default)
+container.register(Validator, { scope: Scope.TRANSIENT });
+container.register(RequestContext, { scope: Scope.SCOPED });
 ```
 
 #### Circular Dependencies
@@ -222,6 +234,8 @@ container.register(RequestContext, () => new RequestContext()).asScoped();
 DI handles circular dependencies automatically. Services can depend on each other without special workarounds.
 
 ```typescript
+import type { DepsTokens } from '@ultranomic/di';
+
 class ServiceA {
   static readonly inject = [ServiceB] as const satisfies DepsTokens<ServiceA>;
   constructor(private serviceB: ServiceB) {}
@@ -233,8 +247,8 @@ class ServiceB {
 }
 
 // This works. Ultranomic DI uses proxies to break the cycle.
-container.register(ServiceA, (c) => new ServiceA(...c.buildDeps(ServiceA.inject))).asSingleton();
-container.register(ServiceB, (c) => new ServiceB(...c.buildDeps(ServiceB.inject))).asSingleton();
+container.register(ServiceA);
+container.register(ServiceB);
 ```
 
 ### Modules
@@ -243,9 +257,15 @@ Modules organize related providers and controllers. They define boundaries for d
 
 ```typescript
 import { Module } from '@ultranomic/di';
+import type { DepsTokens } from '@ultranomic/di';
 
-class Database {}
-class Migrator {}
+class Database {
+  static readonly inject = [] as const satisfies DepsTokens<Database>;
+}
+class Migrator {
+  static readonly inject = [] as const satisfies DepsTokens<Migrator>;
+}
+
 class DatabaseModule extends Module {
   static readonly metadata = {
     providers: [Database, Migrator],
@@ -253,9 +273,16 @@ class DatabaseModule extends Module {
   };
 }
 
-class UserService {}
-class UserRepository {}
-class UserController {}
+class UserService {
+  static readonly inject = [] as const satisfies DepsTokens<UserService>;
+}
+class UserRepository {
+  static readonly inject = [] as const satisfies DepsTokens<UserRepository>;
+}
+class UserController {
+  static readonly inject = [UserService] as const satisfies DepsTokens<UserController>;
+}
+
 class UserModule extends Module {
   static readonly metadata = {
     imports: [DatabaseModule], // Get Database from here
@@ -280,7 +307,9 @@ Controllers group related routes. The `routes` array maps HTTP methods and paths
 ```typescript
 import type { ControllerRoute, DepsTokens } from '@ultranomic/di';
 
-class ProductService {}
+class ProductService {
+  static readonly inject = [] as const satisfies DepsTokens<ProductService>;
+}
 
 class ProductController {
   static readonly inject = [ProductService] as const satisfies DepsTokens<ProductController>;
@@ -314,7 +343,9 @@ Services can hook into module initialization and destruction.
 ```typescript
 import type { OnModuleInit, OnModuleDestroy, DepsTokens } from '@ultranomic/di';
 
-class Config {}
+class Config {
+  static readonly inject = [] as const satisfies DepsTokens<Config>;
+}
 
 class Database implements OnModuleInit, OnModuleDestroy {
   static readonly inject = [Config] as const satisfies DepsTokens<Database>;
