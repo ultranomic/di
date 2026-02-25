@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Hono } from 'hono';
-import { createClientFromApp, hc } from './client.js';
+import { createClientFromApp, createRpcClient, hc } from './client.js';
 
 describe('hono/client', () => {
   describe('createClientFromApp', () => {
@@ -56,6 +56,38 @@ describe('hono/client', () => {
       expect(client).toBeDefined();
       // The client should have typed routes for dynamic paths
       expect(client.users).toBeDefined();
+    });
+  });
+
+  describe('createRpcClient', () => {
+    it('should create a typed client from an adapter with getApp method', () => {
+      const app = new Hono();
+      app.get('/users', (c) => c.json({ users: [] }));
+
+      // Create a mock adapter
+      const adapter = {
+        getApp: () => app,
+      };
+
+      const client = createRpcClient(adapter, 'http://localhost:3000');
+
+      expect(client).toBeDefined();
+      expect(client.users).toBeDefined();
+      expect(client.users.$get).toBeDefined();
+    });
+
+    it('should infer types from adapter getApp return type', () => {
+      const app = new Hono();
+      app.get('/api/status', (c) => c.json({ status: 'ok' }));
+
+      const adapter = {
+        getApp: () => app,
+      };
+
+      const client = createRpcClient(adapter, 'http://localhost:3000');
+
+      expect(client.api).toBeDefined();
+      expect(client.api.status).toBeDefined();
     });
   });
 
