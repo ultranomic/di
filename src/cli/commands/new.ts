@@ -123,11 +123,11 @@ export class AppModule extends Module {
 
   register(container: import('@ultranomic/di/core').ContainerInterface): void {
     container.register(UserService, (c) => {
-      return new UserService(...c.buildDeps(UserService.inject))
+      return new UserService(...c.buildDependencies(UserService.inject))
     }).asSingleton()
 
     container.register(UserController, (c) => {
-      return new UserController(...c.buildDeps(UserController.inject))
+      return new UserController(...c.buildDependencies(UserController.inject))
     })
   }
 }

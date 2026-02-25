@@ -1,11 +1,11 @@
 import type { Token } from '../types/token.ts';
-import { DIError } from './base.ts';
+import { DependencyInjectionError } from './base.ts';
 
 /**
  * Error thrown when a module tries to access a token from an imported module
  * that is not exported
  */
-export class NonExportedTokenError extends DIError {
+export class NonExportedTokenError extends DependencyInjectionError {
   readonly token: Token;
   readonly requestingModule: string;
   readonly ownerModule: string;

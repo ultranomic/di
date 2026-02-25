@@ -3,7 +3,7 @@ import type { ControllerRoute } from '../types/controller.ts';
 import type { ControllerMetadata } from './controller.ts';
 import { Controller } from './controller.ts';
 import type { ControllerConstructor, RouteInfo } from './interfaces.ts';
-import type { DepsTokens } from '../types/deps.ts';
+import type { DependencyTokens } from '../types/dependencies.ts';
 
 describe('Controller base class coverage', () => {
   it('should have undefined inject property on base Controller class', () => {
@@ -273,7 +273,7 @@ describe('Controller', () => {
   });
 
   describe('new inject pattern', () => {
-    it('should support the new array-based inject pattern with DepsTokens', () => {
+    it('should support the new array-based inject pattern with DependencyTokens', () => {
       class Logger {
         log(msg: string) {
           return `logged: ${msg}`;
@@ -287,7 +287,7 @@ describe('Controller', () => {
       }
 
       class UserController extends Controller {
-        static readonly inject = [Logger, UserService] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [Logger, UserService] as const satisfies DependencyTokens<typeof this>;
 
         static readonly metadata = {
           basePath: '/users',
@@ -326,7 +326,7 @@ describe('Controller', () => {
       }
 
       class DataController extends Controller {
-        static readonly inject = [Database] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [Database] as const satisfies DependencyTokens<typeof this>;
 
         static readonly metadata = {
           basePath: '/data',
@@ -376,7 +376,7 @@ describe('Controller', () => {
       }
 
       class LoggedController extends Controller {
-        static readonly inject = [Logger] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [Logger] as const satisfies DependencyTokens<typeof this>;
         static readonly metadata = {
           basePath: '/logged',
         } as const satisfies ControllerMetadata<typeof this>;
