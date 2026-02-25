@@ -1,8 +1,8 @@
 import { ScopeValidationError } from '../errors/scope-validation.ts';
 import { TokenCollisionError } from '../errors/token-collision.ts';
 import { TokenNotFoundError } from '../errors/token-not-found.ts';
-import type { Token } from '../types/token.ts';
 import type { InferInject } from '../types/deps.ts';
+import type { Token } from '../types/token.ts';
 import { Scope, type Binding, type RegisterOptions } from './binding.ts';
 import type { ContainerInterface, ResolverInterface } from './interfaces.ts';
 
@@ -32,17 +32,7 @@ export class Container implements ContainerInterface {
     return this.parent === undefined;
   }
 
-  private getRoot(): Container {
-    if (this.parent === undefined) {
-      return this;
-    }
-    return this.parent.getRoot();
-  }
-
-  register<T extends abstract new (...args: unknown[]) => unknown>(
-    token: T,
-    options?: RegisterOptions,
-  ): void {
+  register<T extends abstract new (...args: unknown[]) => unknown>(token: T, options?: RegisterOptions): void {
     if (this.parent !== undefined) {
       throw new Error(
         `Cannot register bindings in child container. Token: ${String(token)}. ` +
@@ -50,18 +40,10 @@ export class Container implements ContainerInterface {
       );
     }
 
-    // Validate that class has static inject
-    const ClassWithInject = token as typeof token & {
-      inject?: readonly unknown[];
-    };
-    if (
-      !('inject' in ClassWithInject) ||
-      ClassWithInject.inject === undefined ||
-      !Array.isArray(ClassWithInject.inject)
-    ) {
+    if (this.getInjectArray(token) === undefined) {
       throw new Error(
         `Class '${token.name}' must have a static inject property. ` +
-          `Add: static readonly inject = [] as const satisfies DepsTokens<${token.name}>`,
+          `Add: static readonly inject = [] as const satisfies DepsTokens<typeof ${token.name}>;`,
       );
     }
 
@@ -134,18 +116,13 @@ export class Container implements ContainerInterface {
 
     // Use external resolver for dependency resolution if provided (for module encapsulation)
     const contextResolver: ResolverInterface = externalResolver ?? {
-      resolve: <TResolve>(resolveToken: Token<TResolve>): TResolve =>
-        this.resolveWithContext(resolveToken, context),
+      resolve: <TResolve>(resolveToken: Token<TResolve>): TResolve => this.resolveWithContext(resolveToken, context),
       has: (checkToken: Token) => this.has(checkToken),
-      buildDeps: <TTokens extends readonly Token[]>(tokens: TTokens) =>
-        this.buildDepsWithContext(tokens, context),
+      buildDeps: <TTokens extends readonly Token[]>(tokens: TTokens) => this.buildDepsWithContext(tokens, context),
     };
 
     // Auto-instantiate using inject property
-    const instance = this.createInstance(
-      binding.classConstructor as new (...args: unknown[]) => T,
-      contextResolver,
-    );
+    const instance = this.createInstance(binding.classConstructor as new (...args: unknown[]) => T, contextResolver);
 
     // Cache instances for singleton and scoped bindings
     if (binding.scope === Scope.SINGLETON) {
@@ -157,24 +134,23 @@ export class Container implements ContainerInterface {
     return instance;
   }
 
-  private createInstance<T>(
-    ClassConstructor: new (...args: unknown[]) => T,
-    resolver: ResolverInterface,
-  ): T {
+  private createInstance<T>(ClassConstructor: new (...args: unknown[]) => T, resolver: ResolverInterface): T {
+    const inject = this.getInjectArray(ClassConstructor);
+    if (inject !== undefined) {
+      const deps = resolver.buildDeps(inject);
+      return new ClassConstructor(...(deps as unknown[]));
+    }
+    return new ClassConstructor();
+  }
+
+  private getInjectArray(ClassConstructor: abstract new (...args: unknown[]) => unknown): readonly Token[] | undefined {
     const ClassWithInject = ClassConstructor as typeof ClassConstructor & {
       inject?: readonly Token[];
     };
-
-    if (
-      'inject' in ClassWithInject &&
-      ClassWithInject.inject !== undefined &&
-      Array.isArray(ClassWithInject.inject)
-    ) {
-      const deps = resolver.buildDeps(ClassWithInject.inject);
-      return new ClassConstructor(...(deps as unknown[]));
+    if ('inject' in ClassWithInject && ClassWithInject.inject !== undefined && Array.isArray(ClassWithInject.inject)) {
+      return ClassWithInject.inject;
     }
-
-    return new ClassConstructor();
+    return undefined;
   }
 
   has(token: Token): boolean {
@@ -193,15 +169,7 @@ export class Container implements ContainerInterface {
     if (this.parent === undefined) {
       return this.bindings;
     }
-    const allBindings = new Map<Token, Binding>();
-    const parentBindings = this.parent.getAllBindings();
-    for (const [token, binding] of parentBindings) {
-      allBindings.set(token, binding);
-    }
-    for (const [token, binding] of this.bindings) {
-      allBindings.set(token, binding);
-    }
-    return allBindings;
+    return new Map([...this.parent.getAllBindings(), ...this.bindings]);
   }
 
   clear(): void {
@@ -237,22 +205,9 @@ export class Container implements ContainerInterface {
     }
   }
 
-  private extractDependenciesFromClass(
-    ClassConstructor: abstract new (...args: unknown[]) => unknown,
-  ): Token[] {
-    const ClassWithInject = ClassConstructor as typeof ClassConstructor & {
-      inject?: readonly Token[];
-    };
-
-    if (
-      'inject' in ClassWithInject &&
-      ClassWithInject.inject !== undefined &&
-      Array.isArray(ClassWithInject.inject)
-    ) {
-      return [...ClassWithInject.inject];
-    }
-
-    return [];
+  private extractDependenciesFromClass(ClassConstructor: abstract new (...args: unknown[]) => unknown): Token[] {
+    const inject = this.getInjectArray(ClassConstructor);
+    return inject !== undefined ? [...inject] : [];
   }
 
   private createCircularProxy<T>(token: Token<T>): T {

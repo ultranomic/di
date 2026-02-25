@@ -74,9 +74,8 @@ export abstract class Module implements OnModuleInit, OnModuleDestroy {
    * @returns Array of tokens that this module exports
    */
   getExportedTokens(): Token[] {
-    const ctor = this.constructor as typeof Module;
-    const exports = ctor.metadata?.exports;
-    return exports !== undefined ? [...exports] : [];
+    const exports = (this.constructor as typeof Module).metadata?.exports;
+    return exports ? [...exports] : [];
   }
 
   /**
