@@ -135,7 +135,9 @@ describe('Resolution with static inject', () => {
       }
 
       class ComplexService {
-        static readonly inject = [ConsoleLogger, PostgresDatabase, RedisCache] as const satisfies DependencyTokens<typeof this>;
+        static readonly inject = [ConsoleLogger, PostgresDatabase, RedisCache] as const satisfies DependencyTokens<
+          typeof this
+        >;
 
         constructor(
           private logger: ConsoleLogger,

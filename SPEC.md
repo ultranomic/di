@@ -432,14 +432,14 @@ const testingModule = await Test.createModule({
 
 ### Error Classes
 
-| Error                     | Description                                      |
-| ------------------------- | ------------------------------------------------ |
-| `DependencyInjectionError`                 | Base error class for all DI errors               |
-| `TokenNotFoundError`      | Token cannot be resolved in container            |
-| `TokenCollisionError`     | Token registered more than once                  |
-| `CircularDependencyError` | Circular dependency detected in dependency graph |
-| `NonExportedTokenError`   | Token not exported from module                   |
-| `ScopeValidationError`    | Invalid scope configuration detected             |
+| Error                      | Description                                      |
+| -------------------------- | ------------------------------------------------ |
+| `DependencyInjectionError` | Base error class for all DI errors               |
+| `TokenNotFoundError`       | Token cannot be resolved in container            |
+| `TokenCollisionError`      | Token registered more than once                  |
+| `CircularDependencyError`  | Circular dependency detected in dependency graph |
+| `NonExportedTokenError`    | Token not exported from module                   |
+| `ScopeValidationError`     | Invalid scope configuration detected             |
 
 ### Error Features
 

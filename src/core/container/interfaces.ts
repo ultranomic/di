@@ -9,10 +9,7 @@ export interface ResolverInterface {
 }
 
 export interface ContainerInterface extends ResolverInterface {
-  register<T extends abstract new (...args: unknown[]) => unknown>(
-    token: T,
-    options?: RegisterOptions,
-  ): void;
+  register<T extends abstract new (...args: unknown[]) => unknown>(token: T, options?: RegisterOptions): void;
   getBinding<T>(token: Token<T>): Binding<T> | undefined;
   clear(): void;
 }

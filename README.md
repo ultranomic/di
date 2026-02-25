@@ -7,10 +7,10 @@ A dependency injection framework for TypeScript. No decorators, no reflect-metad
 Most DI frameworks lean heavily on decorators and runtime metadata. Ultranomic DI takes a different path. Everything is explicit. Dependencies are declared in static properties. Types flow naturally from those declarations.
 
 ```typescript
-import type { DepsTokens } from '@ultranomic/di';
+import type { DependencyTokens } from '@ultranomic/di';
 
 class UserService {
-  static readonly inject = [Database, Logger] as const satisfies DepsTokens<UserService>;
+  static readonly inject = [Database, Logger] as const satisfies DependencyTokens<UserService>;
 
   constructor(
     private db: InstanceType<typeof Database>,
@@ -57,10 +57,10 @@ Build a simple API with users.
 
 ```typescript
 // services/user.service.ts
-import type { DepsTokens } from '@ultranomic/di';
+import type { DependencyTokens } from '@ultranomic/di';
 
 export class UserService {
-  static readonly inject = [] as const satisfies DepsTokens<UserService>;
+  static readonly inject = [] as const satisfies DependencyTokens<UserService>;
 
   private users = [
     { id: '1', name: 'Alice' },
@@ -88,11 +88,11 @@ export class UserService {
 ```typescript
 // controllers/user.controller.ts
 import type { Request, Response } from 'express';
-import type { ControllerRoute, DepsTokens } from '@ultranomic/di';
+import type { ControllerRoute, DependencyTokens } from '@ultranomic/di';
 import { UserService } from './services/user.service.ts';
 
 export class UserController {
-  static readonly inject = [UserService] as const satisfies DepsTokens<UserController>;
+  static readonly inject = [UserService] as const satisfies DependencyTokens<UserController>;
 
   static readonly routes = [
     { method: 'GET', path: '/users', handler: 'list' },
@@ -183,10 +183,10 @@ Ultranomic DI's container manages object creation and dependency resolution. Reg
 
 ```typescript
 import { Container } from '@ultranomic/di';
-import type { DepsTokens } from '@ultranomic/di';
+import type { DependencyTokens } from '@ultranomic/di';
 
 class Logger {
-  static readonly inject = [] as const satisfies DepsTokens<Logger>;
+  static readonly inject = [] as const satisfies DependencyTokens<Logger>;
 
   log(message: string) {
     console.log(message);
@@ -212,19 +212,19 @@ Three scopes control instance lifetime:
 
 ```typescript
 import { Scope } from '@ultranomic/di';
-import type { DepsTokens } from '@ultranomic/di';
+import type { DependencyTokens } from '@ultranomic/di';
 
 class CacheService {
-  static readonly inject = [] as const satisfies DepsTokens<CacheService>;
+  static readonly inject = [] as const satisfies DependencyTokens<CacheService>;
 }
 class Validator {
-  static readonly inject = [] as const satisfies DepsTokens<Validator>;
+  static readonly inject = [] as const satisfies DependencyTokens<Validator>;
 }
 class RequestContext {
-  static readonly inject = [] as const satisfies DepsTokens<RequestContext>;
+  static readonly inject = [] as const satisfies DependencyTokens<RequestContext>;
 }
 
-container.register(CacheService);                                    // singleton (default)
+container.register(CacheService); // singleton (default)
 container.register(Validator, { scope: Scope.TRANSIENT });
 container.register(RequestContext, { scope: Scope.SCOPED });
 ```
@@ -234,15 +234,15 @@ container.register(RequestContext, { scope: Scope.SCOPED });
 DI handles circular dependencies automatically. Services can depend on each other without special workarounds.
 
 ```typescript
-import type { DepsTokens } from '@ultranomic/di';
+import type { DependencyTokens } from '@ultranomic/di';
 
 class ServiceA {
-  static readonly inject = [ServiceB] as const satisfies DepsTokens<ServiceA>;
+  static readonly inject = [ServiceB] as const satisfies DependencyTokens<ServiceA>;
   constructor(private serviceB: ServiceB) {}
 }
 
 class ServiceB {
-  static readonly inject = [ServiceA] as const satisfies DepsTokens<ServiceB>;
+  static readonly inject = [ServiceA] as const satisfies DependencyTokens<ServiceB>;
   constructor(private serviceA: ServiceA) {}
 }
 
@@ -257,13 +257,13 @@ Modules organize related providers and controllers. They define boundaries for d
 
 ```typescript
 import { Module } from '@ultranomic/di';
-import type { DepsTokens } from '@ultranomic/di';
+import type { DependencyTokens } from '@ultranomic/di';
 
 class Database {
-  static readonly inject = [] as const satisfies DepsTokens<Database>;
+  static readonly inject = [] as const satisfies DependencyTokens<Database>;
 }
 class Migrator {
-  static readonly inject = [] as const satisfies DepsTokens<Migrator>;
+  static readonly inject = [] as const satisfies DependencyTokens<Migrator>;
 }
 
 class DatabaseModule extends Module {
@@ -274,13 +274,13 @@ class DatabaseModule extends Module {
 }
 
 class UserService {
-  static readonly inject = [] as const satisfies DepsTokens<UserService>;
+  static readonly inject = [] as const satisfies DependencyTokens<UserService>;
 }
 class UserRepository {
-  static readonly inject = [] as const satisfies DepsTokens<UserRepository>;
+  static readonly inject = [] as const satisfies DependencyTokens<UserRepository>;
 }
 class UserController {
-  static readonly inject = [UserService] as const satisfies DepsTokens<UserController>;
+  static readonly inject = [UserService] as const satisfies DependencyTokens<UserController>;
 }
 
 class UserModule extends Module {
@@ -305,14 +305,14 @@ The module metadata properties:
 Controllers group related routes. The `routes` array maps HTTP methods and paths to handler methods.
 
 ```typescript
-import type { ControllerRoute, DepsTokens } from '@ultranomic/di';
+import type { ControllerRoute, DependencyTokens } from '@ultranomic/di';
 
 class ProductService {
-  static readonly inject = [] as const satisfies DepsTokens<ProductService>;
+  static readonly inject = [] as const satisfies DependencyTokens<ProductService>;
 }
 
 class ProductController {
-  static readonly inject = [ProductService] as const satisfies DepsTokens<ProductController>;
+  static readonly inject = [ProductService] as const satisfies DependencyTokens<ProductController>;
 
   static readonly routes = [
     { method: 'GET', path: '/products', handler: 'list' },
@@ -341,14 +341,14 @@ Path parameters are typed. If your route is `/products/:id`, TypeScript knows `r
 Services can hook into module initialization and destruction.
 
 ```typescript
-import type { OnModuleInit, OnModuleDestroy, DepsTokens } from '@ultranomic/di';
+import type { OnModuleInit, OnModuleDestroy, DependencyTokens } from '@ultranomic/di';
 
 class Config {
-  static readonly inject = [] as const satisfies DepsTokens<Config>;
+  static readonly inject = [] as const satisfies DependencyTokens<Config>;
 }
 
 class Database implements OnModuleInit, OnModuleDestroy {
-  static readonly inject = [Config] as const satisfies DepsTokens<Database>;
+  static readonly inject = [Config] as const satisfies DependencyTokens<Database>;
 
   constructor(private config: Config) {}
 
@@ -415,7 +415,7 @@ describe('UserService', () => {
   it('returns user by id', async () => {
     const module = await Test.createModule({
       providers: [UserService],
-    });
+    }).compile();
 
     const service = module.get(UserService);
     const user = await service.findById('1');
@@ -431,7 +431,7 @@ Create new projects with the CLI:
 
 ```bash
 # Create a new project
-di new my-app
+npx @ultranomic/di new my-app
 
 # Then:
 cd my-app
@@ -448,7 +448,8 @@ pnpm dev
 | `@ultranomic/di/fastify` | Fastify HTTP adapter                                |
 | `@ultranomic/di/hono`    | Hono HTTP adapter                                   |
 | `@ultranomic/di/testing` | Testing utilities                                   |
-| `@ultranomic/di/cli`     | Project scaffolding                                 |
+
+**Note:** The CLI is included in the main package. Use `npx @ultranomic/di new my-app` to create a new project.
 
 ## Philosophy
 

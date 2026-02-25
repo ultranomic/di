@@ -610,12 +610,7 @@ describe('Module', () => {
       } as ContainerInterface;
 
       // Create a ModuleContainer with the mock base
-      const moduleContainer = new ModuleContainer(
-        mockBaseContainer,
-        'TestModule',
-        [],
-        new Map(),
-      );
+      const moduleContainer = new ModuleContainer(mockBaseContainer, 'TestModule', [], new Map());
 
       // Try to resolve - should use the fallback path (line 85)
       const result = moduleContainer.resolve(MockService);

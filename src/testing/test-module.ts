@@ -1,10 +1,4 @@
-import {
-  Container,
-  Module,
-  type ModuleMetadata,
-  ModuleRegistry,
-  type ModuleConstructor,
-} from '../core/index.js';
+import { Container, Module, type ModuleMetadata, ModuleRegistry, type ModuleConstructor } from '../core/index.js';
 import type { Token } from '../core/types/token.ts';
 
 interface TestModuleConfig {

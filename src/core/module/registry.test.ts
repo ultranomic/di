@@ -1536,7 +1536,9 @@ describe('ModuleRegistry', () => {
 
       // Manually manipulate the registry to create a scenario where a token owner
       // exists but its module container doesn't (simulating an edge case)
-      const tokenOwners = (registry as unknown as { tokenOwners: Map<unknown, { module: string; isExported: boolean }> }).tokenOwners;
+      const tokenOwners = (
+        registry as unknown as { tokenOwners: Map<unknown, { module: string; isExported: boolean }> }
+      ).tokenOwners;
 
       // Create a new token owner with a module name that doesn't exist in moduleContainers
       const fakeModuleName = 'NonExistentModule';

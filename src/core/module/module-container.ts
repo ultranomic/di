@@ -60,10 +60,7 @@ export class ModuleContainer implements ContainerInterface {
     this.allModulesOwners.set(token, owner);
   }
 
-  register<T extends abstract new (...args: unknown[]) => unknown>(
-    token: T,
-    options?: RegisterOptions,
-  ): void {
+  register<T extends abstract new (...args: unknown[]) => unknown>(token: T, options?: RegisterOptions): void {
     const isExported = this.currentModuleExports.has(token);
     this.trackToken(token, isExported);
     this.baseContainer.register(token, options);
@@ -108,7 +105,9 @@ export class ModuleContainer implements ContainerInterface {
    */
   private getAccessibleTokens(): Token[] {
     return Array.from(this.allModulesOwners.entries())
-      .filter(([, owner]) => owner.module !== this.moduleName && this.accessibleModules.has(owner.module) && owner.isExported)
+      .filter(
+        ([, owner]) => owner.module !== this.moduleName && this.accessibleModules.has(owner.module) && owner.isExported,
+      )
       .map(([token]) => token);
   }
 
