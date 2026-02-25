@@ -1,4 +1,6 @@
-import type { Token } from '../types/token.ts';
+import type { Injectable } from '../types/injectable.ts';
+
+type InjectableConstructor = abstract new (...args: any[]) => Injectable;
 
 /**
  * Binding scope determines the lifecycle of a provider
@@ -22,15 +24,15 @@ export interface RegisterOptions {
  * Forward declaration of Container type to avoid circular dependency
  */
 export type ContainerLike = {
-  resolve<T>(token: Token<T>): T;
+  resolve<T extends Injectable>(token: abstract new (...args: any[]) => T): T;
 };
 
 /**
  * Binding represents a provider registration in the container
  */
-export interface Binding<T = unknown> {
+export interface Binding<T extends Injectable = Injectable> {
   /** The token used to identify this binding (is the class constructor) */
-  readonly token: Token<T>;
+  readonly token: InjectableConstructor;
   /** The scope of this binding */
   scope: Scope;
   /** Cached instance for singleton scope */

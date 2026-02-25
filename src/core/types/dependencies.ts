@@ -2,14 +2,16 @@
 // Constructor Parameter Injection Pattern Types
 // ============================================================================
 
+import type { Injectable } from './injectable.ts';
+
 /**
  * Validates that an inject array matches the constructor parameters.
  *
- * Each element in the inject array must be a class constructor that is
- * assignable to the corresponding constructor parameter.
+ * Each element in the inject array must be an Injectable class constructor
+ * that is assignable to the corresponding constructor parameter.
  *
  * @example
- * class MyClass {
+ * class MyClass extends Injectable {
  *   static readonly inject = [Foo, Bar] as const satisfies DependencyTokens<typeof this>;
  *   constructor(public foo: Foo, public bar: Bar) {}
  * }
@@ -19,7 +21,7 @@ export type DependencyTokens<T extends abstract new (...args: any) => any> = T e
   ...args: infer P
 ) => any
   ? P extends Array<any> // oxlint-disable-line typescript-eslint/no-explicit-any
-    ? { [K in keyof P]: abstract new (...args: any[]) => P[K] } // oxlint-disable-line typescript-eslint/no-explicit-any)
+    ? { [K in keyof P]: abstract new (...args: any[]) => P[K] & Injectable } // oxlint-disable-line typescript-eslint/no-explicit-any)
     : never
   : never;
 

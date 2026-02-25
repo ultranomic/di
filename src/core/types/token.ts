@@ -1,30 +1,22 @@
 /**
  * Token types for dependency injection
  *
- * Tokens are used to identify providers in the DI container.
- * They must be class constructors (abstract or concrete).
+ * Tokens are class constructors that extend Injectable.
+ * Replaces the old Token<T> generic type with a simpler Injectable-based type.
  */
+
+import type { Injectable } from './injectable.ts';
 
 /**
  * Token type for provider identification
  *
- * @template T - The type of the value the token resolves to
- *
- * @example
- * // Abstract class token
- * abstract class LoggerBase {
- *   abstract log(message: string): void;
- * }
- * const loggerToken: Token<LoggerBase> = LoggerBase
- *
- * @example
- * // Concrete class token
- * class Database {
- *   connect(): void {
- *     // ...
- *   }
- * }
- * const dbToken: Token<Database> = Database
+ * Represents any class constructor that returns an instance extending Injectable.
+ * This is the unified type used for all dependency injection tokens.
  */
 // oxlint-disable-next-line typescript-eslint/no-explicit-any
-export type Token<T = unknown> = abstract new (...args: any[]) => T;
+export type Token = abstract new (...args: any[]) => Injectable;
+
+/**
+ * Helper type to extract the instance type from a token class
+ */
+export type InstanceTypeOfToken<T extends abstract new (...args: any[]) => any> = InstanceType<T>;

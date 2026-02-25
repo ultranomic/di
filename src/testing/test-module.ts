@@ -1,5 +1,6 @@
 import { Container, Module, type ModuleMetadata, ModuleRegistry, type ModuleConstructor } from '../core/index.js';
 import type { Token } from '../core/types/token.ts';
+import type { Injectable } from '../core/types/injectable.ts';
 
 interface TestModuleConfig {
   imports?: readonly ModuleConstructor[];
@@ -17,7 +18,7 @@ export class TestingModule {
     this.container = container;
   }
 
-  get<T>(token: Token<T>): T {
+  get<T extends Injectable>(token: abstract new (...args: any[]) => T): T {
     return this.container.resolve(token);
   }
 

@@ -15,20 +15,30 @@
 
 ### Types
 
-#### `Token<T>`
+#### `Injectable`
 
-Class constructor token for provider identification.
+Abstract base class for all injectable services and providers.
+
+All classes that can be dependency injected must extend this class. This ensures compile-time type safety that only explicitly marked classes can be used as injection tokens.
 
 ```typescript
-type Token<T> = abstract new (...args: any[]) => T;
+abstract class Injectable {
+  /**
+   * Static dependencies array for constructor injection
+   *
+   * @example
+   * static readonly inject = [Logger, Database] as const satisfies DependencyTokens<typeof this>;
+   */
+  static readonly inject?: readonly Injectable[];
+}
 ```
 
 #### `DependencyTokens<T>`
 
-Validates that inject arrays match constructor parameters type-safely.
+Validates that inject arrays match constructor parameters type-safely. All tokens must be `Injectable` classes.
 
 ```typescript
-type DependencyTokens<T> = readonly Token<any>[];
+type DependencyTokens<T> = readonly Injectable[];
 ```
 
 #### `InferInjectedInstanceTypes<T>`
@@ -78,9 +88,9 @@ new Container(parent?: Container)
 
 | Method        | Signature                                                       | Description                                      |
 | ------------- | --------------------------------------------------------------- | ------------------------------------------------ |
-| `register`    | `register<T>(token: Token<T>, options?: RegisterOptions): void` | Register a class with optional scope             |
-| `resolve`     | `resolve<T>(token: Token<T>): T`                                | Resolve a dependency by token                    |
-| `has`         | `has(token: Token<any>): boolean`                               | Check if token is registered                     |
+| `register`    | `register(token: abstract new (...args: any[]) => Injectable, options?: RegisterOptions): void` | Register a class with optional scope             |
+| `resolve`     | `resolve<T extends Injectable>(token: abstract new (...args: any[]) => T): T` | Resolve a dependency by token                    |
+| `has`         | `has(token: abstract new (...args: any[]) => Injectable): boolean` | Check if token is registered                     |
 | `createScope` | `createScope(): Container`                                      | Create a child container for scoped dependencies |
 
 #### RegisterOptions
@@ -122,9 +132,9 @@ Abstract base class for organizing related providers and controllers.
 ```typescript
 interface ModuleMetadata {
   imports?: readonly ModuleClass[]; // Imported modules
-  providers?: readonly Token[]; // Service providers
+  providers?: readonly Injectable[]; // Service providers
   controllers?: readonly ControllerConstructor[]; // HTTP controllers
-  exports?: readonly Token[]; // Tokens visible to importers
+  exports?: readonly Injectable[]; // Tokens visible to importers
 }
 ```
 
@@ -138,6 +148,20 @@ class UserModule extends Module {
     controllers: [UserController],
     exports: [UserService],
   } as const satisfies ModuleMetadata;
+}
+```
+
+Where services extend `Injectable`:
+
+```typescript
+class UserService extends Injectable {
+  static readonly inject = [UserRepository] as const satisfies DependencyTokens<UserService>;
+
+  constructor(private repository: UserRepository) {}
+
+  findAll() {
+    return this.repository.findAll();
+  }
 }
 ```
 
@@ -197,7 +221,7 @@ Called when the container is being destroyed.
 #### Usage
 
 ```typescript
-class DatabaseService implements OnModuleInit, OnModuleDestroy {
+class DatabaseService extends Injectable implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     await this.connect();
   }
@@ -214,7 +238,7 @@ class DatabaseService implements OnModuleInit, OnModuleDestroy {
 
 ### Controller
 
-Abstract base class for HTTP route handlers.
+Abstract base class for HTTP route handlers. Controllers extend `Injectable` to enable dependency injection.
 
 #### ControllerMetadata
 
@@ -244,6 +268,11 @@ type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTION
 #### Definition
 
 ```typescript
+class UserService extends Injectable {
+  static readonly inject = [UserRepository] as const satisfies DependencyTokens<UserService>;
+  constructor(private repository: UserRepository) {}
+}
+
 class UserController extends Controller {
   static readonly inject = [UserService] as const satisfies DependencyTokens<UserController>;
   static readonly metadata = {
@@ -455,13 +484,13 @@ const testingModule = await Test.createModule({
 ### Basic Service
 
 ```typescript
-class Logger {
+class Logger extends Injectable {
   log(message: string) {
     console.log(message);
   }
 }
 
-class UserService {
+class UserService extends Injectable {
   static readonly inject = [Logger] as const satisfies DependencyTokens<UserService>;
 
   constructor(private logger: Logger) {}
@@ -476,7 +505,7 @@ class UserService {
 ### Multiple Dependencies
 
 ```typescript
-class UserService {
+class UserService extends Injectable {
   static readonly inject = [Database, Logger, Cache] as const satisfies DependencyTokens<UserService>;
 
   constructor(
@@ -493,13 +522,13 @@ Circular dependencies are handled automatically via transparent proxies.
 
 ```typescript
 // ServiceA depends on ServiceB
-class ServiceA {
+class ServiceA extends Injectable {
   static readonly inject = [ServiceB] as const;
   constructor(private b: ServiceB) {}
 }
 
 // ServiceB depends on ServiceA (circular)
-class ServiceB {
+class ServiceB extends Injectable {
   static readonly inject = [ServiceA] as const;
   constructor(private a: ServiceA) {}
 }
@@ -558,12 +587,24 @@ npx @ultranomic/di new my-project
 | `@ultranomic/di/testing` | Testing utilities             |
 | `@ultranomic/di/cli`     | CLI commands                  |
 
+### Core Exports
+
+The main `@ultranomic/di` export includes:
+
+- `Injectable` - Abstract base class for injectable services
+- `Controller` - Abstract base class for HTTP controllers
+- `Container` - DI container for registration and resolution
+- `Module` - Abstract base class for organizing providers
+- `ModuleRegistry` - Orchestrates module loading
+- And all related types and utilities
+
 ---
 
 ## Type Safety Guarantees
 
-1. **Inject validation**: `satisfies DependencyTokens<T>` ensures inject array matches constructor
-2. **Route validation**: `satisfies ControllerRoute<T>[]` ensures handler names exist
-3. **Path parameter extraction**: `ExtractPathParams<TPath>` derives types from route strings
-4. **Module metadata**: Full type checking on imports, providers, controllers, exports
-5. **Resolution types**: `resolve<T>` returns correct instance type
+1. **Injectable enforcement**: Only classes extending `Injectable` can be used as tokens
+2. **Inject validation**: `satisfies DependencyTokens<T>` ensures inject array matches constructor
+3. **Route validation**: `satisfies ControllerRoute<T>[]` ensures handler names exist
+4. **Path parameter extraction**: `ExtractPathParams<TPath>` derives types from route strings
+5. **Module metadata**: Full type checking on imports, providers, controllers, exports
+6. **Resolution types**: `resolve<T>` returns correct instance type

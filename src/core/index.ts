@@ -20,6 +20,9 @@ export type {
 export type { ModuleMetadata, OnModuleDestroy, OnModuleInit } from './types/module.ts';
 export type { Token } from './types/token.ts';
 
+// Injectable base class
+export { Injectable } from './types/injectable.ts';
+
 // Container
 export { Scope } from './container/binding.ts';
 export type { Binding, ContainerLike, RegisterOptions } from './container/binding.ts';
