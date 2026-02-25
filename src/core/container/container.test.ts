@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { Scope } from './binding.ts';
 import { Container } from './container.ts';
 import type { DependencyTokens } from '../types/dependencies.ts';
-import type { Token } from '../types/token.ts';
 
 describe('Container', () => {
   let container: Container;
