@@ -124,7 +124,7 @@ export class AppModule extends Module {
   register(container: import('@ultranomic/di/core').ContainerInterface): void {
     container.register(UserService, (c) => {
       return new UserService(...c.buildDeps(UserService.inject))
-    }).asSingleton()
+    } as const satisfies ControllerMetadata).asSingleton()
 
     container.register(UserController, (c) => {
       return new UserController(...c.buildDeps(UserController.inject))
