@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { Container } from './container.ts';
+import type { DepsTokens } from '../types/deps.ts';
 
 describe('Circular Dependencies', () => {
   let container: Container;
@@ -8,475 +9,275 @@ describe('Circular Dependencies', () => {
     container = new Container();
   });
 
-  describe('basic circular dependency', () => {
-    it('should resolve ServiceA -> ServiceB -> ServiceA without throwing', () => {
-      class ServiceA {
-        static readonly inject = ['ServiceB'] as const;
-        private _serviceB: unknown;
-        constructor(_serviceB: unknown) {
-          this._serviceB = _serviceB;
-        }
-        getValue() {
-          return 'A';
-        }
-      }
-
-      class ServiceB {
-        static readonly inject = ['ServiceA'] as const;
-        private _serviceA: unknown;
-        constructor(_serviceA: unknown) {
-          this._serviceA = _serviceA;
-        }
-        getValue() {
-          return 'B';
-        }
-      }
-
-      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
-      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject)));
-
-      expect(() => container.resolve('ServiceA')).not.toThrow();
-    });
-
-    it('should allow accessing circular dependency properties after resolution', () => {
-      class ServiceA {
-        static readonly inject = ['ServiceB'] as const;
-        private serviceB: unknown;
-        constructor(serviceB: unknown) {
-          this.serviceB = serviceB;
-        }
-        getValue() {
-          return 'A';
-        }
-        getBValue() {
-          return (this.serviceB as { getValue: () => string }).getValue();
-        }
-      }
-
-      class ServiceB {
-        static readonly inject = ['ServiceA'] as const;
-        private _serviceA: unknown;
-        constructor(_serviceA: unknown) {
-          this._serviceA = _serviceA;
-        }
-        getValue() {
-          return 'B';
-        }
-      }
-
-      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
-      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject)));
-
-      const serviceA = container.resolve('ServiceA') as ServiceA;
-
-      expect(serviceA.getBValue()).toBe('B');
-    });
-
-    it('should work with both directions of circular dependency', () => {
-      class ServiceA {
-        static readonly inject = ['ServiceB'] as const;
-        private _serviceB: unknown;
-        constructor(_serviceB: unknown) {
-          this._serviceB = _serviceB;
-        }
-        getValue() {
-          return 'A';
-        }
-      }
-
-      class ServiceB {
-        static readonly inject = ['ServiceA'] as const;
-        private _serviceA: unknown;
-        constructor(_serviceA: unknown) {
-          this._serviceA = _serviceA;
-        }
-        getValue() {
-          return 'B';
-        }
-      }
-
-      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
-      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject)));
-
-      const serviceA = container.resolve('ServiceA') as ServiceA;
-      const serviceB = container.resolve('ServiceB') as ServiceB;
-
-      expect(serviceA.getValue()).toBe('A');
-      expect(serviceB.getValue()).toBe('B');
-    });
-  });
-
-  describe('proxy edge cases', () => {
-    it('should handle await on proxy without TypeError (then returns undefined)', async () => {
-      class ServiceA {
-        static readonly inject = ['ServiceB'] as const;
-        private serviceB: unknown;
-        constructor(serviceB: unknown) {
-          this.serviceB = serviceB;
-        }
-      }
-
-      class ServiceB {
-        static readonly inject = ['ServiceA'] as const;
-        private _serviceA: unknown;
-        constructor(_serviceA: unknown) {
-          this._serviceA = _serviceA;
-        }
-      }
-
-      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
-      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject)));
-
-      const serviceA = container.resolve('ServiceA') as ServiceA;
-
-      const result = await (serviceA as unknown as { serviceB: unknown }).serviceB;
-      expect(result).toBeDefined();
-    });
-
-    it('should handle toString on proxy for logging', () => {
-      class ServiceA {
-        static readonly inject = ['ServiceB'] as const;
-        private serviceB: unknown;
-        constructor(serviceB: unknown) {
-          this.serviceB = serviceB;
-        }
-      }
-
-      class ServiceB {
-        static readonly inject = ['ServiceA'] as const;
-        private _serviceA: unknown;
-        constructor(_serviceA: unknown) {
-          this._serviceA = _serviceA;
-        }
-      }
-
-      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
-      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject)));
-
-      const serviceA = container.resolve('ServiceA') as ServiceA;
-
-      const str = String((serviceA as unknown as { serviceB: unknown }).serviceB);
-      expect(typeof str).toBe('string');
-    });
-
-    it('should handle console.log style inspection', () => {
-      class ServiceA {
-        static readonly inject = ['ServiceB'] as const;
-        private serviceB: unknown;
-        constructor(serviceB: unknown) {
-          this.serviceB = serviceB;
-        }
-      }
-
-      class ServiceB {
-        static readonly inject = ['ServiceA'] as const;
-        private _serviceA: unknown;
-        constructor(_serviceA: unknown) {
-          this._serviceA = _serviceA;
-        }
-      }
-
-      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
-      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject)));
-
-      const serviceA = container.resolve('ServiceA') as ServiceA;
-
-      const str = Object.prototype.toString.call((serviceA as unknown as { serviceB: unknown }).serviceB);
-      expect(typeof str).toBe('string');
-    });
-
-    it('should return specific string from toString() on proxy during construction', () => {
-      let capturedProxy: { toString: () => string } | null = null;
-
-      class ServiceA {
-        static readonly inject = ['ServiceB'] as const;
-        private _serviceB: unknown;
-        constructor(_serviceB: unknown) {
-          this._serviceB = _serviceB;
-        }
-      }
-
-      class ServiceB {
-        static readonly inject = ['ServiceA'] as const;
-        constructor(serviceA: unknown) {
-          capturedProxy = serviceA as { toString: () => string };
-        }
-      }
-
-      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
-      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject)));
-
-      container.resolve('ServiceA');
-
-      expect(capturedProxy).not.toBeNull();
-      const result = (capturedProxy as unknown as { toString: () => string }).toString();
-      expect(result).toBe('[CircularProxy: ServiceA]');
-    });
-
-    it('should return CircularProxy as Symbol.toStringTag on proxy', () => {
-      let capturedProxy: { [Symbol.toStringTag]?: string } | null = null;
-
-      class ServiceA {
-        static readonly inject = ['ServiceB'] as const;
-        private _serviceB: unknown;
-        constructor(_serviceB: unknown) {
-          this._serviceB = _serviceB;
-        }
-      }
-
-      class ServiceB {
-        static readonly inject = ['ServiceA'] as const;
-        constructor(serviceA: unknown) {
-          capturedProxy = serviceA as { [Symbol.toStringTag]?: string };
-        }
-      }
-
-      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
-      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject)));
-
-      container.resolve('ServiceA');
-
-      expect(capturedProxy).not.toBeNull();
-      expect(capturedProxy?.[Symbol.toStringTag]).toBe('CircularProxy');
-    });
-
-    it('should forward property access through proxy after instance is resolved', () => {
-      let capturedProxy: { getValue: () => string } | null = null;
-      class ServiceA {
-        static readonly inject = ['ServiceB'] as const;
-        private _serviceB: unknown;
-        constructor(_serviceB: unknown) {
-          this._serviceB = _serviceB;
-        }
-        getValue() {
-          return 'A';
-        }
-      }
-
-      class ServiceB {
-        static readonly inject = ['ServiceA'] as const;
-        constructor(serviceA: unknown) {
-          capturedProxy = serviceA as { getValue: () => string };
-        }
-      }
-
-      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject))).asSingleton();
-      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject))).asSingleton();
-
-      container.resolve('ServiceA');
-
-      expect(capturedProxy).not.toBeNull();
-      expect((capturedProxy as unknown as { getValue: () => string }).getValue()).toBe('A');
-    });
-
-    it('should forward non-function property access through proxy after instance is resolved', () => {
-      let capturedProxy: { value: string } | null = null;
-
-      class ServiceA {
-        static readonly inject = ['ServiceB'] as const;
-        private _serviceB: unknown;
-        constructor(_serviceB: unknown) {
-          this._serviceB = _serviceB;
-        }
-        readonly value = 'test-value';
-      }
-
-      class ServiceB {
-        static readonly inject = ['ServiceA'] as const;
-        constructor(serviceA: unknown) {
-          capturedProxy = serviceA as { value: string };
-        }
-      }
-
-      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject))).asSingleton();
-      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject))).asSingleton();
-
-      container.resolve('ServiceA');
-
-      expect(capturedProxy).not.toBeNull();
-      expect((capturedProxy as unknown as { value: string }).value).toBe('test-value');
-    });
-
-    it('should return undefined for then property on circular proxy', () => {
-      let capturedThen: unknown = 'not-set';
-
-      class ServiceA {
-        static readonly inject = ['ServiceB'] as const;
-        private _serviceB: unknown;
-        constructor(_serviceB: unknown) {
-          this._serviceB = _serviceB;
-        }
-      }
-
-      class ServiceB {
-        static readonly inject = ['ServiceA'] as const;
-        constructor(serviceA: unknown) {
-          const proxy = serviceA as { then: unknown };
-          capturedThen = proxy.then;
-        }
-      }
-
-      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
-      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject)));
-
-      container.resolve('ServiceA');
-
-      expect(capturedThen).toBeUndefined();
-    });
-
-    it('should return undefined for non-existent property on proxy', () => {
-      let accessedValue: unknown = 'not-set';
-      class ServiceA {
-        static readonly inject = ['ServiceB'] as const;
-        private _serviceB: unknown;
-        constructor(_serviceB: unknown) {
-          this._serviceB = _serviceB;
-        }
-      }
-      class ServiceB {
-        static readonly inject = ['ServiceA'] as const;
-        constructor(serviceA: unknown) {
-          const proxy = serviceA as { nonExistent: unknown };
-          accessedValue = proxy.nonExistent;
-        }
-      }
-      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
-      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject)));
-      container.resolve('ServiceA');
-
-      expect(accessedValue).toBeUndefined();
-    });
-  });
-
-  describe('singleton circular dependencies', () => {
-    it('should resolve singleton circular dependencies correctly', () => {
-      class ServiceA {
-        static readonly inject = ['ServiceB'] as const;
-        private _serviceB: unknown;
-        constructor(_serviceB: unknown) {
-          this._serviceB = _serviceB;
-        }
-        getValue() {
-          return 'A';
-        }
-      }
-
-      class ServiceB {
-        static readonly inject = ['ServiceA'] as const;
-        private _serviceA: unknown;
-        constructor(_serviceA: unknown) {
-          this._serviceA = _serviceA;
-        }
-        getValue() {
-          return 'B';
-        }
-      }
-
-      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject))).asSingleton();
-      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject))).asSingleton();
-
-      const serviceA1 = container.resolve('ServiceA');
-      const serviceA2 = container.resolve('ServiceA');
-
-      expect(serviceA1).toBe(serviceA2);
-    });
-
-    it('should forward method calls through circular proxy', () => {
-      class ServiceA {
-        static readonly inject = ['ServiceB'] as const;
-        private _serviceB: unknown;
-        constructor(_serviceB: unknown) {
-          this._serviceB = _serviceB;
-        }
-        getValue() {
-          return 'A';
-        }
-      }
-
-      class ServiceB {
-        static readonly inject = ['ServiceA'] as const;
-        private serviceA: unknown;
-        constructor(serviceA: unknown) {
-          this.serviceA = serviceA;
-        }
-        getValue() {
-          return 'B';
-        }
-        getAValue() {
-          return (this.serviceA as ServiceA).getValue();
-        }
-      }
-
-      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject))).asSingleton();
-      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject))).asSingleton();
-
-      const serviceA = container.resolve('ServiceA') as ServiceA;
-      const serviceB = container.resolve('ServiceB') as ServiceB;
-
-      expect(serviceA.getValue()).toBe('A');
-      expect(serviceB.getValue()).toBe('B');
-      expect(serviceB.getAValue()).toBe('A');
-    });
-  });
-
-  describe('complex circular dependencies', () => {
-    it('should handle three-way circular dependency', () => {
-      class ServiceA {
-        static readonly inject = ['ServiceB'] as const;
-        private _serviceB: unknown;
-        constructor(_serviceB: unknown) {
-          this._serviceB = _serviceB;
-        }
-        getValue() {
-          return 'A';
-        }
-      }
-
-      class ServiceB {
-        static readonly inject = ['ServiceC'] as const;
-        private _serviceC: unknown;
-        constructor(_serviceC: unknown) {
-          this._serviceC = _serviceC;
-        }
-        getValue() {
-          return 'B';
-        }
-      }
-
+  describe('dependency chains', () => {
+    it('should resolve chain A -> B -> C correctly', () => {
       class ServiceC {
-        static readonly inject = ['ServiceA'] as const;
-        private _serviceA: unknown;
-        constructor(_serviceA: unknown) {
-          this._serviceA = _serviceA;
-        }
+        static readonly inject = [] as const satisfies DepsTokens<ServiceC>;
         getValue() {
           return 'C';
         }
       }
 
-      container.register('ServiceA', (c) => new ServiceA(...c.buildDeps(ServiceA.inject)));
-      container.register('ServiceB', (c) => new ServiceB(...c.buildDeps(ServiceB.inject)));
-      container.register('ServiceC', (c) => new ServiceC(...c.buildDeps(ServiceC.inject)));
-
-      expect(() => container.resolve('ServiceA')).not.toThrow();
-    });
-
-    it('should handle self-referencing dependency', () => {
-      class Service {
-        static readonly inject = ['Service'] as const;
-        private _self: unknown;
-        constructor(_self: unknown) {
-          this._self = _self;
-        }
+      class ServiceB {
+        static readonly inject = [ServiceC] as const satisfies DepsTokens<ServiceB>;
+        constructor(private serviceC: ServiceC) {}
         getValue() {
-          return 'value';
+          return 'B';
+        }
+        getCValue() {
+          return this.serviceC.getValue();
         }
       }
 
-      container.register('Service', (c) => new Service(...c.buildDeps(Service.inject)));
+      class ServiceA {
+        static readonly inject = [ServiceB] as const satisfies DepsTokens<ServiceA>;
+        constructor(private serviceB: ServiceB) {}
+        getValue() {
+          return 'A';
+        }
+        getBValue() {
+          return this.serviceB.getValue();
+        }
+        getCValue() {
+          return this.serviceB.getCValue();
+        }
+      }
 
-      const service = container.resolve('Service') as Service;
-      expect(service.getValue()).toBe('value');
+      container.register(ServiceC);
+      container.register(ServiceB);
+      container.register(ServiceA);
+
+      const serviceA = container.resolve(ServiceA);
+
+      expect(serviceA.getValue()).toBe('A');
+      expect(serviceA.getBValue()).toBe('B');
+      expect(serviceA.getCValue()).toBe('C');
+    });
+
+    it('should resolve multiple dependencies from same service', () => {
+      class Config {
+        static readonly inject = [] as const satisfies DepsTokens<Config>;
+        port = 3000;
+      }
+
+      class Logger {
+        static readonly inject = [] as const satisfies DepsTokens<Logger>;
+        log(_msg: string) {}
+      }
+
+      class Server {
+        static readonly inject = [Config, Logger] as const satisfies DepsTokens<Server>;
+        constructor(
+          private config: Config,
+          private logger: Logger,
+        ) {}
+        getPort() {
+          return this.config.port;
+        }
+      }
+
+      container.register(Config);
+      container.register(Logger);
+      container.register(Server);
+
+      const server = container.resolve(Server);
+
+      expect(server.getPort()).toBe(3000);
+    });
+  });
+
+  describe('singleton caching', () => {
+    it('should return same singleton instance across dependency chain', () => {
+      class Config {
+        static readonly inject = [] as const satisfies DepsTokens<Config>;
+        id = Math.random();
+      }
+
+      class Service {
+        static readonly inject = [Config] as const satisfies DepsTokens<Service>;
+        constructor(private config: Config) {}
+        getConfigId() {
+          return this.config.id;
+        }
+      }
+
+      container.register(Config);
+      container.register(Service);
+
+      const service1 = container.resolve(Service);
+      const service2 = container.resolve(Service);
+
+      expect(service1.getConfigId()).toBe(service2.getConfigId());
+    });
+  });
+
+  describe('deep dependency trees', () => {
+    it('should resolve deeply nested dependencies', () => {
+      class A {
+        static readonly inject = [] as const satisfies DepsTokens<A>;
+        value = 'A';
+      }
+
+      class B {
+        static readonly inject = [A] as const satisfies DepsTokens<B>;
+        constructor(private a: A) {}
+        getValue() {
+          return `B(${this.a.value})`;
+        }
+      }
+
+      class C {
+        static readonly inject = [B] as const satisfies DepsTokens<C>;
+        constructor(private b: B) {}
+        getValue() {
+          return `C(${this.b.getValue()})`;
+        }
+      }
+
+      class D {
+        static readonly inject = [C] as const satisfies DepsTokens<D>;
+        constructor(private c: C) {}
+        getValue() {
+          return `D(${this.c.getValue()})`;
+        }
+      }
+
+      container.register(A);
+      container.register(B);
+      container.register(C);
+      container.register(D);
+
+      const d = container.resolve(D);
+
+      expect(d.getValue()).toBe('D(C(B(A)))');
+    });
+
+    it('should handle diamond dependency pattern', () => {
+      class Shared {
+        static readonly inject = [] as const satisfies DepsTokens<Shared>;
+        value = 'shared';
+      }
+
+      class Left {
+        static readonly inject = [Shared] as const satisfies DepsTokens<Left>;
+        constructor(private shared: Shared) {}
+        getValue() {
+          return `Left(${this.shared.value})`;
+        }
+      }
+
+      class Right {
+        static readonly inject = [Shared] as const satisfies DepsTokens<Right>;
+        constructor(private shared: Shared) {}
+        getValue() {
+          return `Right(${this.shared.value})`;
+        }
+      }
+
+      class Top {
+        static readonly inject = [Left, Right] as const satisfies DepsTokens<Top>;
+        constructor(
+          private left: Left,
+          private right: Right,
+        ) {}
+        getValues() {
+          return [this.left.getValue(), this.right.getValue()];
+        }
+      }
+
+      container.register(Shared);
+      container.register(Left);
+      container.register(Right);
+      container.register(Top);
+
+      const top = container.resolve(Top);
+
+      expect(top.getValues()).toEqual(['Left(shared)', 'Right(shared)']);
+    });
+
+    it('should share singleton across diamond dependency', () => {
+      class Shared {
+        static readonly inject = [] as const satisfies DepsTokens<Shared>;
+        id = Math.random();
+      }
+
+      class Left {
+        static readonly inject = [Shared] as const satisfies DepsTokens<Left>;
+        constructor(private shared: Shared) {}
+        getSharedId() {
+          return this.shared.id;
+        }
+      }
+
+      class Right {
+        static readonly inject = [Shared] as const satisfies DepsTokens<Right>;
+        constructor(private shared: Shared) {}
+        getSharedId() {
+          return this.shared.id;
+        }
+      }
+
+      class Top {
+        static readonly inject = [Left, Right] as const satisfies DepsTokens<Top>;
+        constructor(
+          private left: Left,
+          private right: Right,
+        ) {}
+        getSharedIds() {
+          return [this.left.getSharedId(), this.right.getSharedId()];
+        }
+      }
+
+      container.register(Shared);
+      container.register(Left);
+      container.register(Right);
+      container.register(Top);
+
+      const top = container.resolve(Top);
+
+      const [leftId, rightId] = top.getSharedIds();
+      expect(leftId).toBe(rightId);
+    });
+  });
+
+  describe('no dependencies', () => {
+    it('should resolve service with no dependencies', () => {
+      class Simple {
+        static readonly inject = [] as const satisfies DepsTokens<Simple>;
+        getValue() {
+          return 'simple';
+        }
+      }
+
+      container.register(Simple);
+
+      const simple = container.resolve(Simple);
+      expect(simple.getValue()).toBe('simple');
+    });
+
+    it('should resolve multiple services with no dependencies', () => {
+      class A {
+        static readonly inject = [] as const satisfies DepsTokens<A>;
+        value = 'A';
+      }
+
+      class B {
+        static readonly inject = [] as const satisfies DepsTokens<B>;
+        value = 'B';
+      }
+
+      class C {
+        static readonly inject = [] as const satisfies DepsTokens<C>;
+        value = 'C';
+      }
+
+      container.register(A);
+      container.register(B);
+      container.register(C);
+
+      expect(container.resolve(A).value).toBe('A');
+      expect(container.resolve(B).value).toBe('B');
+      expect(container.resolve(C).value).toBe('C');
     });
   });
 });
