@@ -142,7 +142,7 @@ export class ModuleRegistry {
    * Get a human-readable name for a module
    */
   private getModuleName(module: ModuleConstructor): string {
-    return module.name !== undefined && module.name.length > 0 ? module.name : 'AnonymousModule';
+    return module.name || 'AnonymousModule';
   }
 
   /**

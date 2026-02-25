@@ -79,7 +79,7 @@ export class ModuleContainer implements ContainerInterface {
 
     // Use resolveWithExternalResolver if the base container supports it (for encapsulation during auto-instantiation)
     if (this.baseContainer instanceof Container) {
-      return (this.baseContainer as Container).resolveWithExternalResolver(token, this as ResolverInterface);
+      return this.baseContainer.resolveWithExternalResolver(token, this as ResolverInterface);
     }
 
     return this.baseContainer.resolve(token);
@@ -107,13 +107,9 @@ export class ModuleContainer implements ContainerInterface {
    * (tokens from imported modules that are exported)
    */
   private getAccessibleTokens(): Token[] {
-    const accessible: Token[] = [];
-    for (const [token, owner] of this.allModulesOwners) {
-      if (owner.module !== this.moduleName && this.accessibleModules.has(owner.module) && owner.isExported) {
-        accessible.push(token);
-      }
-    }
-    return accessible;
+    return Array.from(this.allModulesOwners.entries())
+      .filter(([, owner]) => owner.module !== this.moduleName && this.accessibleModules.has(owner.module) && owner.isExported)
+      .map(([token]) => token);
   }
 
   has(token: Token): boolean {
@@ -147,12 +143,8 @@ export class ModuleContainer implements ContainerInterface {
   }
 
   private getExportedTokensForModule(moduleName: string): Token[] {
-    const exported: Token[] = [];
-    for (const [token, owner] of this.allModulesOwners) {
-      if (owner.module === moduleName && owner.isExported) {
-        exported.push(token);
-      }
-    }
-    return exported;
+    return Array.from(this.allModulesOwners.entries())
+      .filter(([, owner]) => owner.module === moduleName && owner.isExported)
+      .map(([token]) => token);
   }
 }

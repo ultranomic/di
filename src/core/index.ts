@@ -35,6 +35,7 @@ export type { ControllerConstructor, RouteInfo } from './controller/interfaces.t
 export {
   CircularDependencyError,
   DIError,
+  NonExportedTokenError,
   ScopeValidationError,
   TokenCollisionError,
   TokenNotFoundError,

@@ -620,9 +620,10 @@ describe('NonExportedTokenError', () => {
     expect(error.name).toBe('NonExportedTokenError');
   });
 
-  it('should extend Error', () => {
+  it('should extend DIError', () => {
     class Token {}
     const error = new NonExportedTokenError(Token, 'Consumer', 'Provider', []);
+    expect(error).toBeInstanceOf(DIError);
     expect(error).toBeInstanceOf(Error);
   });
 });
