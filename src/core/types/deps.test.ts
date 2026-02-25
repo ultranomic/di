@@ -69,7 +69,7 @@ describe('Deps types', () => {
       class Database {}
 
       class MyService {
-        static readonly inject = [Logger, Database] as const satisfies DepsTokens<typeof MyService>;
+        static readonly inject = [Logger, Database] as const satisfies DepsTokens<typeof this>;
         logger: Logger;
         db: Database;
         constructor(logger: Logger, db: Database) {
@@ -83,7 +83,7 @@ describe('Deps types', () => {
 
     it('should work with empty constructor', () => {
       class NoDepsService {
-        static readonly inject = [] as const satisfies DepsTokens<typeof NoDepsService>;
+        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
         constructor() {}
       }
 
@@ -94,7 +94,7 @@ describe('Deps types', () => {
       class Logger {}
 
       class SingleDepService {
-        static readonly inject = [Logger] as const satisfies DepsTokens<typeof SingleDepService>;
+        static readonly inject = [Logger] as const satisfies DepsTokens<typeof this>;
         logger: Logger;
         constructor(logger: Logger) {
           this.logger = logger;

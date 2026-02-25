@@ -10,7 +10,7 @@
  *
  * @example
  * class MyClass {
- *   static readonly inject = [Foo, Bar] as const satisfies DepsTokens<typeof MyClass>;
+ *   static readonly inject = [Foo, Bar] as const satisfies DepsTokens<typeof this>;
  *   constructor(public foo: Foo, public bar: Bar) {}
  * }
  */

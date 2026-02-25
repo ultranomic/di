@@ -30,7 +30,7 @@ export interface RouteInfo {
  *
  * @example
  * class MyController extends Controller {
- *   static readonly inject = [Logger] as const satisfies DepsTokens<typeof MyController>;
+ *   static readonly inject = [Logger] as const satisfies DepsTokens<typeof this>;
  *   static readonly metadata: ControllerMetadata = { basePath: '/api' };
  *   constructor(public logger: Logger) { super() }
  * }

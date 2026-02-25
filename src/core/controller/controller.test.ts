@@ -287,7 +287,7 @@ describe('Controller', () => {
       }
 
       class UserController extends Controller {
-        static readonly inject = [Logger, UserService] as const satisfies DepsTokens<typeof UserController>;
+        static readonly inject = [Logger, UserService] as const satisfies DepsTokens<typeof this>;
 
         static readonly metadata: ControllerMetadata = {
           basePath: '/users',
@@ -326,7 +326,7 @@ describe('Controller', () => {
       }
 
       class DataController extends Controller {
-        static readonly inject = [Database] as const satisfies DepsTokens<typeof DataController>;
+        static readonly inject = [Database] as const satisfies DepsTokens<typeof this>;
 
         static readonly metadata: ControllerMetadata = {
           basePath: '/data',
@@ -376,7 +376,7 @@ describe('Controller', () => {
       }
 
       class LoggedController extends Controller {
-        static readonly inject = [Logger] as const satisfies DepsTokens<typeof LoggedController>;
+        static readonly inject = [Logger] as const satisfies DepsTokens<typeof this>;
         static readonly metadata: ControllerMetadata = {
           basePath: '/logged',
         };
