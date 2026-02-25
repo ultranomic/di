@@ -132,12 +132,10 @@ export class Container implements ContainerInterface {
 
   private createInstance(ClassConstructor: abstract new (...args: unknown[]) => Injectable, resolver: ResolverInterface): Injectable {
     const inject = this.getInjectArray(ClassConstructor);
+    // Note: inject is guaranteed to be defined because register() throws if missing
+    const dependencies = resolver.buildDependencies(inject!);
     const ConcreteConstructor = ClassConstructor as new (...args: unknown[]) => Injectable;
-    if (inject !== undefined) {
-      const dependencies = resolver.buildDependencies(inject);
-      return new ConcreteConstructor(...(dependencies as unknown[]));
-    }
-    return new ConcreteConstructor();
+    return new ConcreteConstructor(...(dependencies as unknown[]));
   }
 
   private getInjectArray(ClassConstructor: abstract new (...args: unknown[]) => unknown): readonly InjectableConstructor[] | undefined {
