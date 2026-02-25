@@ -70,8 +70,8 @@ export class Container implements ContainerInterface {
     }
 
     const binding: Binding<InstanceType<T>> = {
-      token,
-      classConstructor: token,
+      token: token as Token<InstanceType<T>>,
+      classConstructor: token as abstract new (...args: unknown[]) => InstanceType<T>,
       scope: options?.scope ?? Scope.SINGLETON,
     };
     this.bindings.set(token, binding as Binding);
@@ -142,7 +142,10 @@ export class Container implements ContainerInterface {
     };
 
     // Auto-instantiate using inject property
-    const instance = this.createInstance(binding.classConstructor, contextResolver);
+    const instance = this.createInstance(
+      binding.classConstructor as new (...args: unknown[]) => T,
+      contextResolver,
+    );
 
     // Cache instances for singleton and scoped bindings
     if (binding.scope === Scope.SINGLETON) {
@@ -155,7 +158,7 @@ export class Container implements ContainerInterface {
   }
 
   private createInstance<T>(
-    ClassConstructor: abstract new (...args: unknown[]) => T,
+    ClassConstructor: new (...args: unknown[]) => T,
     resolver: ResolverInterface,
   ): T {
     const ClassWithInject = ClassConstructor as typeof ClassConstructor & {
