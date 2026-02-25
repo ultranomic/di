@@ -81,6 +81,14 @@ export class Container implements ContainerInterface {
     return this.resolveWithContext(token, { path: [] });
   }
 
+  /**
+   * Resolve a token using an external resolver for dependency resolution.
+   * This is used by ModuleContainer to enforce encapsulation during auto-instantiation.
+   */
+  resolveWithExternalResolver<T>(token: Token<T>, externalResolver: ResolverInterface): T {
+    return this.resolveWithContext(token, { path: [] }, externalResolver);
+  }
+
   buildDeps<TTokens extends readonly Token[]>(tokens: TTokens): InferInject<TTokens> {
     const resolvedTokens = tokens.map((token) => this.resolve(token));
     return resolvedTokens as InferInject<TTokens>;
@@ -89,8 +97,9 @@ export class Container implements ContainerInterface {
   private buildDepsWithContext<TTokens extends readonly Token[]>(
     tokens: TTokens,
     context: ResolutionContext,
+    externalResolver?: ResolverInterface,
   ): InferInject<TTokens> {
-    const resolvedTokens = tokens.map((token) => this.resolveWithContext(token, context));
+    const resolvedTokens = tokens.map((token) => this.resolveWithContext(token, context, externalResolver));
     return resolvedTokens as InferInject<TTokens>;
   }
 
@@ -101,7 +110,7 @@ export class Container implements ContainerInterface {
     return ' -> ' + context.path.map((t) => String(t)).join(' -> ');
   }
 
-  private resolveWithContext<T>(token: Token<T>, context: ResolutionContext): T {
+  private resolveWithContext<T>(token: Token<T>, context: ResolutionContext, externalResolver?: ResolverInterface): T {
     const binding = this.getBinding(token);
     if (binding === undefined) {
       throw new TokenNotFoundError(token, context.path, Array.from(this.getAllBindings().keys()));
@@ -123,7 +132,8 @@ export class Container implements ContainerInterface {
     }
     context.path.push(token);
 
-    const contextResolver: ResolverInterface = {
+    // Use external resolver for dependency resolution if provided (for module encapsulation)
+    const contextResolver: ResolverInterface = externalResolver ?? {
       resolve: <TResolve>(resolveToken: Token<TResolve>): TResolve =>
         this.resolveWithContext(resolveToken, context),
       has: (checkToken: Token) => this.has(checkToken),

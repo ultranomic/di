@@ -28,6 +28,7 @@ export class ModuleRegistry {
   private readonly loadedModuleConstructors = new Set<ModuleConstructor>();
   private readonly loadedModuleInstances: ModuleInterface[] = [];
   private readonly tokenOwners = new Map<Token, { module: string; isExported: boolean }>();
+  private readonly moduleContainers = new Map<string, ModuleContainer>();
 
   /**
    * Register a module to be loaded
@@ -54,7 +55,7 @@ export class ModuleRegistry {
 
     // Validate all dependencies to enforce encapsulation
     // This catches errors at bootstrap time rather than resolution time
-    await this.validateDependencies(container);
+    await this.validateDependencies();
   }
 
   /**
@@ -63,14 +64,17 @@ export class ModuleRegistry {
    * This resolves each token once to ensure encapsulation rules are respected.
    * Errors are thrown at bootstrap time for better developer experience.
    */
-  private async validateDependencies(container: ContainerInterface): Promise<void> {
-    for (const [token] of this.tokenOwners) {
-      try {
-        container.resolve(token);
-      } catch (error) {
-        // Re-throw encapsulation errors, ignore others (e.g., TokenNotFoundError)
-        if (error instanceof Error && error.name === 'NonExportedTokenError') {
-          throw error;
+  private async validateDependencies(): Promise<void> {
+    for (const [token, owner] of this.tokenOwners) {
+      const moduleContainer = this.moduleContainers.get(owner.module);
+      if (moduleContainer !== undefined) {
+        try {
+          moduleContainer.resolve(token);
+        } catch (error) {
+          // Re-throw encapsulation errors, ignore others (e.g., TokenNotFoundError)
+          if (error instanceof Error && error.name === 'NonExportedTokenError') {
+            throw error;
+          }
         }
       }
     }
@@ -107,6 +111,7 @@ export class ModuleRegistry {
 
     // Create a module-aware container for encapsulation
     const moduleContainer = new ModuleContainer(container, moduleName, exports, this.tokenOwners);
+    this.moduleContainers.set(moduleName, moduleContainer);
 
     // Track parent relationship for encapsulation
     if (parentModule !== undefined) {
@@ -176,5 +181,6 @@ export class ModuleRegistry {
     this.loadedModuleConstructors.clear();
     this.loadedModuleInstances.length = 0;
     this.tokenOwners.clear();
+    this.moduleContainers.clear();
   }
 }

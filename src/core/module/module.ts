@@ -1,4 +1,4 @@
-import type { ContainerInterface, ResolverInterface } from '../container/interfaces.ts';
+import type { ContainerInterface } from '../container/interfaces.ts';
 import type { ModuleMetadata, OnModuleDestroy, OnModuleInit } from '../types/module.ts';
 import type { Token } from '../types/token.ts';
 

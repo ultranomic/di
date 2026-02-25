@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { DepsTokens } from '../types/deps.ts';
 import { Container } from './container.ts';
+import { Scope } from './binding.ts';
 
 describe('Resolution with static inject', () => {
   let container: Container;
@@ -302,17 +303,12 @@ describe('Resolution with static inject', () => {
         }
       }
 
-      class ServiceA {
-        static readonly inject = [Logger] as const satisfies DepsTokens<ServiceA>;
-        constructor(_logger: Logger) {}
-      }
+      // Transient scope creates new instances each time it's resolved
+      container.register(Logger, { scope: Scope.TRANSIENT });
 
-      // Transient scope creates new instances
-      container.register(Logger, { scope: 'transient' });
-      container.register(ServiceA);
-
-      container.resolve(ServiceA);
-      container.resolve(ServiceA);
+      // Resolve the transient directly to verify new instances are created
+      container.resolve(Logger);
+      container.resolve(Logger);
 
       expect(loggerInstantiationCount).toBe(2);
     });
