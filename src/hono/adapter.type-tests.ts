@@ -32,7 +32,7 @@ class UserController extends Controller {
       { method: 'GET', path: '/:id', handler: 'get' },
       { method: 'POST', path: '/', handler: 'create' },
     ] as const,
-  } as const satisfies ControllerMetadata;
+  } as const satisfies ControllerMetadata<UserController>;
   static readonly inject = [] as const;
   constructor() {
     super();
@@ -176,7 +176,7 @@ function testMultipleControllers() {
     static readonly metadata = {
       basePath: '/posts',
       routes: [{ method: 'GET', path: '/', handler: 'list' }] as const,
-    } as const satisfies ControllerMetadata;
+    } as const satisfies ControllerMetadata<PostController>;
     static readonly inject = [] as const;
     constructor() {
       super();
