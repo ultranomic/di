@@ -51,17 +51,6 @@ type InferInjectedInstanceTypes<T extends readonly (abstract new (...args: any[]
 };
 ```
 
-#### `InjectableClass<TInject, TInstance>`
-
-Type for classes using the inject pattern.
-
-```typescript
-type InjectableClass<TInject extends readonly (abstract new (...args: any[]) => any)[], TInstance> = {
-  readonly inject: TInject;
-  new (...args: InferInjectedInstanceTypes<TInject>): TInstance;
-};
-```
-
 #### `Scope`
 
 Provider lifecycle scope enum.

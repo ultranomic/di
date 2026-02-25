@@ -42,20 +42,3 @@ export type InferInjectedInstanceTypes<T extends readonly [...any[]]> = {
     : never;
 };
 
-/**
- * InjectableClass represents a class using the array-based inject pattern.
- *
- * @template TInject - The type of the inject array (readonly tuple of tokens)
- * @template TInstance - The type of instance the class creates
- */
-// oxlint-disable-next-line typescript-eslint/no-explicit-any
-export type InjectableClass<TInject extends readonly [...any[]] = readonly [...any[]], TInstance = unknown> = (new (
-  ...args: InferInjectedInstanceTypes<TInject>
-) => TInstance) & {
-  inject: TInject;
-};
-
-/**
- * Helper type to extract the inject array from a class
- */
-export type ExtractInjectArray<T> = T extends { inject: infer I } ? I : never;
