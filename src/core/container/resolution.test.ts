@@ -13,7 +13,7 @@ describe('Resolution with static inject', () => {
   describe('buildDeps', () => {
     it('should build deps from empty inject array', () => {
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         log(_msg: string) {}
       }
       container.register(Logger);
@@ -27,11 +27,11 @@ describe('Resolution with static inject', () => {
 
     it('should build deps from inject array with multiple dependencies', () => {
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         log(_msg: string) {}
       }
       class Database {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         query(_sql: string) {}
       }
       container.register(Logger);
@@ -46,7 +46,7 @@ describe('Resolution with static inject', () => {
 
     it('should throw with resolution path when dependency not found', () => {
       class MissingService {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
       }
       const injectArray = [MissingService] as const;
       expect(() => container.buildDeps(injectArray)).toThrow(/Token 'MissingService' not found/);
@@ -54,11 +54,11 @@ describe('Resolution with static inject', () => {
 
     it('should work with abstract class tokens', () => {
       abstract class ServiceBase {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         abstract getValue(): number;
       }
       class Service extends ServiceBase {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         getValue() {
           return 42;
         }
@@ -76,7 +76,7 @@ describe('Resolution with static inject', () => {
   describe('class with static inject', () => {
     it('should resolve class with no dependencies', () => {
       class NoDepsService {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         constructor() {}
         getValue() {
           return 42;
@@ -91,14 +91,14 @@ describe('Resolution with static inject', () => {
 
     it('should resolve class with single dependency', () => {
       class ConsoleLogger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         log(msg: string) {
           return msg;
         }
       }
 
       class UserService {
-        static readonly inject = [ConsoleLogger] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [ConsoleLogger];
 
         constructor(private logger: ConsoleLogger) {}
 
@@ -118,24 +118,24 @@ describe('Resolution with static inject', () => {
 
     it('should resolve class with multiple dependencies', () => {
       class ConsoleLogger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         log(_msg: string) {}
       }
       class PostgresDatabase {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         query(_sql: string) {
           return Promise.resolve({ id: '1', data: 'test' });
         }
       }
       class RedisCache {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         get(_key: string) {
           return null;
         }
       }
 
       class ComplexService {
-        static readonly inject = [ConsoleLogger, PostgresDatabase, RedisCache] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [ConsoleLogger, PostgresDatabase, RedisCache];
 
         constructor(
           private logger: ConsoleLogger,
@@ -163,7 +163,7 @@ describe('Resolution with static inject', () => {
     it('should resolve nested dependencies', () => {
       // Level 1: Logger
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         constructor() {}
         log(msg: string) {
           return msg;
@@ -172,7 +172,7 @@ describe('Resolution with static inject', () => {
 
       // Level 2: Database depends on Logger
       class Database {
-        static readonly inject = [Logger] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [Logger];
         constructor(private logger: Logger) {}
         query(sql: string) {
           this.logger.log(`Query: ${sql}`);
@@ -182,7 +182,7 @@ describe('Resolution with static inject', () => {
 
       // Level 3: UserService depends on Database
       class UserService {
-        static readonly inject = [Database] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [Database];
         constructor(private db: Database) {}
         getUser(id: string) {
           return this.db.query(`SELECT * FROM users WHERE id = ${id}`);
@@ -202,36 +202,36 @@ describe('Resolution with static inject', () => {
   describe('resolution context tracking', () => {
     it('should show available tokens in error message', () => {
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         log() {}
       }
       class Database {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         query() {}
       }
       container.register(Logger);
       container.register(Database);
 
       class Unknown {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
       }
       expect(() => container.resolve(Unknown)).toThrow(/Available tokens:/);
     });
 
     it('should show token names in available tokens list', () => {
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         log() {}
       }
       class Database {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         query() {}
       }
       container.register(Logger);
       container.register(Database);
 
       class Unknown {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
       }
       try {
         container.resolve(Unknown);
@@ -244,11 +244,11 @@ describe('Resolution with static inject', () => {
 
     it('should track resolution path for nested resolution failures', () => {
       class Level2Service {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
       }
 
       class Level1Service {
-        static readonly inject = [Level2Service] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [Level2Service];
         constructor(_deps: Level2Service) {}
       }
 
@@ -264,7 +264,7 @@ describe('Resolution with static inject', () => {
       let loggerInstantiationCount = 0;
 
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         constructor() {
           loggerInstantiationCount++;
         }
@@ -274,12 +274,12 @@ describe('Resolution with static inject', () => {
       }
 
       class ServiceA {
-        static readonly inject = [Logger] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [Logger];
         constructor(_logger: Logger) {}
       }
 
       class ServiceB {
-        static readonly inject = [Logger] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [Logger];
         constructor(_logger: Logger) {}
       }
 
@@ -297,7 +297,7 @@ describe('Resolution with static inject', () => {
       let loggerInstantiationCount = 0;
 
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         constructor() {
           loggerInstantiationCount++;
         }
@@ -317,11 +317,11 @@ describe('Resolution with static inject', () => {
   describe('resolution path in errors', () => {
     it('should include full resolution path when nested dependency not found', () => {
       class ServiceB {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
       }
 
       class ServiceA {
-        static readonly inject = [ServiceB] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [ServiceB];
         constructor(_b: ServiceB) {}
       }
 

@@ -58,7 +58,7 @@ export interface ControllerMetadata {
  * }
  *
  * class UserController extends Controller {
- *   static readonly inject = [UserService] as const satisfies DepsTokens<typeof this>;
+ *   static readonly inject: DepsTokens<typeof this> = [UserService];
  *
  *   static readonly metadata: ControllerMetadata = {
  *     basePath: '/users',

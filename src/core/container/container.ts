@@ -43,7 +43,7 @@ export class Container implements ContainerInterface {
     if (this.getInjectArray(token) === undefined) {
       throw new Error(
         `Class '${token.name}' must have a static inject property. ` +
-          `Add: static readonly inject = [] as const satisfies DepsTokens<typeof this>;`,
+          `Add: static readonly inject: DepsTokens<typeof this> = [];`,
       );
     }
 

@@ -14,7 +14,7 @@ describe('Container Scope Support', () => {
   describe('createScope', () => {
     it('should create a child container', () => {
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         log(_msg: string) {}
       }
       container.register(Logger);
@@ -28,7 +28,7 @@ describe('Container Scope Support', () => {
 
     it('child container should inherit parent bindings', () => {
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         log(_msg: string) {}
       }
       container.register(Logger);
@@ -41,7 +41,7 @@ describe('Container Scope Support', () => {
 
     it('should not allow registration in child container', () => {
       class NewService {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         data = 'test';
       }
       const scope = container.createScope();
@@ -53,7 +53,7 @@ describe('Container Scope Support', () => {
 
     it('should support nested scopes', () => {
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         log(_msg: string) {}
       }
       container.register(Logger);
@@ -70,7 +70,7 @@ describe('Container Scope Support', () => {
     it('should cache scoped services per scope', () => {
       let instanceCount = 0;
       class ScopedService {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         id: number;
         constructor() {
           this.id = ++instanceCount;
@@ -93,7 +93,7 @@ describe('Container Scope Support', () => {
     it('should cache scoped services in child container not parent', () => {
       let instanceCount = 0;
       class ScopedService {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         id: number;
         constructor() {
           this.id = ++instanceCount;
@@ -113,7 +113,7 @@ describe('Container Scope Support', () => {
     it('root container should also cache scoped services', () => {
       let instanceCount = 0;
       class ScopedService {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         id: number;
         constructor() {
           this.id = ++instanceCount;
@@ -133,7 +133,7 @@ describe('Container Scope Support', () => {
     it('singleton should be shared across all scopes', () => {
       let instanceCount = 0;
       class SingletonService {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         id: number;
         constructor() {
           this.id = ++instanceCount;
@@ -158,7 +158,7 @@ describe('Container Scope Support', () => {
     it('transient should always create new instance', () => {
       let instanceCount = 0;
       class TransientService {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         id: number;
         constructor() {
           this.id = ++instanceCount;
@@ -182,14 +182,14 @@ describe('Container Scope Support', () => {
   describe('mixed scopes', () => {
     it('should handle singleton depending on transient', () => {
       class TransientDep {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         value: number;
         constructor() {
           this.value = Math.random();
         }
       }
       class SingletonService {
-        static readonly inject = [TransientDep] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [TransientDep];
         dep: TransientDep;
         constructor(dep: TransientDep) {
           this.dep = dep;
@@ -207,11 +207,11 @@ describe('Container Scope Support', () => {
 
     it('should handle scoped depending on singleton', () => {
       class SingletonDep {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         value = 'singleton';
       }
       class ScopedService {
-        static readonly inject = [SingletonDep] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [SingletonDep];
         dep: SingletonDep;
         constructor(dep: SingletonDep) {
           this.dep = dep;
@@ -234,11 +234,11 @@ describe('Container Scope Support', () => {
   describe('scope validation', () => {
     it('should throw when singleton depends on scoped', () => {
       class ScopedDep {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         value = 'scoped';
       }
       class SingletonService {
-        static readonly inject = [ScopedDep] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [ScopedDep];
         dep: ScopedDep;
         constructor(dep: ScopedDep) {
           this.dep = dep;
@@ -252,11 +252,11 @@ describe('Container Scope Support', () => {
 
     it('should include token names in error message', () => {
       class ScopedDep {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         value = 'scoped';
       }
       class SingletonService {
-        static readonly inject = [ScopedDep] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [ScopedDep];
         dep: ScopedDep;
         constructor(dep: ScopedDep) {
           this.dep = dep;
@@ -280,11 +280,11 @@ describe('Container Scope Support', () => {
 
     it('should pass when singleton depends on transient', () => {
       class TransientDep {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         value = 'transient';
       }
       class SingletonService {
-        static readonly inject = [TransientDep] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [TransientDep];
         dep: TransientDep;
         constructor(dep: TransientDep) {
           this.dep = dep;
@@ -298,11 +298,11 @@ describe('Container Scope Support', () => {
 
     it('should pass when singleton depends on another singleton', () => {
       class SingletonDep {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         value = 'singleton';
       }
       class SingletonService {
-        static readonly inject = [SingletonDep] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [SingletonDep];
         dep: SingletonDep;
         constructor(dep: SingletonDep) {
           this.dep = dep;
@@ -324,11 +324,11 @@ describe('Container Scope Support', () => {
   describe('clear', () => {
     it('should only clear scoped cache in child container', () => {
       class ScopedService {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         id = 1;
       }
       class SingletonService {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         id = 2;
       }
       container.register(ScopedService, { scope: Scope.SCOPED });
@@ -346,11 +346,11 @@ describe('Container Scope Support', () => {
 
     it('should clear all bindings in root container', () => {
       class ScopedService {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         id = 1;
       }
       class SingletonService {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         id = 2;
       }
       container.register(ScopedService, { scope: Scope.SCOPED });
@@ -366,7 +366,7 @@ describe('Container Scope Support', () => {
   describe('has and getBinding inheritance', () => {
     it('has should check parent bindings', () => {
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         log(_msg: string) {}
       }
       container.register(Logger);
@@ -375,14 +375,14 @@ describe('Container Scope Support', () => {
 
       expect(scope.has(Logger)).toBe(true);
       class NonExistent {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
       }
       expect(scope.has(NonExistent)).toBe(false);
     });
 
     it('getBinding should return parent binding', () => {
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         log(_msg: string) {}
       }
       container.register(Logger);
@@ -398,7 +398,7 @@ describe('Container Scope Support', () => {
   describe('error messages with parent container', () => {
     it('should include available tokens from parent when token not found in child', () => {
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         log(_msg: string) {}
       }
       container.register(Logger);
@@ -406,7 +406,7 @@ describe('Container Scope Support', () => {
       const scope = container.createScope();
 
       class NonExistent {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
       }
       try {
         scope.resolve(NonExistent);
