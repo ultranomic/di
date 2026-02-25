@@ -1,4 +1,4 @@
-import type { Token } from '../types/token.ts';
+import type { Injectable, InjectableConstructor } from '../types/injectable.ts';
 import { DependencyInjectionError } from './base.ts';
 
 /**
@@ -6,12 +6,12 @@ import { DependencyInjectionError } from './base.ts';
  * that is not exported
  */
 export class NonExportedTokenError extends DependencyInjectionError {
-  readonly token: Token;
+  readonly token: InjectableConstructor;
   readonly requestingModule: string;
   readonly ownerModule: string;
-  readonly exportedTokens: Token[];
+  readonly exportedTokens: InjectableConstructor[];
 
-  constructor(token: Token, requestingModule: Token | string, ownerModule: Token | string, exportedTokens: Token[]) {
+  constructor(token: InjectableConstructor, requestingModule: InjectableConstructor | string, ownerModule: InjectableConstructor | string, exportedTokens: InjectableConstructor[]) {
     const tokenName = typeof token === 'function' ? token.name : String(token);
     const requestingName = typeof requestingModule === 'function' ? requestingModule.name : String(requestingModule);
     const ownerName = typeof ownerModule === 'function' ? ownerModule.name : String(ownerModule);

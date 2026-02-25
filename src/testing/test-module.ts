@@ -1,11 +1,17 @@
-import { Container, Module, type ModuleMetadata, ModuleRegistry, type ModuleConstructor } from '../core/index.js';
-import type { Token } from '../core/types/token.ts';
+import {
+  Container,
+  Module,
+  ModuleRegistry,
+  type InjectableConstructor,
+  type ModuleConstructor,
+  type ModuleMetadata,
+} from '../core/index.js';
 import type { Injectable } from '../core/types/injectable.ts';
 
 interface TestModuleConfig {
   imports?: readonly ModuleConstructor[];
-  providers?: readonly Token[];
-  controllers?: readonly Token[];
+  providers?: readonly InjectableConstructor[];
+  controllers?: readonly InjectableConstructor[];
 }
 
 /**
@@ -18,11 +24,11 @@ export class TestingModule {
     this.container = container;
   }
 
-  get<T extends Injectable>(token: abstract new (...args: any[]) => T): T {
+  get<T extends Injectable>(token: InjectableConstructor<T>): T {
     return this.container.resolve(token);
   }
 
-  has(token: Token): boolean {
+  has(token: InjectableConstructor): boolean {
     return this.container.has(token);
   }
 }

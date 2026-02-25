@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { Container } from '../container/container.ts';
 import type { ContainerInterface } from '../container/interfaces.ts';
 import type { DependencyTokens } from '../types/dependencies.ts';
-import { ModuleContainer } from './module-container.ts';
+import type { InjectableConstructor } from '../types/injectable.ts';
 import type { ModuleConstructor } from './interfaces.ts';
+import { ModuleContainer } from './module-container.ts';
 import type { ModuleMetadata } from './module.ts';
 import { Module } from './module.ts';
-import type { Token } from '../types/token.ts';
 
 describe('Module', () => {
   describe('static metadata', () => {
@@ -50,7 +50,7 @@ describe('Module', () => {
     it('should allow exports in metadata', () => {
       class TestModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['ServiceA', 'ServiceB'],
+          exports: ['ServiceA', 'ServiceB'] as unknown as InjectableConstructor[],
         };
       }
 
@@ -193,14 +193,14 @@ describe('Module', () => {
     it('should return exported tokens from metadata', () => {
       class TestModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['ServiceA', 'ServiceB'],
+          exports: ['ServiceA', 'ServiceB'] as unknown as InjectableConstructor[],
         };
       }
 
       const module = new TestModule();
-      const exportedTokens = module.getExportedTokens();
+      const exportedInjectableConstructors = module.getExportedTokens();
 
-      expect(exportedTokens).toEqual(['ServiceA', 'ServiceB']);
+      expect(exportedInjectableConstructors).toEqual(['ServiceA', 'ServiceB']);
     });
 
     it('should return empty array when no exports defined', () => {
@@ -209,33 +209,33 @@ describe('Module', () => {
       }
 
       const module = new TestModule();
-      const exportedTokens = module.getExportedTokens();
+      const exportedInjectableConstructors = module.getExportedTokens();
 
-      expect(exportedTokens).toEqual([]);
+      expect(exportedInjectableConstructors).toEqual([]);
     });
 
     it('should return empty array when metadata is undefined', () => {
       class TestModule extends Module {}
 
       const module = new TestModule();
-      const exportedTokens = module.getExportedTokens();
+      const exportedInjectableConstructors = module.getExportedTokens();
 
-      expect(exportedTokens).toEqual([]);
+      expect(exportedInjectableConstructors).toEqual([]);
     });
 
     it('should return a copy of the exports array', () => {
       class TestModule extends Module {
         static readonly metadata: ModuleMetadata = {
-          exports: ['ServiceA'],
+          exports: ['ServiceA'] as unknown as InjectableConstructor[],
         };
       }
 
       const module = new TestModule();
-      const exportedTokens1 = module.getExportedTokens();
-      const exportedTokens2 = module.getExportedTokens();
+      const exportedInjectableConstructors1 = module.getExportedTokens();
+      const exportedInjectableConstructors2 = module.getExportedTokens();
 
-      expect(exportedTokens1).not.toBe(exportedTokens2);
-      expect(exportedTokens1).toEqual(exportedTokens2);
+      expect(exportedInjectableConstructors1).not.toBe(exportedInjectableConstructors2);
+      expect(exportedInjectableConstructors1).toEqual(exportedInjectableConstructors2);
     });
   });
 
@@ -592,19 +592,19 @@ describe('Module', () => {
 
       let resolveWasCalled = false;
       const mockBaseContainer = {
-        has: (_token: Token) => true,
-        getBinding: (token: Token) => ({
+        has: (_token: InjectableConstructor) => true,
+        getBinding: (token: InjectableConstructor) => ({
           token,
           scope: 'singleton' as const,
         }),
-        resolve: <T>(_token: Token<T>): T => {
+        resolve: <T>(_token: abstract new (...args: any[]) => T): T => {
           resolveWasCalled = true;
           // Return a mock instance
           return { getValue: () => 'mock-value' } as T;
         },
         clear: () => {},
         register: () => {},
-        buildDependencies: <T extends readonly Token[]>(tokens: T) => {
+        buildDependencies: <T extends readonly InjectableConstructor[]>(tokens: T) => {
           return tokens.map(() => ({ getValue: () => 'mock-value' })) as unknown as T;
         },
       } as ContainerInterface;

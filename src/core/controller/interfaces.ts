@@ -1,5 +1,4 @@
 import type { HttpMethod } from '../types/controller.ts';
-import type { Token } from '../types/token.ts';
 import type { Controller, ControllerMetadata } from './controller.ts';
 import type { Injectable } from '../types/injectable.ts';
 

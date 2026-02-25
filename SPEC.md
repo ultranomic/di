@@ -46,7 +46,7 @@ type DependencyTokens<T> = readonly Injectable[];
 Extracts resolved types from an inject array of injectable classes.
 
 ```typescript
-type InferInjectedInstanceTypes<T extends readonly (abstract new (...args: any[]) => any)[]> = {
+type InferInjectedInstanceTypes<T extends readonly InjectableConstructor[]> = {
   [K in keyof T]: InstanceType<T[K]>;
 };
 ```
@@ -75,12 +75,12 @@ new Container(parent?: Container)
 
 #### Methods
 
-| Method        | Signature                                                       | Description                                      |
-| ------------- | --------------------------------------------------------------- | ------------------------------------------------ |
-| `register`    | `register(token: abstract new (...args: any[]) => Injectable, options?: RegisterOptions): void` | Register a class with optional scope             |
-| `resolve`     | `resolve<T extends Injectable>(token: abstract new (...args: any[]) => T): T` | Resolve a dependency by token                    |
-| `has`         | `has(token: abstract new (...args: any[]) => Injectable): boolean` | Check if token is registered                     |
-| `createScope` | `createScope(): Container`                                      | Create a child container for scoped dependencies |
+| Method        | Signature                                                                 | Description                                      |
+| ------------- | ------------------------------------------------------------------------- | ------------------------------------------------ |
+| `register`    | `register(token: InjectableConstructor, options?: RegisterOptions): void` | Register a class with optional scope             |
+| `resolve`     | `resolve<T extends Injectable>(token: InjectableConstructor<T>): T`       | Resolve a dependency by token                    |
+| `has`         | `has(token: InjectableConstructor): boolean`                              | Check if token is registered                     |
+| `createScope` | `createScope(): Container`                                                | Create a child container for scoped dependencies |
 
 #### RegisterOptions
 

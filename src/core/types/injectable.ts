@@ -5,6 +5,22 @@
  */
 
 /**
+ * Constructor type for injectable classes
+ *
+ * Represents any class constructor that returns an instance extending Injectable.
+ * This type is used throughout the DI framework for tokens and dependency resolution.
+ *
+ * @example
+ * type Token = InjectableConstructor;
+ *
+ * class MyService extends Injectable {
+ *   static readonly inject = [Logger] as const satisfies DependencyTokens<typeof this>;
+ * }
+ */
+// oxlint-disable-next-line typescript-eslint/no-explicit-any
+export type InjectableConstructor<T extends Injectable = Injectable> = abstract new (...args: any[]) => T;
+
+/**
  * Abstract base class for all injectable services and providers.
  *
  * All classes that can be dependency injected must extend this class.
@@ -38,6 +54,6 @@ export abstract class Injectable {
    * @example
    * static readonly inject = [Logger, Database] as const satisfies DependencyTokens<typeof MyService>;
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  //
   static readonly inject?: readonly Injectable[];
 }

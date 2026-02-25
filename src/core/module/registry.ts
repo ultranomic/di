@@ -10,9 +10,9 @@
  */
 
 import type { ContainerInterface } from '../container/interfaces.ts';
-import type { Token } from '../types/token.ts';
 import type { ModuleConstructor, ModuleInterface } from './interfaces.ts';
 import { ModuleContainer } from './module-container.ts';
+import type { InjectableConstructor } from '../types/injectable.ts';
 
 /**
  * ModuleRegistry orchestrates module loading with proper import resolution
@@ -27,7 +27,7 @@ export class ModuleRegistry {
   private readonly modules = new Set<ModuleConstructor>();
   private readonly loadedModuleConstructors = new Set<ModuleConstructor>();
   private readonly loadedModuleInstances: ModuleInterface[] = [];
-  private readonly tokenOwners = new Map<Token, { module: string; isExported: boolean }>();
+  private readonly tokenOwners = new Map<InjectableConstructor, { module: string; isExported: boolean }>();
   private readonly moduleContainers = new Map<string, ModuleContainer>();
 
   /**

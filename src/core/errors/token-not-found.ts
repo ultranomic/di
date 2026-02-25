@@ -1,4 +1,4 @@
-import type { Token } from '../types/token.ts';
+import type { Injectable, InjectableConstructor } from '../types/injectable.ts';
 import { DependencyInjectionError } from './base.ts';
 
 /**
@@ -40,7 +40,7 @@ export class TokenNotFoundError extends DependencyInjectionError {
    */
   readonly availableTokens: string[];
 
-  constructor(token: Token, resolutionPath: Token[], availableTokens: Token[]) {
+  constructor(token: InjectableConstructor, resolutionPath: InjectableConstructor[], availableTokens: InjectableConstructor[]) {
     const tokenStr = typeof token === 'function' ? token.name : String(token);
     const pathStr = resolutionPath.map((t) => (typeof t === 'function' ? t.name : String(t)));
     const availableStr = availableTokens.map((t) => (typeof t === 'function' ? t.name : String(t)));

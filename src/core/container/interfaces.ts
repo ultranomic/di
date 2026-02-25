@@ -1,15 +1,17 @@
-import type { Injectable } from '../types/injectable.ts';
-import type { Binding, RegisterOptions } from './binding.ts';
 import type { InferInjectedInstanceTypes } from '../types/dependencies.ts';
+import type { Injectable, InjectableConstructor } from '../types/injectable.ts';
+import type { Binding, RegisterOptions } from './binding.ts';
 
 export interface ResolverInterface {
-  resolve<T extends Injectable>(token: abstract new (...args: any[]) => T): T;
-  has(token: abstract new (...args: any[]) => Injectable): boolean;
-  buildDependencies<TTokens extends readonly (abstract new (...args: any[]) => Injectable)[]>(tokens: TTokens): InferInjectedInstanceTypes<TTokens>;
+  resolve<T extends Injectable>(token: InjectableConstructor<T>): T;
+  has(token: InjectableConstructor): boolean;
+  buildDependencies<TTokens extends readonly InjectableConstructor[]>(
+    tokens: TTokens,
+  ): InferInjectedInstanceTypes<TTokens>;
 }
 
 export interface ContainerInterface extends ResolverInterface {
-  register(token: abstract new (...args: any[]) => Injectable, options?: RegisterOptions): void;
-  getBinding<T extends Injectable>(token: abstract new (...args: any[]) => T): Binding<T> | undefined;
+  register(token: InjectableConstructor, options?: RegisterOptions): void;
+  getBinding<T extends Injectable>(token: InjectableConstructor<T>): Binding<T> | undefined;
   clear(): void;
 }

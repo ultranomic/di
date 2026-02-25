@@ -1,11 +1,9 @@
-import type { ContainerInterface, ResolverInterface } from '../container/interfaces.ts';
-import { Container } from '../container/container.ts';
-import type { InferInjectedInstanceTypes } from '../types/dependencies.ts';
-import { NonExportedTokenError } from '../errors/non-exported-token.ts';
-import type { Injectable } from '../types/injectable.ts';
 import type { RegisterOptions } from '../container/binding.ts';
-
-type InjectableConstructor = abstract new (...args: any[]) => Injectable;
+import { Container } from '../container/container.ts';
+import type { ContainerInterface, ResolverInterface } from '../container/interfaces.ts';
+import { NonExportedTokenError } from '../errors/non-exported-token.ts';
+import type { InferInjectedInstanceTypes } from '../types/dependencies.ts';
+import type { Injectable, InjectableConstructor } from '../types/injectable.ts';
 
 /**
  * Information about a token's owner module
@@ -68,7 +66,7 @@ export class ModuleContainer implements ContainerInterface {
     this.baseContainer.register(token, options);
   }
 
-  resolve<T extends Injectable>(token: abstract new (...args: any[]) => T): T {
+  resolve<T extends Injectable>(token: InjectableConstructor<T>): T {
     const owner = this.allModulesOwners.get(token);
 
     // Check if this token is from another module and validate access
@@ -130,11 +128,15 @@ export class ModuleContainer implements ContainerInterface {
     return this.accessibleModules.has(owner.module) && owner.isExported && this.baseContainer.has(token);
   }
 
-  getBinding<T extends Injectable>(token: abstract new (...args: any[]) => T): import('../container/binding.ts').Binding<T> | undefined {
+  getBinding<T extends Injectable>(
+    token: InjectableConstructor<T>,
+  ): import('../container/binding.ts').Binding<T> | undefined {
     return this.baseContainer.getBinding(token);
   }
 
-  buildDependencies<TTokens extends readonly InjectableConstructor[]>(tokens: TTokens): InferInjectedInstanceTypes<TTokens> {
+  buildDependencies<TTokens extends readonly InjectableConstructor[]>(
+    tokens: TTokens,
+  ): InferInjectedInstanceTypes<TTokens> {
     const resolvedTokens = tokens.map((token) => this.resolve(token));
     return resolvedTokens as InferInjectedInstanceTypes<TTokens>;
   }

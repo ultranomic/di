@@ -1,4 +1,4 @@
-import type { Token } from '../types/token.ts';
+import type { Injectable, InjectableConstructor } from '../types/injectable.ts';
 import { DependencyInjectionError } from './base.ts';
 
 /**
@@ -37,7 +37,7 @@ export class TokenCollisionError extends DependencyInjectionError {
    */
   readonly duplicateSource: string;
 
-  constructor(token: Token, originalSource: Token | string, duplicateSource: Token | string) {
+  constructor(token: InjectableConstructor, originalSource: InjectableConstructor | string, duplicateSource: InjectableConstructor | string) {
     const tokenStr = typeof token === 'function' ? token.name : String(token);
     const originalStr = typeof originalSource === 'function' ? originalSource.name : String(originalSource);
     const duplicateStr = typeof duplicateSource === 'function' ? duplicateSource.name : String(duplicateSource);

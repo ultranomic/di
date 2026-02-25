@@ -1,11 +1,11 @@
-import type { Token } from '../types/token.ts';
+import type { Injectable, InjectableConstructor } from '../types/injectable.ts';
 import { DependencyInjectionError } from './base.ts';
 
 export class ScopeValidationError extends DependencyInjectionError {
   readonly parentToken: string;
   readonly scopedToken: string;
 
-  constructor(parentToken: Token, scopedToken: Token) {
+  constructor(parentToken: InjectableConstructor, scopedToken: InjectableConstructor) {
     const parentStr = typeof parentToken === 'function' ? parentToken.name : String(parentToken);
     const scopedStr = typeof scopedToken === 'function' ? scopedToken.name : String(scopedToken);
 
