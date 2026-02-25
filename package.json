@@ -1,12 +1,21 @@
 {
   "name": "@ultranomic/di",
   "version": "5.0.3",
+  "description": "A powerful dependency injection framework for TypeScript",
   "keywords": [
     "dependency-injection",
     "di",
     "framework"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ultranomic/di.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ultranomic/di/issues"
+  },
+  "homepage": "https://github.com/ultranomic/di#readme",
   "bin": {
     "di": "./dist/cli/index.js"
   },
