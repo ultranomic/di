@@ -1,5 +1,5 @@
 import type { Token } from '../types/token.ts';
-import { DIError } from './base.ts';
+import { DependencyInjectionError } from './base.ts';
 
 /**
  * Error thrown when a circular dependency cannot be resolved.
@@ -19,7 +19,7 @@ import { DIError } from './base.ts';
  * //   Suggestion: Consider refactoring to break the cycle, or use lazy resolution.
  * ```
  */
-export class CircularDependencyError extends DIError {
+export class CircularDependencyError extends DependencyInjectionError {
   /**
    * The token where the cycle was detected
    */

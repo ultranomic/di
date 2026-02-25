@@ -30,14 +30,15 @@ export interface RouteInfo {
  *
  * @example
  * class MyController extends Controller {
- *   static readonly inject = [Logger] as const satisfies DepsTokens<typeof MyController>;
- *   static readonly metadata: ControllerMetadata = { basePath: '/api' };
+ *   static readonly inject = [Logger] as const satisfies DependencyTokens<typeof this>;
+ *   static readonly metadata = { basePath: '/api' } as const satisfies ControllerMetadata<typeof this>;
  *   constructor(public logger: Logger) { super() }
  * }
  *
  * const ControllerClass: ControllerConstructor = MyController
  * const routes = ControllerClass.metadata?.routes
  */
+
 export type ControllerConstructor = {
   /**
    * Static dependencies array for constructor injection
@@ -46,7 +47,8 @@ export type ControllerConstructor = {
   /**
    * Static metadata describing the controller's configuration
    */
-  readonly metadata?: ControllerMetadata;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly metadata?: ControllerMetadata<any>;
   /**
    * Creates a new controller instance
    */

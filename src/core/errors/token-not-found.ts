@@ -1,5 +1,5 @@
 import type { Token } from '../types/token.ts';
-import { DIError } from './base.ts';
+import { DependencyInjectionError } from './base.ts';
 
 /**
  * Error thrown when a token cannot be resolved in the container.
@@ -24,7 +24,7 @@ import { DIError } from './base.ts';
  * //   Suggestion: Did you mean to import a module that provides 'Logger'?
  * ```
  */
-export class TokenNotFoundError extends DIError {
+export class TokenNotFoundError extends DependencyInjectionError {
   /**
    * The token that could not be found
    */

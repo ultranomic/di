@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { Container } from '../container/container.ts';
 import type { ContainerInterface } from '../container/interfaces.ts';
-import type { DepsTokens } from '../types/deps.ts';
+import type { DependencyTokens } from '../types/dependencies.ts';
+import { ModuleContainer } from './module-container.ts';
 import type { ModuleConstructor } from './interfaces.ts';
 import type { ModuleMetadata } from './module.ts';
 import { Module } from './module.ts';
+import type { Token } from '../types/token.ts';
 
 describe('Module', () => {
   describe('static metadata', () => {
@@ -14,8 +16,6 @@ describe('Module', () => {
           providers: [],
           exports: [],
         };
-
-        register(_container: ContainerInterface) {}
       }
 
       expect(TestModule.metadata).toBeDefined();
@@ -25,11 +25,13 @@ describe('Module', () => {
 
     it('should allow providers in metadata', () => {
       class ServiceA {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         getValue() {
           return 'a';
         }
       }
       class ServiceB {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         getValue() {
           return 'b';
         }
@@ -39,8 +41,6 @@ describe('Module', () => {
         static readonly metadata: ModuleMetadata = {
           providers: [ServiceA, ServiceB],
         };
-
-        register(_container: ContainerInterface) {}
       }
 
       expect(TestModule.metadata?.providers).toContain(ServiceA);
@@ -52,8 +52,6 @@ describe('Module', () => {
         static readonly metadata: ModuleMetadata = {
           exports: ['ServiceA', 'ServiceB'],
         };
-
-        register(_container: ContainerInterface) {}
       }
 
       expect(TestModule.metadata?.exports).toContain('ServiceA');
@@ -63,38 +61,33 @@ describe('Module', () => {
     it('should allow imports in metadata', () => {
       class DatabaseModule extends Module {
         static readonly metadata: ModuleMetadata = {};
-        register(_container: ContainerInterface) {}
       }
 
       class UserModule extends Module {
         static readonly metadata: ModuleMetadata = {
           imports: [DatabaseModule],
         };
-
-        register(_container: ContainerInterface) {}
       }
 
       expect(UserModule.metadata?.imports).toContain(DatabaseModule);
     });
 
     it('should allow controllers in metadata', () => {
-      class UserController {}
+      class UserController {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
+      }
 
       class TestModule extends Module {
         static readonly metadata: ModuleMetadata = {
           controllers: [UserController],
         };
-
-        register(_container: ContainerInterface) {}
       }
 
       expect(TestModule.metadata?.controllers).toContain(UserController);
     });
 
     it('should allow empty metadata', () => {
-      class EmptyModule extends Module {
-        register(_container: ContainerInterface) {}
-      }
+      class EmptyModule extends Module {}
 
       expect(EmptyModule.metadata).toBeUndefined();
     });
@@ -103,6 +96,7 @@ describe('Module', () => {
   describe('register method', () => {
     it('should allow registering providers with container', () => {
       class Service {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         getValue() {
           return 42;
         }
@@ -112,26 +106,24 @@ describe('Module', () => {
         static readonly metadata: ModuleMetadata = {
           providers: [Service],
         };
-
-        register(container: ContainerInterface) {
-          container.register('Service', () => new Service());
-        }
       }
 
       const container = new Container();
       const module = new TestModule();
       module.register(container);
 
-      expect(container.has('Service')).toBe(true);
-      const service = container.resolve('Service') as Service;
+      expect(container.has(Service)).toBe(true);
+      const service = container.resolve(Service);
       expect(service.getValue()).toBe(42);
     });
 
     it('should allow registering multiple providers', () => {
       class Logger {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         log(_msg: string) {}
       }
       class Database {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         query() {
           return [];
         }
@@ -141,37 +133,27 @@ describe('Module', () => {
         static readonly metadata: ModuleMetadata = {
           providers: [Logger, Database],
         };
-
-        register(container: ContainerInterface) {
-          container.register('Logger', () => new Logger());
-          container.register('Database', () => new Database());
-        }
       }
 
       const container = new Container();
       const module = new TestModule();
       module.register(container);
 
-      expect(container.has('Logger')).toBe(true);
-      expect(container.has('Database')).toBe(true);
+      expect(container.has(Logger)).toBe(true);
+      expect(container.has(Database)).toBe(true);
     });
 
     it('should allow registering with dependencies', () => {
       class Config {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         getPort() {
           return 3000;
         }
       }
 
       class Server {
-        static readonly inject = [Config] as const satisfies DepsTokens<typeof Server>;
-
-        private config: Config;
-
-        constructor(config: Config) {
-          this.config = config;
-        }
-
+        static readonly inject = [Config] as const satisfies DependencyTokens<typeof this>;
+        constructor(private config: Config) {}
         getPort() {
           return this.config.getPort();
         }
@@ -180,22 +162,15 @@ describe('Module', () => {
       class TestModule extends Module {
         static readonly metadata: ModuleMetadata = {
           providers: [Config, Server],
-          exports: ['Config', 'Server'],
+          exports: [Config, Server],
         };
-
-        register(container: ContainerInterface) {
-          container.register('Config', () => new Config()).asSingleton();
-          container.register('Server', (c) => {
-            return new Server(c.resolve('Config'));
-          });
-        }
       }
 
       const container = new Container();
       const module = new TestModule();
       module.register(container);
 
-      const server = container.resolve('Server') as Server;
+      const server = container.resolve(Server);
       expect(server.getPort()).toBe(3000);
     });
   });
@@ -206,8 +181,6 @@ describe('Module', () => {
         static readonly metadata: ModuleMetadata = {
           providers: [],
         };
-
-        register(_container: ContainerInterface) {}
       }
 
       const ModuleClass: ModuleConstructor = TestModule;
@@ -222,8 +195,6 @@ describe('Module', () => {
         static readonly metadata: ModuleMetadata = {
           exports: ['ServiceA', 'ServiceB'],
         };
-
-        register(_container: ContainerInterface) {}
       }
 
       const module = new TestModule();
@@ -235,8 +206,6 @@ describe('Module', () => {
     it('should return empty array when no exports defined', () => {
       class TestModule extends Module {
         static readonly metadata: ModuleMetadata = {};
-
-        register(_container: ContainerInterface) {}
       }
 
       const module = new TestModule();
@@ -246,9 +215,7 @@ describe('Module', () => {
     });
 
     it('should return empty array when metadata is undefined', () => {
-      class TestModule extends Module {
-        register(_container: ContainerInterface) {}
-      }
+      class TestModule extends Module {}
 
       const module = new TestModule();
       const exportedTokens = module.getExportedTokens();
@@ -261,8 +228,6 @@ describe('Module', () => {
         static readonly metadata: ModuleMetadata = {
           exports: ['ServiceA'],
         };
-
-        register(_container: ContainerInterface) {}
       }
 
       const module = new TestModule();
@@ -279,7 +244,6 @@ describe('Module', () => {
       it('should have default onModuleInit implementation', () => {
         class TestModule extends Module {
           static readonly metadata: ModuleMetadata = {};
-          register(_container: ContainerInterface) {}
         }
 
         const module = new TestModule();
@@ -292,7 +256,6 @@ describe('Module', () => {
 
         class TestModule extends Module {
           static readonly metadata: ModuleMetadata = {};
-          register(_container: ContainerInterface) {}
 
           override async onModuleInit(): Promise<void> {
             initialized = true;
@@ -310,7 +273,6 @@ describe('Module', () => {
       it('should have default onModuleDestroy implementation', () => {
         class TestModule extends Module {
           static readonly metadata: ModuleMetadata = {};
-          register(_container: ContainerInterface) {}
         }
 
         const module = new TestModule();
@@ -323,7 +285,6 @@ describe('Module', () => {
 
         class TestModule extends Module {
           static readonly metadata: ModuleMetadata = {};
-          register(_container: ContainerInterface) {}
 
           override async onModuleDestroy(): Promise<void> {
             destroyed = true;
@@ -342,6 +303,7 @@ describe('Module', () => {
     describe('providers', () => {
       it('should auto-register providers from metadata', () => {
         class TestService {
+          static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
           getValue() {
             return 'test-value';
           }
@@ -359,18 +321,20 @@ describe('Module', () => {
 
         // Provider should be registered with the class itself as the token
         expect(container.has(TestService)).toBe(true);
-        const service = container.resolve(TestService) as TestService;
+        const service = container.resolve(TestService);
         expect(service.getValue()).toBe('test-value');
       });
 
       it('should auto-register multiple providers from metadata', () => {
         class ServiceA {
+          static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
           getName() {
             return 'A';
           }
         }
 
         class ServiceB {
+          static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
           getName() {
             return 'B';
           }
@@ -389,8 +353,8 @@ describe('Module', () => {
         expect(container.has(ServiceA)).toBe(true);
         expect(container.has(ServiceB)).toBe(true);
 
-        const serviceA = container.resolve(ServiceA) as ServiceA;
-        const serviceB = container.resolve(ServiceB) as ServiceB;
+        const serviceA = container.resolve(ServiceA);
+        const serviceB = container.resolve(ServiceB);
 
         expect(serviceA.getName()).toBe('A');
         expect(serviceB.getName()).toBe('B');
@@ -398,12 +362,14 @@ describe('Module', () => {
 
       it('should allow manual registration to coexist with auto-registration', () => {
         class AutoService {
+          static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
           isAuto() {
             return true;
           }
         }
 
         class ManualService {
+          static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
           isManual() {
             return true;
           }
@@ -414,11 +380,11 @@ describe('Module', () => {
             providers: [AutoService],
           };
 
-          override register(container: Container): void {
+          override register(container: ContainerInterface): void {
             // Call super for auto-registration
             super.register(container);
             // Manual registration still works
-            container.register('ManualService', () => new ManualService());
+            container.register(ManualService);
           }
         }
 
@@ -428,10 +394,10 @@ describe('Module', () => {
 
         // Both auto-registered and manual providers should be available
         expect(container.has(AutoService)).toBe(true);
-        expect(container.has('ManualService')).toBe(true);
+        expect(container.has(ManualService)).toBe(true);
 
-        const autoService = container.resolve(AutoService) as AutoService;
-        const manualService = container.resolve('ManualService') as ManualService;
+        const autoService = container.resolve(AutoService);
+        const manualService = container.resolve(ManualService);
 
         expect(autoService.isAuto()).toBe(true);
         expect(manualService.isManual()).toBe(true);
@@ -439,20 +405,15 @@ describe('Module', () => {
 
       it('should auto-register provider with dependencies', () => {
         class ConfigService {
+          static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
           getPort() {
             return 3000;
           }
         }
 
         class ServerService {
-          static readonly inject = [ConfigService] as const satisfies DepsTokens<typeof ServerService>;
-
-          private config: ConfigService;
-
-          constructor(config: ConfigService) {
-            this.config = config;
-          }
-
+          static readonly inject = [ConfigService] as const satisfies DependencyTokens<typeof this>;
+          constructor(private config: ConfigService) {}
           getPort() {
             return this.config.getPort();
           }
@@ -460,19 +421,8 @@ describe('Module', () => {
 
         class TestModule extends Module {
           static readonly metadata: ModuleMetadata = {
-            // Only auto-register simple providers
-            providers: [ConfigService],
-            // ServerService is NOT in metadata - it will be manually registered
+            providers: [ConfigService, ServerService],
           };
-
-          override register(container: Container): void {
-            // Call super for auto-registration of ConfigService
-            super.register(container);
-            // ServerService needs manual registration with dependencies
-            container.register(ServerService, (c) => {
-              return new ServerService(c.resolve(ConfigService));
-            });
-          }
         }
 
         const container = new Container();
@@ -482,7 +432,7 @@ describe('Module', () => {
         expect(container.has(ConfigService)).toBe(true);
         expect(container.has(ServerService)).toBe(true);
 
-        const server = container.resolve(ServerService) as ServerService;
+        const server = container.resolve(ServerService);
         expect(server.getPort()).toBe(3000);
       });
     });
@@ -490,6 +440,7 @@ describe('Module', () => {
     describe('controllers', () => {
       it('should auto-register controllers from metadata', () => {
         class TestController {
+          static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
           handle() {
             return 'handled';
           }
@@ -507,18 +458,20 @@ describe('Module', () => {
 
         // Controller should be registered with the class itself as the token
         expect(container.has(TestController)).toBe(true);
-        const controller = container.resolve(TestController) as TestController;
+        const controller = container.resolve(TestController);
         expect(controller.handle()).toBe('handled');
       });
 
       it('should auto-register multiple controllers from metadata', () => {
         class UserController {
+          static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
           route() {
             return 'users';
           }
         }
 
         class PostController {
+          static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
           route() {
             return 'posts';
           }
@@ -537,8 +490,8 @@ describe('Module', () => {
         expect(container.has(UserController)).toBe(true);
         expect(container.has(PostController)).toBe(true);
 
-        const userController = container.resolve(UserController) as UserController;
-        const postController = container.resolve(PostController) as PostController;
+        const userController = container.resolve(UserController);
+        const postController = container.resolve(PostController);
 
         expect(userController.route()).toBe('users');
         expect(postController.route()).toBe('posts');
@@ -548,20 +501,15 @@ describe('Module', () => {
     describe('providers and controllers together', () => {
       it('should auto-register both providers and controllers from metadata', () => {
         class LoggerService {
+          static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
           log(msg: string) {
             return `logged: ${msg}`;
           }
         }
 
         class HomeController {
-          static readonly inject = [LoggerService] as const satisfies DepsTokens<typeof HomeController>;
-
-          private logger: LoggerService;
-
-          constructor(logger: LoggerService) {
-            this.logger = logger;
-          }
-
+          static readonly inject = [LoggerService] as const satisfies DependencyTokens<typeof this>;
+          constructor(private logger: LoggerService) {}
           index() {
             return this.logger.log('home');
           }
@@ -581,10 +529,8 @@ describe('Module', () => {
         expect(container.has(LoggerService)).toBe(true);
         expect(container.has(HomeController)).toBe(true);
 
-        const controller = container.resolve(HomeController) as HomeController;
-        // HomeController was created with no-arg constructor by auto-registration
-        // So logger would be undefined, let's just check it was registered
-        expect(controller).toBeDefined();
+        const controller = container.resolve(HomeController);
+        expect(controller.index()).toBe('logged: home');
       });
     });
 
@@ -630,6 +576,51 @@ describe('Module', () => {
         const module = new TestModule();
         expect(() => module.register(container)).not.toThrow();
       });
+    });
+  });
+
+  describe('ModuleContainer with non-Container base', () => {
+    it('should use fallback resolve when baseContainer is not a Container', () => {
+      // Create a mock ContainerInterface that is NOT a Container instance
+      // This tests line 85: return this.baseContainer.resolve(token)
+      class MockService {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
+        getValue() {
+          return 'mock-value';
+        }
+      }
+
+      let resolveWasCalled = false;
+      const mockBaseContainer = {
+        has: (_token: Token) => true,
+        getBinding: (token: Token) => ({
+          token,
+          scope: 'singleton' as const,
+        }),
+        resolve: <T>(_token: Token<T>): T => {
+          resolveWasCalled = true;
+          // Return a mock instance
+          return { getValue: () => 'mock-value' } as T;
+        },
+        clear: () => {},
+        register: () => {},
+        buildDependencies: <T extends readonly Token[]>(tokens: T) => {
+          return tokens.map(() => ({ getValue: () => 'mock-value' })) as unknown as T;
+        },
+      } as ContainerInterface;
+
+      // Create a ModuleContainer with the mock base
+      const moduleContainer = new ModuleContainer(
+        mockBaseContainer,
+        'TestModule',
+        [],
+        new Map(),
+      );
+
+      // Try to resolve - should use the fallback path (line 85)
+      const result = moduleContainer.resolve(MockService);
+      expect(resolveWasCalled).toBe(true);
+      expect(result).toBeDefined();
     });
   });
 });

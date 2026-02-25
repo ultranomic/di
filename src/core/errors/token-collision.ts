@@ -1,5 +1,5 @@
 import type { Token } from '../types/token.ts';
-import { DIError } from './base.ts';
+import { DependencyInjectionError } from './base.ts';
 
 /**
  * Error thrown when a token is registered more than once.
@@ -21,7 +21,7 @@ import { DIError } from './base.ts';
  * //   Suggestion: Each token should only be registered once.
  * ```
  */
-export class TokenCollisionError extends DIError {
+export class TokenCollisionError extends DependencyInjectionError {
   /**
    * The token that was registered twice
    */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ModuleClass, ModuleMetadata, OnModuleDestroy, OnModuleInit } from './module.ts';
+import type { ModuleConstructor, ModuleMetadata, OnModuleDestroy, OnModuleInit } from './module.ts';
 
 describe('Module types', () => {
   describe('OnModuleInit', () => {
@@ -124,7 +124,7 @@ describe('Module types', () => {
     });
   });
 
-  describe('ModuleClass', () => {
+  describe('ModuleConstructor', () => {
     it('should work with class modules', () => {
       class LoggerModule {
         static readonly imports = [];
@@ -133,7 +133,7 @@ describe('Module types', () => {
         static readonly exports = [];
       }
 
-      const module: ModuleClass = LoggerModule;
+      const module: ModuleConstructor = LoggerModule;
       expect(module.imports).toEqual([]);
       expect(module.providers).toEqual([]);
     });
@@ -154,7 +154,7 @@ describe('Module types', () => {
         static readonly exports = [];
       }
 
-      const userModule: ModuleClass = UserModule;
+      const userModule: ModuleConstructor = UserModule;
       expect(userModule.imports).toContain(DatabaseModule);
     });
   });

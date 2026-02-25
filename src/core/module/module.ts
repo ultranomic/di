@@ -1,4 +1,4 @@
-import type { ContainerInterface, ResolverInterface } from '../container/interfaces.ts';
+import type { ContainerInterface } from '../container/interfaces.ts';
 import type { ModuleMetadata, OnModuleDestroy, OnModuleInit } from '../types/module.ts';
 import type { Token } from '../types/token.ts';
 
@@ -25,27 +25,10 @@ export type { ModuleMetadata } from '../types/module.ts';
  * @example
  * // Provider with dependencies using array-based inject
  * class DatabaseService {
- *   static readonly inject = [ConfigService] as const;
+ *   static readonly inject = [ConfigService] as const satisfies DependencyTokens<typeof this>;
  *   constructor(
  *     private config: ConfigService,
  *   ) {}
- * }
- *
- * @example
- * // Module with custom registration (e.g., for dependencies)
- * class ServerModule extends Module {
- *   static readonly metadata: ModuleMetadata = {
- *     providers: [ConfigService],
- *   }
- *
- *   override register(container: ContainerInterface): void {
- *     super.register(container) // Auto-registers ConfigService
- *     // Custom registration for services with dependencies
- *     container.register(ServerService, (c) => {
- *       const config = c.resolve(ConfigService);
- *       return new ServerService(config);
- *     })
- *   }
  * }
  */
 export abstract class Module implements OnModuleInit, OnModuleDestroy {
@@ -55,8 +38,8 @@ export abstract class Module implements OnModuleInit, OnModuleDestroy {
    * Register this module's providers with the container
    *
    * This default implementation auto-registers all providers and controllers
-   * from the module's metadata. Override this method to add custom registration
-   * logic or configure bindings with specific scopes.
+   * from the module's metadata. The container handles auto-instantiation
+   * using the class's static inject property.
    *
    * @param container - The container to register providers with
    */
@@ -71,47 +54,16 @@ export abstract class Module implements OnModuleInit, OnModuleDestroy {
     // Auto-register providers from metadata
     if (metadata.providers !== undefined) {
       for (const provider of metadata.providers) {
-        const ProviderClass = provider as new (...args: unknown[]) => unknown;
-        container.register(ProviderClass, (c) => this.createInstance(ProviderClass, c));
+        container.register(provider as Token);
       }
     }
 
     // Auto-register controllers from metadata
     if (metadata.controllers !== undefined) {
       for (const controller of metadata.controllers) {
-        const ControllerClass = controller as new (...args: unknown[]) => unknown;
-        container.register(ControllerClass, (c) => this.createInstance(ControllerClass, c));
+        container.register(controller as Token);
       }
     }
-  }
-
-  /**
-   * Creates an instance of a class using the array-based inject pattern.
-   *
-   * Classes declare dependencies via `static inject = [Dep1, Dep2] as const`
-   * and receive them as individual constructor parameters.
-   *
-   * @param Class - The class constructor
-   * @param container - The container to resolve dependencies from
-   * @returns A new instance of the class
-   */
-  // oxlint-disable-next-line typescript-eslint(no-explicit-any)
-  protected createInstance<TClass extends new (...args: any) => any>(
-    Class: TClass,
-    container: ResolverInterface,
-  ): InstanceType<TClass> {
-    const ClassWithInject = Class as typeof Class & {
-      inject?: readonly unknown[];
-    };
-
-    const hasInject = 'inject' in ClassWithInject && ClassWithInject.inject !== undefined && Array.isArray(ClassWithInject.inject);
-
-    if (hasInject) {
-      const deps = container.buildDeps(ClassWithInject.inject as readonly Token[]);
-      return new Class(...(deps as unknown[]));
-    }
-
-    return new Class();
   }
 
   /**
@@ -122,9 +74,8 @@ export abstract class Module implements OnModuleInit, OnModuleDestroy {
    * @returns Array of tokens that this module exports
    */
   getExportedTokens(): Token[] {
-    const ctor = this.constructor as typeof Module;
-    const exports = ctor.metadata?.exports;
-    return exports !== undefined ? [...exports] : [];
+    const exports = (this.constructor as typeof Module).metadata?.exports;
+    return exports ? [...exports] : [];
   }
 
   /**

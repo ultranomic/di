@@ -3,7 +3,7 @@ import type { ControllerRoute } from '../types/controller.ts';
 import type { ControllerMetadata } from './controller.ts';
 import { Controller } from './controller.ts';
 import type { ControllerConstructor, RouteInfo } from './interfaces.ts';
-import type { DepsTokens } from '../types/deps.ts';
+import type { DependencyTokens } from '../types/dependencies.ts';
 
 describe('Controller base class coverage', () => {
   it('should have undefined inject property on base Controller class', () => {
@@ -21,10 +21,10 @@ describe('Controller', () => {
   describe('static metadata', () => {
     it('should allow defining static metadata on a controller', () => {
       class TestController extends Controller {
-        static readonly metadata: ControllerMetadata = {
+        static readonly metadata = {
           basePath: '/test',
           routes: [],
-        };
+        } as const satisfies ControllerMetadata<typeof this>;
       }
 
       expect(TestController.metadata).toBeDefined();
@@ -34,9 +34,9 @@ describe('Controller', () => {
 
     it('should allow basePath in metadata', () => {
       class UserController extends Controller {
-        static readonly metadata: ControllerMetadata = {
+        static readonly metadata = {
           basePath: '/users',
-        };
+        } as const satisfies ControllerMetadata<typeof this>;
       }
 
       expect(UserController.metadata?.basePath).toBe('/users');
@@ -44,7 +44,7 @@ describe('Controller', () => {
 
     it('should allow routes in metadata', () => {
       class UserController extends Controller {
-        static readonly metadata: ControllerMetadata = {
+        static readonly metadata = {
           routes: [
             { method: 'GET', path: '/', handler: 'list' },
             { method: 'GET', path: '/:id', handler: 'get' },
@@ -81,9 +81,9 @@ describe('Controller', () => {
 
     it('should allow metadata with only basePath', () => {
       class HealthController extends Controller {
-        static readonly metadata: ControllerMetadata = {
+        static readonly metadata = {
           basePath: '/health',
-        };
+        } as const satisfies ControllerMetadata<typeof this>;
       }
 
       expect(HealthController.metadata?.basePath).toBe('/health');
@@ -92,7 +92,7 @@ describe('Controller', () => {
 
     it('should allow metadata with only routes', () => {
       class ApiRootController extends Controller {
-        static readonly metadata: ControllerMetadata = {
+        static readonly metadata = {
           routes: [
             { method: 'GET', path: '/', handler: 'index' },
           ] as const satisfies ControllerRoute<ApiRootController>[],
@@ -111,9 +111,9 @@ describe('Controller', () => {
   describe('ControllerConstructor type', () => {
     it('should work with ControllerConstructor type', () => {
       class TestController extends Controller {
-        static readonly metadata: ControllerMetadata = {
+        static readonly metadata = {
           basePath: '/test',
-        };
+        } as const satisfies ControllerMetadata<typeof this>;
       }
 
       const ControllerClass: ControllerConstructor = TestController;
@@ -134,13 +134,13 @@ describe('Controller', () => {
   describe('RouteInfo type', () => {
     it('should allow creating RouteInfo from controller metadata', () => {
       class UserController extends Controller {
-        static readonly metadata: ControllerMetadata = {
+        static readonly metadata = {
           basePath: '/users',
           routes: [
             { method: 'GET', path: '/', handler: 'list' },
             { method: 'GET', path: '/:id', handler: 'get' },
           ] as const,
-        };
+        } as const satisfies ControllerMetadata<typeof this>;
 
         list() {}
         get() {}
@@ -175,13 +175,13 @@ describe('Controller', () => {
   describe('inheritance', () => {
     it('should allow extending Controller', () => {
       class BaseController extends Controller {
-        static readonly metadata: ControllerMetadata = {
+        static readonly metadata = {
           basePath: '/api',
-        };
+        } as const satisfies ControllerMetadata<typeof this>;
       }
 
       class UserController extends BaseController {
-        static readonly metadata: ControllerMetadata = {
+        static readonly metadata = {
           basePath: '/api/users',
           routes: [{ method: 'GET', path: '/', handler: 'list' }] as const satisfies ControllerRoute<UserController>[],
         };
@@ -207,7 +207,7 @@ describe('Controller', () => {
   describe('HTTP methods', () => {
     it('should support all HTTP methods', () => {
       class FullController extends Controller {
-        static readonly metadata: ControllerMetadata = {
+        static readonly metadata = {
           routes: [
             { method: 'GET', path: '/', handler: 'get' },
             { method: 'POST', path: '/', handler: 'post' },
@@ -237,7 +237,7 @@ describe('Controller', () => {
   describe('path patterns', () => {
     it('should support simple paths', () => {
       class SimplePathController extends Controller {
-        static readonly metadata: ControllerMetadata = {
+        static readonly metadata = {
           routes: [
             { method: 'GET', path: '/health', handler: 'health' },
             { method: 'GET', path: '/status', handler: 'status' },
@@ -255,7 +255,7 @@ describe('Controller', () => {
 
     it('should support path parameters', () => {
       class ParamsController extends Controller {
-        static readonly metadata: ControllerMetadata = {
+        static readonly metadata = {
           routes: [
             { method: 'GET', path: '/users/:id', handler: 'getUser' },
             { method: 'GET', path: '/users/:userId/posts/:postId', handler: 'getPost' },
@@ -273,7 +273,7 @@ describe('Controller', () => {
   });
 
   describe('new inject pattern', () => {
-    it('should support the new array-based inject pattern with DepsTokens', () => {
+    it('should support the new array-based inject pattern with DependencyTokens', () => {
       class Logger {
         log(msg: string) {
           return `logged: ${msg}`;
@@ -287,9 +287,9 @@ describe('Controller', () => {
       }
 
       class UserController extends Controller {
-        static readonly inject = [Logger, UserService] as const satisfies DepsTokens<typeof UserController>;
+        static readonly inject = [Logger, UserService] as const satisfies DependencyTokens<typeof this>;
 
-        static readonly metadata: ControllerMetadata = {
+        static readonly metadata = {
           basePath: '/users',
           routes: [{ method: 'GET', path: '/', handler: 'list' }] as const satisfies ControllerRoute<UserController>[],
         };
@@ -326,9 +326,9 @@ describe('Controller', () => {
       }
 
       class DataController extends Controller {
-        static readonly inject = [Database] as const satisfies DepsTokens<typeof DataController>;
+        static readonly inject = [Database] as const satisfies DependencyTokens<typeof this>;
 
-        static readonly metadata: ControllerMetadata = {
+        static readonly metadata = {
           basePath: '/data',
           routes: [{ method: 'GET', path: '/', handler: 'query' }] as const satisfies ControllerRoute<DataController>[],
         };
@@ -353,7 +353,7 @@ describe('Controller', () => {
 
     it('should allow controllers without dependencies (no inject)', () => {
       class NoDepsController extends Controller {
-        static readonly metadata: ControllerMetadata = {
+        static readonly metadata = {
           basePath: '/health',
           routes: [
             { method: 'GET', path: '/', handler: 'check' },
@@ -376,10 +376,10 @@ describe('Controller', () => {
       }
 
       class LoggedController extends Controller {
-        static readonly inject = [Logger] as const satisfies DepsTokens<typeof LoggedController>;
-        static readonly metadata: ControllerMetadata = {
+        static readonly inject = [Logger] as const satisfies DependencyTokens<typeof this>;
+        static readonly metadata = {
           basePath: '/logged',
-        };
+        } as const satisfies ControllerMetadata<typeof this>;
 
         logger: Logger;
         constructor(logger: Logger) {

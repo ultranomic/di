@@ -1,3 +1,4 @@
+import type { ControllerRoute } from '../types/controller.ts';
 import type { Token } from '../types/token.ts';
 
 /**
@@ -8,7 +9,7 @@ import type { Token } from '../types/token.ts';
  *
  * @example
  * class UserController extends Controller {
- *   static readonly metadata: ControllerMetadata = {
+ *   static readonly metadata = {
  *     basePath: '/users',
  *     routes: [
  *       { method: 'GET', path: '/', handler: 'list' },
@@ -18,7 +19,7 @@ import type { Token } from '../types/token.ts';
  *   }
  * }
  */
-export interface ControllerMetadata {
+export interface ControllerMetadata<T> {
   /**
    * Base path for all routes in this controller
    * All routes will be prefixed with this path
@@ -34,11 +35,7 @@ export interface ControllerMetadata {
    * Each route maps an HTTP method and path to a handler method.
    * The handler name is validated against the controller's methods.
    */
-  routes?: readonly {
-    method: import('../types/controller.ts').HttpMethod;
-    path: string;
-    handler: string;
-  }[];
+  routes?: readonly ControllerRoute<T>[];
 }
 
 /**
@@ -58,9 +55,9 @@ export interface ControllerMetadata {
  * }
  *
  * class UserController extends Controller {
- *   static readonly inject = [UserService] as const satisfies DepsTokens<typeof UserController>;
+ *   static readonly inject = [UserService] as const satisfies DependencyTokens<typeof this>;
  *
- *   static readonly metadata: ControllerMetadata = {
+ *   static readonly metadata = {
  *     basePath: '/users',
  *     routes: [
  *       { method: 'GET', path: '/', handler: 'list' },
@@ -93,7 +90,7 @@ export abstract class Controller {
    * Use the array-based inject pattern with individual constructor parameters.
    *
    * @example
-   * static readonly inject = [Logger, UserService] as const satisfies DepsTokens<typeof MyController>;
+   * static readonly inject = [Logger, UserService] as const satisfies DependencyTokens<typeof MyController>;
    */
   static readonly inject?: readonly Token[];
 
@@ -101,6 +98,16 @@ export abstract class Controller {
    * Static metadata describing the controller's configuration
    *
    * Override this property to define the controller's routes and base path.
+   * Use `satisfies ControllerMetadata` for type-safe handler names.
+   *
+   * @example
+   * class UserController extends Controller {
+   *   static readonly metadata = {
+   *     basePath: '/users',
+   *     routes: [{ method: 'GET', path: '/', handler: 'list' }]
+   *   } as const satisfies ControllerMetadata<typeof this>;
+   * }
    */
-  static readonly metadata?: ControllerMetadata;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  static readonly metadata?: ControllerMetadata<any>;
 }

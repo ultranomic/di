@@ -1,7 +1,9 @@
 import type { ContainerInterface, ResolverInterface } from '../container/interfaces.ts';
-import type { InferInject } from '../types/deps.ts';
+import { Container } from '../container/container.ts';
+import type { InferInjectedInstanceTypes } from '../types/dependencies.ts';
 import { NonExportedTokenError } from '../errors/non-exported-token.ts';
 import type { Token } from '../types/token.ts';
+import type { RegisterOptions } from '../container/binding.ts';
 
 /**
  * Information about a token's owner module
@@ -58,17 +60,13 @@ export class ModuleContainer implements ContainerInterface {
     this.allModulesOwners.set(token, owner);
   }
 
-  register<T>(
-    token: Token<T>,
-    factory: (container: ResolverInterface) => T,
-  ): import('../container/binding.ts').BindingBuilder<T> {
+  register<T extends abstract new (...args: unknown[]) => unknown>(
+    token: T,
+    options?: RegisterOptions,
+  ): void {
     const isExported = this.currentModuleExports.has(token);
     this.trackToken(token, isExported);
-
-    // Wrap the factory to use this container for dependency resolution
-    const wrappedFactory = (_resolver: ResolverInterface) => factory(this);
-
-    return this.baseContainer.register(token, wrappedFactory);
+    this.baseContainer.register(token, options);
   }
 
   resolve<T>(token: Token<T>): T {
@@ -77,6 +75,11 @@ export class ModuleContainer implements ContainerInterface {
     // Check if this token is from another module and validate access
     if (owner !== undefined && owner.module !== this.moduleName) {
       this.validateTokenAccess(token, owner);
+    }
+
+    // Use resolveWithExternalResolver if the base container supports it (for encapsulation during auto-instantiation)
+    if (this.baseContainer instanceof Container) {
+      return this.baseContainer.resolveWithExternalResolver(token, this as ResolverInterface);
     }
 
     return this.baseContainer.resolve(token);
@@ -104,13 +107,9 @@ export class ModuleContainer implements ContainerInterface {
    * (tokens from imported modules that are exported)
    */
   private getAccessibleTokens(): Token[] {
-    const accessible: Token[] = [];
-    for (const [token, owner] of this.allModulesOwners) {
-      if (owner.module !== this.moduleName && this.accessibleModules.has(owner.module) && owner.isExported) {
-        accessible.push(token);
-      }
-    }
-    return accessible;
+    return Array.from(this.allModulesOwners.entries())
+      .filter(([, owner]) => owner.module !== this.moduleName && this.accessibleModules.has(owner.module) && owner.isExported)
+      .map(([token]) => token);
   }
 
   has(token: Token): boolean {
@@ -134,9 +133,9 @@ export class ModuleContainer implements ContainerInterface {
     return this.baseContainer.getBinding(token);
   }
 
-  buildDeps<TTokens extends readonly Token[]>(tokens: TTokens): InferInject<TTokens> {
+  buildDependencies<TTokens extends readonly Token[]>(tokens: TTokens): InferInjectedInstanceTypes<TTokens> {
     const resolvedTokens = tokens.map((token) => this.resolve(token));
-    return resolvedTokens as InferInject<TTokens>;
+    return resolvedTokens as InferInjectedInstanceTypes<TTokens>;
   }
 
   clear(): void {
@@ -144,12 +143,8 @@ export class ModuleContainer implements ContainerInterface {
   }
 
   private getExportedTokensForModule(moduleName: string): Token[] {
-    const exported: Token[] = [];
-    for (const [token, owner] of this.allModulesOwners) {
-      if (owner.module === moduleName && owner.isExported) {
-        exported.push(token);
-      }
-    }
-    return exported;
+    return Array.from(this.allModulesOwners.entries())
+      .filter(([, owner]) => owner.module === moduleName && owner.isExported)
+      .map(([token]) => token);
   }
 }

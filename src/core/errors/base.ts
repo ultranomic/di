@@ -1,10 +1,10 @@
 /**
- * Base error class for all DI framework errors.
+ * Base error class for all Dependency Injection framework errors.
  *
  * Provides a consistent base for error handling with proper name
  * inheritance and stack trace support.
  */
-export abstract class DIError extends Error {
+export abstract class DependencyInjectionError extends Error {
   constructor(message: string) {
     super(message);
     this.name = this.constructor.name;
