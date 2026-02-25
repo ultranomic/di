@@ -1,5 +1,6 @@
 import type { ControllerRoute } from '../types/controller.ts';
 import type { Token } from '../types/token.ts';
+import { Injectable } from '../types/injectable.ts';
 
 /**
  * Controller metadata interface
@@ -83,7 +84,7 @@ export interface ControllerMetadata<T> {
  *   }
  * }
  */
-export abstract class Controller {
+export abstract class Controller extends Injectable {
   /**
    * Static dependencies array for constructor injection.
    *

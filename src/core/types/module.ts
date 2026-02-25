@@ -6,6 +6,7 @@
  */
 
 import type { Token } from './token.ts';
+import type { Injectable } from './injectable.ts';
 
 /**
  * Lifecycle hook: Called when a module is initialized
@@ -66,9 +67,10 @@ export interface ModuleMetadata {
 
   /**
    * Service providers registered in this module
+   * Must be classes that extend Injectable.
    * @readonly
    */
-  providers?: readonly unknown[];
+  providers?: readonly Injectable[];
 
   /**
    * Controllers (HTTP route handlers) registered in this module

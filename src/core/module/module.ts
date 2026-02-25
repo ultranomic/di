@@ -1,6 +1,6 @@
 import type { ContainerInterface } from '../container/interfaces.ts';
+import type { Injectable } from '../types/injectable.ts';
 import type { ModuleMetadata, OnModuleDestroy, OnModuleInit } from '../types/module.ts';
-import type { Token } from '../types/token.ts';
 
 export type { ModuleMetadata } from '../types/module.ts';
 
@@ -54,14 +54,14 @@ export abstract class Module implements OnModuleInit, OnModuleDestroy {
     // Auto-register providers from metadata
     if (metadata.providers !== undefined) {
       for (const provider of metadata.providers) {
-        container.register(provider as Token);
+        container.register(provider as unknown as abstract new (...args: unknown[]) => Injectable);
       }
     }
 
     // Auto-register controllers from metadata
     if (metadata.controllers !== undefined) {
       for (const controller of metadata.controllers) {
-        container.register(controller as Token);
+        container.register(controller as unknown as abstract new (...args: unknown[]) => Injectable);
       }
     }
   }
@@ -73,7 +73,7 @@ export abstract class Module implements OnModuleInit, OnModuleDestroy {
    *
    * @returns Array of tokens that this module exports
    */
-  getExportedTokens(): Token[] {
+  getExportedTokens(): (abstract new (...args: any[]) => Injectable)[] {
     const exports = (this.constructor as typeof Module).metadata?.exports;
     return exports ? [...exports] : [];
   }

@@ -2,8 +2,10 @@ import type { ContainerInterface, ResolverInterface } from '../container/interfa
 import { Container } from '../container/container.ts';
 import type { InferInjectedInstanceTypes } from '../types/dependencies.ts';
 import { NonExportedTokenError } from '../errors/non-exported-token.ts';
-import type { Token } from '../types/token.ts';
+import type { Injectable } from '../types/injectable.ts';
 import type { RegisterOptions } from '../container/binding.ts';
+
+type InjectableConstructor = abstract new (...args: any[]) => Injectable;
 
 /**
  * Information about a token's owner module
@@ -20,18 +22,18 @@ interface TokenOwner {
  * modules can only access tokens from their imported modules that are explicitly exported.
  */
 export class ModuleContainer implements ContainerInterface {
-  private readonly tokenOwners = new Map<Token, TokenOwner>();
+  private readonly tokenOwners = new Map<InjectableConstructor, TokenOwner>();
   private readonly moduleName: string;
-  private readonly currentModuleExports: Set<Token>;
+  private readonly currentModuleExports: Set<InjectableConstructor>;
   private readonly accessibleModules: Set<string>;
   private readonly baseContainer: ContainerInterface;
-  private readonly allModulesOwners: Map<Token, TokenOwner>;
+  private readonly allModulesOwners: Map<InjectableConstructor, TokenOwner>;
 
   constructor(
     baseContainer: ContainerInterface,
     moduleName: string,
-    moduleExports: readonly Token[],
-    allModulesOwners: Map<Token, TokenOwner>,
+    moduleExports: readonly InjectableConstructor[],
+    allModulesOwners: Map<InjectableConstructor, TokenOwner>,
   ) {
     this.baseContainer = baseContainer;
     this.moduleName = moduleName;
@@ -51,7 +53,7 @@ export class ModuleContainer implements ContainerInterface {
   /**
    * Track a token that was registered in this module
    */
-  trackToken(token: Token, isExported: boolean): void {
+  trackToken(token: InjectableConstructor, isExported: boolean): void {
     const owner: TokenOwner = {
       module: this.moduleName,
       isExported,
@@ -60,13 +62,13 @@ export class ModuleContainer implements ContainerInterface {
     this.allModulesOwners.set(token, owner);
   }
 
-  register<T extends abstract new (...args: unknown[]) => unknown>(token: T, options?: RegisterOptions): void {
+  register(token: InjectableConstructor, options?: RegisterOptions): void {
     const isExported = this.currentModuleExports.has(token);
     this.trackToken(token, isExported);
     this.baseContainer.register(token, options);
   }
 
-  resolve<T>(token: Token<T>): T {
+  resolve<T extends Injectable>(token: abstract new (...args: any[]) => T): T {
     const owner = this.allModulesOwners.get(token);
 
     // Check if this token is from another module and validate access
@@ -85,7 +87,7 @@ export class ModuleContainer implements ContainerInterface {
   /**
    * Validate that the current module can access a token from another module
    */
-  private validateTokenAccess(token: Token, owner: TokenOwner): void {
+  private validateTokenAccess(token: InjectableConstructor, owner: TokenOwner): void {
     // Check if the module is accessible (imported)
     if (!this.accessibleModules.has(owner.module)) {
       const accessibleTokens = this.getAccessibleTokens();
@@ -103,7 +105,7 @@ export class ModuleContainer implements ContainerInterface {
    * Get all tokens that are accessible from this module
    * (tokens from imported modules that are exported)
    */
-  private getAccessibleTokens(): Token[] {
+  private getAccessibleTokens(): InjectableConstructor[] {
     return Array.from(this.allModulesOwners.entries())
       .filter(
         ([, owner]) => owner.module !== this.moduleName && this.accessibleModules.has(owner.module) && owner.isExported,
@@ -111,7 +113,7 @@ export class ModuleContainer implements ContainerInterface {
       .map(([token]) => token);
   }
 
-  has(token: Token): boolean {
+  has(token: InjectableConstructor): boolean {
     const owner = this.allModulesOwners.get(token);
 
     // No owner yet, defer to base container
@@ -128,11 +130,11 @@ export class ModuleContainer implements ContainerInterface {
     return this.accessibleModules.has(owner.module) && owner.isExported && this.baseContainer.has(token);
   }
 
-  getBinding<T>(token: Token<T>): import('../container/binding.ts').Binding<T> | undefined {
+  getBinding<T extends Injectable>(token: abstract new (...args: any[]) => T): import('../container/binding.ts').Binding<T> | undefined {
     return this.baseContainer.getBinding(token);
   }
 
-  buildDependencies<TTokens extends readonly Token[]>(tokens: TTokens): InferInjectedInstanceTypes<TTokens> {
+  buildDependencies<TTokens extends readonly InjectableConstructor[]>(tokens: TTokens): InferInjectedInstanceTypes<TTokens> {
     const resolvedTokens = tokens.map((token) => this.resolve(token));
     return resolvedTokens as InferInjectedInstanceTypes<TTokens>;
   }
@@ -141,7 +143,7 @@ export class ModuleContainer implements ContainerInterface {
     this.baseContainer.clear();
   }
 
-  private getExportedTokensForModule(moduleName: string): Token[] {
+  private getExportedTokensForModule(moduleName: string): InjectableConstructor[] {
     return Array.from(this.allModulesOwners.entries())
       .filter(([, owner]) => owner.module === moduleName && owner.isExported)
       .map(([token]) => token);
