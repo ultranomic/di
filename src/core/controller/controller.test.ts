@@ -24,7 +24,7 @@ describe('Controller', () => {
         static readonly metadata = {
           basePath: '/test',
           routes: [],
-        } as const satisfies ControllerMetadata;
+        } as const satisfies ControllerMetadata<typeof this>;
       }
 
       expect(TestController.metadata).toBeDefined();
@@ -36,7 +36,7 @@ describe('Controller', () => {
       class UserController extends Controller {
         static readonly metadata = {
           basePath: '/users',
-        } as const satisfies ControllerMetadata;
+        } as const satisfies ControllerMetadata<typeof this>;
       }
 
       expect(UserController.metadata?.basePath).toBe('/users');
@@ -83,7 +83,7 @@ describe('Controller', () => {
       class HealthController extends Controller {
         static readonly metadata = {
           basePath: '/health',
-        } as const satisfies ControllerMetadata;
+        } as const satisfies ControllerMetadata<typeof this>;
       }
 
       expect(HealthController.metadata?.basePath).toBe('/health');
@@ -113,7 +113,7 @@ describe('Controller', () => {
       class TestController extends Controller {
         static readonly metadata = {
           basePath: '/test',
-        } as const satisfies ControllerMetadata;
+        } as const satisfies ControllerMetadata<typeof this>;
       }
 
       const ControllerClass: ControllerConstructor = TestController;
@@ -140,7 +140,7 @@ describe('Controller', () => {
             { method: 'GET', path: '/', handler: 'list' },
             { method: 'GET', path: '/:id', handler: 'get' },
           ] as const,
-        } as const satisfies ControllerMetadata;
+        } as const satisfies ControllerMetadata<typeof this>;
 
         list() {}
         get() {}
@@ -177,7 +177,7 @@ describe('Controller', () => {
       class BaseController extends Controller {
         static readonly metadata = {
           basePath: '/api',
-        } as const satisfies ControllerMetadata;
+        } as const satisfies ControllerMetadata<typeof this>;
       }
 
       class UserController extends BaseController {
@@ -379,7 +379,7 @@ describe('Controller', () => {
         static readonly inject: DepsTokens<typeof this> = [Logger];
         static readonly metadata = {
           basePath: '/logged',
-        } as const satisfies ControllerMetadata;
+        } as const satisfies ControllerMetadata<typeof this>;
 
         logger: Logger;
         constructor(logger: Logger) {

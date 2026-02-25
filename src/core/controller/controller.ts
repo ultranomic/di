@@ -105,7 +105,7 @@ export abstract class Controller {
    *   static readonly metadata = {
    *     basePath: '/users',
    *     routes: [{ method: 'GET', path: '/', handler: 'list' }]
-   *   } as const satisfies ControllerMetadata;
+   *   } as const satisfies ControllerMetadata<typeof this>;
    * }
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
