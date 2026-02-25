@@ -10,7 +10,7 @@
  * the type system is working correctly.
  */
 
-import { Container, Controller } from '../core/index.js';
+import { Container, Controller, type ControllerMetadata } from '../core/index.js';
 import type { Context } from 'hono';
 import { HonoAdapter } from './adapter.ts';
 import {
@@ -32,7 +32,7 @@ class UserController extends Controller {
       { method: 'GET', path: '/:id', handler: 'get' },
       { method: 'POST', path: '/', handler: 'create' },
     ] as const,
-  };
+  } as const satisfies ControllerMetadata;
   static readonly inject = [] as const;
   constructor() {
     super();
@@ -176,7 +176,7 @@ function testMultipleControllers() {
     static readonly metadata = {
       basePath: '/posts',
       routes: [{ method: 'GET', path: '/', handler: 'list' }] as const,
-    };
+    } as const satisfies ControllerMetadata;
     static readonly inject = [] as const;
     constructor() {
       super();
