@@ -110,7 +110,8 @@ export class Container implements ContainerInterface {
     const contextResolver: ResolverInterface = externalResolver ?? {
       resolve: <TResolve>(resolveToken: Token<TResolve>): TResolve => this.resolveWithContext(resolveToken, context),
       has: (checkToken: Token) => this.has(checkToken),
-      buildDependencies: <TTokens extends readonly Token[]>(tokens: TTokens) => this.buildDependenciesWithContext(tokens, context),
+      buildDependencies: <TTokens extends readonly Token[]>(tokens: TTokens) =>
+        this.buildDependenciesWithContext(tokens, context),
     };
 
     // Auto-instantiate using inject property

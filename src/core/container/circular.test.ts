@@ -238,9 +238,7 @@ describe('Circular Dependencies', () => {
           // Note: During construction, the instance isn't set yet, so value/method return undefined
           proxyThen = (a as unknown as Record<string, unknown>).then;
           proxyToString = String(a);
-          proxyToStringTag = (a as unknown as Record<symbol, unknown>)[Symbol.toStringTag] as
-            | string
-            | undefined;
+          proxyToStringTag = (a as unknown as Record<symbol, unknown>)[Symbol.toStringTag] as string | undefined;
         }
       }
 

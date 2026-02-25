@@ -15,7 +15,9 @@
  * }
  */
 // oxlint-disable-next-line typescript-eslint/no-explicit-any
-export type DependencyTokens<T extends abstract new (...args: any) => any> = T extends abstract new (...args: infer P) => any
+export type DependencyTokens<T extends abstract new (...args: any) => any> = T extends abstract new (
+  ...args: infer P
+) => any
   ? P extends Array<any> // oxlint-disable-line typescript-eslint/no-explicit-any
     ? { [K in keyof P]: abstract new (...args: any[]) => P[K] } // oxlint-disable-line typescript-eslint/no-explicit-any)
     : never
