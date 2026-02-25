@@ -1,6 +1,6 @@
 {
   "name": "@ultranomic/di",
-  "version": "5.0.5",
+  "version": "5.0.6",
   "description": "A powerful dependency injection framework for TypeScript",
   "keywords": [
     "dependency-injection",
