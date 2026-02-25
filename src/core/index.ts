@@ -11,8 +11,8 @@ export type {
   TypedRequest,
   TypedResponse,
 } from './types/controller.ts';
-export type { DepsTokens, ExtractInject, InjectableClass, InferInject } from './types/deps.ts';
-export type { ModuleClass, ModuleMetadata, OnModuleDestroy, OnModuleInit } from './types/module.ts';
+export type { DependencyTokens, ExtractInjectArray, InjectableClass, InferInjectedInstanceTypes } from './types/dependencies.ts';
+export type { ModuleMetadata, OnModuleDestroy, OnModuleInit } from './types/module.ts';
 export type { Token } from './types/token.ts';
 
 // Container
@@ -34,7 +34,7 @@ export type { ControllerConstructor, RouteInfo } from './controller/interfaces.t
 // Errors
 export {
   CircularDependencyError,
-  DIError,
+  DependencyInjectionError,
   NonExportedTokenError,
   ScopeValidationError,
   TokenCollisionError,

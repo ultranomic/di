@@ -48,7 +48,7 @@ export interface ModuleInterface {
  * const instance = new ModuleClass()
  * instance.register(container)
  */
-export interface ModuleConstructor {
+export type ModuleConstructor = {
   /**
    * Creates a new module instance
    */
@@ -58,4 +58,4 @@ export interface ModuleConstructor {
    * Static metadata describing the module's configuration
    */
   readonly metadata?: ModuleMetadata;
-}
+};

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { DepsTokens, InferInject } from './deps.ts';
+import type { DependencyTokens, InferInjectedInstanceTypes } from './dependencies.ts';
 
-describe('Deps types', () => {
-  describe('InferInject', () => {
+describe('Dependency types', () => {
+  describe('InferInjectedInstanceTypes', () => {
     it('should infer type from class tokens', () => {
       class Logger {
         log(msg: string) {
@@ -12,10 +12,10 @@ describe('Deps types', () => {
 
       const inject = [Logger] as const;
 
-      type TestDeps = InferInject<typeof inject>;
-      const deps: TestDeps = [new Logger()];
+      type TestDependencies = InferInjectedInstanceTypes<typeof inject>;
+      const dependencies: TestDependencies = [new Logger()];
 
-      expect(deps[0]).toBeInstanceOf(Logger);
+      expect(dependencies[0]).toBeInstanceOf(Logger);
     });
 
     it('should infer types from multiple class tokens', () => {
@@ -33,14 +33,14 @@ describe('Deps types', () => {
 
       const inject = [Logger, Database] as const;
 
-      type TestDeps = InferInject<typeof inject>;
-      const deps: TestDeps = [new Logger(), new Database()];
+      type TestDependencies = InferInjectedInstanceTypes<typeof inject>;
+      const dependencies: TestDependencies = [new Logger(), new Database()];
 
-      expect(deps[0]).toBeInstanceOf(Logger);
-      expect(deps[1]).toBeInstanceOf(Database);
+      expect(dependencies[0]).toBeInstanceOf(Logger);
+      expect(dependencies[1]).toBeInstanceOf(Database);
     });
 
-    it('should infer deps from class with static inject array', () => {
+    it('should infer dependencies from class with static inject array', () => {
       class Logger {
         log(msg: string) {
           return msg;
@@ -55,21 +55,21 @@ describe('Deps types', () => {
         }
       }
 
-      type MyServiceDeps = InferInject<(typeof MyService)['inject']>;
+      type MyServiceDependencies = InferInjectedInstanceTypes<(typeof MyService)['inject']>;
 
-      const mockDeps: MyServiceDeps = [new Logger()];
+      const mockDependencies: MyServiceDependencies = [new Logger()];
 
-      expect(mockDeps[0]).toBeInstanceOf(Logger);
+      expect(mockDependencies[0]).toBeInstanceOf(Logger);
     });
   });
 
-  describe('DepsTokens', () => {
+  describe('DependencyTokens', () => {
     it('should validate inject array matches constructor params', () => {
       class Logger {}
       class Database {}
 
       class MyService {
-        static readonly inject = [Logger, Database] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [Logger, Database] as const satisfies DependencyTokens<typeof this>;
         logger: Logger;
         db: Database;
         constructor(logger: Logger, db: Database) {
@@ -82,26 +82,26 @@ describe('Deps types', () => {
     });
 
     it('should work with empty constructor', () => {
-      class NoDepsService {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+      class NoDependenciesService {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         constructor() {}
       }
 
-      expect(NoDepsService.inject).toHaveLength(0);
+      expect(NoDependenciesService.inject).toHaveLength(0);
     });
 
     it('should work with single dependency', () => {
       class Logger {}
 
-      class SingleDepService {
-        static readonly inject = [Logger] as const satisfies DepsTokens<typeof this>;
+      class SingleDependencyService {
+        static readonly inject = [Logger] as const satisfies DependencyTokens<typeof this>;
         logger: Logger;
         constructor(logger: Logger) {
           this.logger = logger;
         }
       }
 
-      expect(SingleDepService.inject).toHaveLength(1);
+      expect(SingleDependencyService.inject).toHaveLength(1);
     });
   });
 });

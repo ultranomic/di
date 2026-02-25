@@ -1,7 +1,7 @@
 import { ScopeValidationError } from '../errors/scope-validation.ts';
 import { TokenCollisionError } from '../errors/token-collision.ts';
 import { TokenNotFoundError } from '../errors/token-not-found.ts';
-import type { InferInject } from '../types/deps.ts';
+import type { InferInjectedInstanceTypes } from '../types/dependencies.ts';
 import type { Token } from '../types/token.ts';
 import { Scope, type Binding, type RegisterOptions } from './binding.ts';
 import type { ContainerInterface, ResolverInterface } from './interfaces.ts';
@@ -43,7 +43,7 @@ export class Container implements ContainerInterface {
     if (this.getInjectArray(token) === undefined) {
       throw new Error(
         `Class '${token.name}' must have a static inject property. ` +
-          `Add: static readonly inject = [] as const satisfies DepsTokens<typeof this>;`,
+          `Add: static readonly inject = [] as const satisfies DependencyTokens<typeof this>;`,
       );
     }
 
@@ -71,18 +71,18 @@ export class Container implements ContainerInterface {
     return this.resolveWithContext(token, { path: [] }, externalResolver);
   }
 
-  buildDeps<TTokens extends readonly Token[]>(tokens: TTokens): InferInject<TTokens> {
+  buildDependencies<TTokens extends readonly Token[]>(tokens: TTokens): InferInjectedInstanceTypes<TTokens> {
     const resolvedTokens = tokens.map((token) => this.resolve(token));
-    return resolvedTokens as InferInject<TTokens>;
+    return resolvedTokens as InferInjectedInstanceTypes<TTokens>;
   }
 
-  private buildDepsWithContext<TTokens extends readonly Token[]>(
+  private buildDependenciesWithContext<TTokens extends readonly Token[]>(
     tokens: TTokens,
     context: ResolutionContext,
     externalResolver?: ResolverInterface,
-  ): InferInject<TTokens> {
+  ): InferInjectedInstanceTypes<TTokens> {
     const resolvedTokens = tokens.map((token) => this.resolveWithContext(token, context, externalResolver));
-    return resolvedTokens as InferInject<TTokens>;
+    return resolvedTokens as InferInjectedInstanceTypes<TTokens>;
   }
 
   getResolutionPath(context: ResolutionContext): string {
@@ -118,7 +118,7 @@ export class Container implements ContainerInterface {
     const contextResolver: ResolverInterface = externalResolver ?? {
       resolve: <TResolve>(resolveToken: Token<TResolve>): TResolve => this.resolveWithContext(resolveToken, context),
       has: (checkToken: Token) => this.has(checkToken),
-      buildDeps: <TTokens extends readonly Token[]>(tokens: TTokens) => this.buildDepsWithContext(tokens, context),
+      buildDependencies: <TTokens extends readonly Token[]>(tokens: TTokens) => this.buildDependenciesWithContext(tokens, context),
     };
 
     // Auto-instantiate using inject property
@@ -137,8 +137,8 @@ export class Container implements ContainerInterface {
   private createInstance<T>(ClassConstructor: new (...args: unknown[]) => T, resolver: ResolverInterface): T {
     const inject = this.getInjectArray(ClassConstructor);
     if (inject !== undefined) {
-      const deps = resolver.buildDeps(inject);
-      return new ClassConstructor(...(deps as unknown[]));
+      const dependencies = resolver.buildDependencies(inject);
+      return new ClassConstructor(...(dependencies as unknown[]));
     }
     return new ClassConstructor();
   }
@@ -196,11 +196,11 @@ export class Container implements ContainerInterface {
   }
 
   private validateSingletonDependencies(token: Token, binding: Binding): void {
-    const deps = this.extractDependenciesFromClass(binding.classConstructor);
-    for (const depToken of deps) {
-      const depBinding = this.getBinding(depToken);
-      if (depBinding?.scope === Scope.SCOPED) {
-        throw new ScopeValidationError(token, depToken);
+    const dependencies = this.extractDependenciesFromClass(binding.classConstructor);
+    for (const dependencyToken of dependencies) {
+      const dependencyBinding = this.getBinding(dependencyToken);
+      if (dependencyBinding?.scope === Scope.SCOPED) {
+        throw new ScopeValidationError(token, dependencyToken);
       }
     }
   }

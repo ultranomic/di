@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { Scope } from './binding.ts';
 import { Container } from './container.ts';
-import type { DepsTokens } from '../types/deps.ts';
+import type { DependencyTokens } from '../types/dependencies.ts';
 import type { Token } from '../types/token.ts';
 
 describe('Container', () => {
@@ -14,13 +14,13 @@ describe('Container', () => {
   describe('register', () => {
     it('should register a provider with abstract class token', () => {
       abstract class ServiceBase {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
       }
       class Service extends ServiceBase {
         getValue() {
           return 42;
         }
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
       }
       container.register(Service);
       expect(container.has(Service)).toBe(true);
@@ -28,7 +28,7 @@ describe('Container', () => {
 
     it('should register a provider with concrete class token', () => {
       class Service {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         log() {
           return 'logged';
         }
@@ -39,7 +39,7 @@ describe('Container', () => {
 
     it('should default to SINGLETON scope', () => {
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
       }
       container.register(Logger);
       const binding = container.getBinding(Logger);
@@ -48,7 +48,7 @@ describe('Container', () => {
 
     it('should throw TokenCollisionError for duplicate token', () => {
       class Token {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
       }
       container.register(Token);
       expect(() => container.register(Token)).toThrow(/is already registered/);
@@ -63,7 +63,7 @@ describe('Container', () => {
   describe('resolve', () => {
     it('should resolve registered provider', () => {
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         log(_msg: string) {}
       }
       container.register(Logger);
@@ -74,11 +74,11 @@ describe('Container', () => {
 
     it('should resolve with auto-injected dependencies', () => {
       class Config {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         port = 3000;
       }
       class Server {
-        static readonly inject = [Config] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [Config] as const satisfies DependencyTokens<typeof this>;
         constructor(private config: Config) {}
         getPort() {
           return this.config.port;
@@ -93,14 +93,14 @@ describe('Container', () => {
 
     it('should throw for unregistered token', () => {
       class Unknown {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
       }
       expect(() => container.resolve(Unknown)).toThrow(/Token 'Unknown' not found/);
     });
 
     it('should create new instance for transient scope', () => {
       class Counter {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         count = 0;
       }
       container.register(Counter, { scope: Scope.TRANSIENT });
@@ -113,7 +113,7 @@ describe('Container', () => {
 
     it('should return same instance for singleton scope', () => {
       class Counter {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         count = 0;
       }
       container.register(Counter);
@@ -128,7 +128,7 @@ describe('Container', () => {
   describe('has', () => {
     it('should return true for registered token', () => {
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
       }
       container.register(Logger);
       expect(container.has(Logger)).toBe(true);
@@ -136,14 +136,14 @@ describe('Container', () => {
 
     it('should return false for unregistered token', () => {
       class Unknown {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
       }
       expect(container.has(Unknown)).toBe(false);
     });
 
     it('should return false after clear', () => {
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
       }
       container.register(Logger);
       container.clear();
@@ -154,7 +154,7 @@ describe('Container', () => {
   describe('getBinding', () => {
     it('should return binding for registered token', () => {
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
       }
       container.register(Logger);
       const binding = container.getBinding(Logger);
@@ -166,7 +166,7 @@ describe('Container', () => {
 
     it('should return undefined for unregistered token', () => {
       class Unknown {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
       }
       const binding = container.getBinding(Unknown);
       expect(binding).toBeUndefined();
@@ -176,13 +176,13 @@ describe('Container', () => {
   describe('clear', () => {
     it('should remove all bindings', () => {
       class A {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
       }
       class B {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
       }
       class C {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
       }
       container.register(A);
       container.register(B);
@@ -197,7 +197,7 @@ describe('Container', () => {
 
     it('should allow re-registration after clear', () => {
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         version = 1;
       }
       container.register(Logger);
@@ -236,7 +236,7 @@ describe('Container - child containers', () => {
   describe('has', () => {
     it('should return true for parent token in child container', () => {
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
       }
       rootContainer.register(Logger);
 
@@ -245,7 +245,7 @@ describe('Container - child containers', () => {
 
     it('should return false for unregistered token in child container', () => {
       class Unknown {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
       }
       expect(childContainer.has(Unknown)).toBe(false);
     });
@@ -254,7 +254,7 @@ describe('Container - child containers', () => {
   describe('getBinding', () => {
     it('should return binding from parent container', () => {
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
       }
       rootContainer.register(Logger);
 
@@ -267,7 +267,7 @@ describe('Container - child containers', () => {
   describe('resolve', () => {
     it('should resolve parent token in child container', () => {
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         log() {
           return 'logged';
         }
@@ -280,7 +280,7 @@ describe('Container - child containers', () => {
 
     it('should throw error when trying to register in child container', () => {
       class Service {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
       }
 
       expect(() => childContainer.register(Service)).toThrow(/Cannot register bindings in child container/);
@@ -290,7 +290,7 @@ describe('Container - child containers', () => {
   describe('clear', () => {
     it('should only clear scoped cache in child container', () => {
       class Service {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
       }
       rootContainer.register(Service);
 
@@ -302,7 +302,7 @@ describe('Container - child containers', () => {
 
     it('should clear bindings in root container', () => {
       class Service {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
       }
       rootContainer.register(Service);
 
@@ -383,7 +383,7 @@ describe('Container - circular proxy', () => {
   it('should create proxy that returns undefined for then', () => {
     // Test the proxy handler behavior for 'then' (to avoid being treated as thenable)
     class Service {
-      static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+      static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
     }
     container.register(Service);
 
@@ -401,10 +401,10 @@ describe('Container - validateScopes', () => {
 
   it('should pass validation when singleton depends on singleton', () => {
     class Logger {
-      static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+      static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
     }
     class Service {
-      static readonly inject = [Logger] as const satisfies DepsTokens<typeof this>;
+      static readonly inject = [Logger] as const satisfies DependencyTokens<typeof this>;
     }
 
     container.register(Logger);
@@ -415,10 +415,10 @@ describe('Container - validateScopes', () => {
 
   it('should throw when singleton depends on scoped', () => {
     class ScopedService {
-      static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+      static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
     }
     class SingletonService {
-      static readonly inject = [ScopedService] as const satisfies DepsTokens<typeof this>;
+      static readonly inject = [ScopedService] as const satisfies DependencyTokens<typeof this>;
     }
 
     container.register(ScopedService, { scope: Scope.SCOPED });

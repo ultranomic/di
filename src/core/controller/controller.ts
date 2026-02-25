@@ -55,7 +55,7 @@ export interface ControllerMetadata<T> {
  * }
  *
  * class UserController extends Controller {
- *   static readonly inject = [UserService] as const satisfies DepsTokens<typeof this>;
+ *   static readonly inject = [UserService] as const satisfies DependencyTokens<typeof this>;
  *
  *   static readonly metadata = {
  *     basePath: '/users',
@@ -90,7 +90,7 @@ export abstract class Controller {
    * Use the array-based inject pattern with individual constructor parameters.
    *
    * @example
-   * static readonly inject = [Logger, UserService] as const satisfies DepsTokens<typeof MyController>;
+   * static readonly inject = [Logger, UserService] as const satisfies DependencyTokens<typeof MyController>;
    */
   static readonly inject?: readonly Token[];
 

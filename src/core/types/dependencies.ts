@@ -10,14 +10,14 @@
  *
  * @example
  * class MyClass {
- *   static readonly inject = [Foo, Bar] as const satisfies DepsTokens<typeof this>;
+ *   static readonly inject = [Foo, Bar] as const satisfies DependencyTokens<typeof this>;
  *   constructor(public foo: Foo, public bar: Bar) {}
  * }
  */
-// oxlint-disable-next-line typescript-eslint(no-explicit-any)
-export type DepsTokens<T extends abstract new (...args: any) => any> = T extends abstract new (...args: infer P) => any
-  ? P extends Array<any> // oxlint-disable-line typescript-eslint(no-explicit-any)
-    ? { [K in keyof P]: abstract new (...args: any[]) => P[K] } // oxlint-disable-line typescript-eslint(no-explicit-any)
+// oxlint-disable-next-line typescript-eslint/no-explicit-any
+export type DependencyTokens<T extends abstract new (...args: any) => any> = T extends abstract new (...args: infer P) => any
+  ? P extends Array<any> // oxlint-disable-line typescript-eslint/no-explicit-any
+    ? { [K in keyof P]: abstract new (...args: any[]) => P[K] } // oxlint-disable-line typescript-eslint/no-explicit-any)
     : never
   : never;
 
@@ -29,11 +29,11 @@ export type DepsTokens<T extends abstract new (...args: any) => any> = T extends
  *
  * @example
  * const inject = [Foo, Bar] as const;
- * type Injected = InferInject<typeof inject>; // [Foo, Bar]
+ * type Injected = InferInjectedInstanceTypes<typeof inject>; // [Foo, Bar]
  */
-// oxlint-disable-next-line typescript-eslint(no-explicit-any)
-export type InferInject<T extends readonly [...any[]]> = {
-  [K in keyof T]: T[K] extends abstract new (...args: any[]) => infer R // oxlint-disable-line typescript-eslint(no-explicit-any)
+// oxlint-disable-next-line typescript-eslint/no-explicit-any
+export type InferInjectedInstanceTypes<T extends readonly [...any[]]> = {
+  [K in keyof T]: T[K] extends abstract new (...args: any[]) => infer R // oxlint-disable-line typescript-eslint/no-explicit-any)
     ? R
     : never;
 };
@@ -44,9 +44,9 @@ export type InferInject<T extends readonly [...any[]]> = {
  * @template TInject - The type of the inject array (readonly tuple of tokens)
  * @template TInstance - The type of instance the class creates
  */
-// oxlint-disable-next-line typescript-eslint(no-explicit-any)
+// oxlint-disable-next-line typescript-eslint/no-explicit-any
 export type InjectableClass<TInject extends readonly [...any[]] = readonly [...any[]], TInstance = unknown> = (new (
-  ...args: InferInject<TInject>
+  ...args: InferInjectedInstanceTypes<TInject>
 ) => TInstance) & {
   inject: TInject;
 };
@@ -54,4 +54,4 @@ export type InjectableClass<TInject extends readonly [...any[]] = readonly [...a
 /**
  * Helper type to extract the inject array from a class
  */
-export type ExtractInject<T> = T extends { inject: infer I } ? I : never;
+export type ExtractInjectArray<T> = T extends { inject: infer I } ? I : never;
