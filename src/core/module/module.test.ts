@@ -23,13 +23,13 @@ describe('Module', () => {
 
     it('should allow providers in metadata', () => {
       class ServiceA {
-        static readonly inject = [] as const satisfies DepsTokens<ServiceA>;
+        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
         getValue() {
           return 'a';
         }
       }
       class ServiceB {
-        static readonly inject = [] as const satisfies DepsTokens<ServiceB>;
+        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
         getValue() {
           return 'b';
         }
@@ -72,7 +72,7 @@ describe('Module', () => {
 
     it('should allow controllers in metadata', () => {
       class UserController {
-        static readonly inject = [] as const satisfies DepsTokens<UserController>;
+        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
       }
 
       class TestModule extends Module {
@@ -94,7 +94,7 @@ describe('Module', () => {
   describe('register method', () => {
     it('should allow registering providers with container', () => {
       class Service {
-        static readonly inject = [] as const satisfies DepsTokens<Service>;
+        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
         getValue() {
           return 42;
         }
@@ -117,11 +117,11 @@ describe('Module', () => {
 
     it('should allow registering multiple providers', () => {
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<Logger>;
+        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
         log(_msg: string) {}
       }
       class Database {
-        static readonly inject = [] as const satisfies DepsTokens<Database>;
+        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
         query() {
           return [];
         }
@@ -143,14 +143,14 @@ describe('Module', () => {
 
     it('should allow registering with dependencies', () => {
       class Config {
-        static readonly inject = [] as const satisfies DepsTokens<Config>;
+        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
         getPort() {
           return 3000;
         }
       }
 
       class Server {
-        static readonly inject = [Config] as const satisfies DepsTokens<Server>;
+        static readonly inject = [Config] as const satisfies DepsTokens<typeof this>;
         constructor(private config: Config) {}
         getPort() {
           return this.config.getPort();
@@ -301,7 +301,7 @@ describe('Module', () => {
     describe('providers', () => {
       it('should auto-register providers from metadata', () => {
         class TestService {
-          static readonly inject = [] as const satisfies DepsTokens<TestService>;
+          static readonly inject = [] as const satisfies DepsTokens<typeof this>;
           getValue() {
             return 'test-value';
           }
@@ -325,14 +325,14 @@ describe('Module', () => {
 
       it('should auto-register multiple providers from metadata', () => {
         class ServiceA {
-          static readonly inject = [] as const satisfies DepsTokens<ServiceA>;
+          static readonly inject = [] as const satisfies DepsTokens<typeof this>;
           getName() {
             return 'A';
           }
         }
 
         class ServiceB {
-          static readonly inject = [] as const satisfies DepsTokens<ServiceB>;
+          static readonly inject = [] as const satisfies DepsTokens<typeof this>;
           getName() {
             return 'B';
           }
@@ -360,14 +360,14 @@ describe('Module', () => {
 
       it('should allow manual registration to coexist with auto-registration', () => {
         class AutoService {
-          static readonly inject = [] as const satisfies DepsTokens<AutoService>;
+          static readonly inject = [] as const satisfies DepsTokens<typeof this>;
           isAuto() {
             return true;
           }
         }
 
         class ManualService {
-          static readonly inject = [] as const satisfies DepsTokens<ManualService>;
+          static readonly inject = [] as const satisfies DepsTokens<typeof this>;
           isManual() {
             return true;
           }
@@ -403,14 +403,14 @@ describe('Module', () => {
 
       it('should auto-register provider with dependencies', () => {
         class ConfigService {
-          static readonly inject = [] as const satisfies DepsTokens<ConfigService>;
+          static readonly inject = [] as const satisfies DepsTokens<typeof this>;
           getPort() {
             return 3000;
           }
         }
 
         class ServerService {
-          static readonly inject = [ConfigService] as const satisfies DepsTokens<ServerService>;
+          static readonly inject = [ConfigService] as const satisfies DepsTokens<typeof this>;
           constructor(private config: ConfigService) {}
           getPort() {
             return this.config.getPort();
@@ -438,7 +438,7 @@ describe('Module', () => {
     describe('controllers', () => {
       it('should auto-register controllers from metadata', () => {
         class TestController {
-          static readonly inject = [] as const satisfies DepsTokens<TestController>;
+          static readonly inject = [] as const satisfies DepsTokens<typeof this>;
           handle() {
             return 'handled';
           }
@@ -462,14 +462,14 @@ describe('Module', () => {
 
       it('should auto-register multiple controllers from metadata', () => {
         class UserController {
-          static readonly inject = [] as const satisfies DepsTokens<UserController>;
+          static readonly inject = [] as const satisfies DepsTokens<typeof this>;
           route() {
             return 'users';
           }
         }
 
         class PostController {
-          static readonly inject = [] as const satisfies DepsTokens<PostController>;
+          static readonly inject = [] as const satisfies DepsTokens<typeof this>;
           route() {
             return 'posts';
           }
@@ -499,14 +499,14 @@ describe('Module', () => {
     describe('providers and controllers together', () => {
       it('should auto-register both providers and controllers from metadata', () => {
         class LoggerService {
-          static readonly inject = [] as const satisfies DepsTokens<LoggerService>;
+          static readonly inject = [] as const satisfies DepsTokens<typeof this>;
           log(msg: string) {
             return `logged: ${msg}`;
           }
         }
 
         class HomeController {
-          static readonly inject = [LoggerService] as const satisfies DepsTokens<HomeController>;
+          static readonly inject = [LoggerService] as const satisfies DepsTokens<typeof this>;
           constructor(private logger: LoggerService) {}
           index() {
             return this.logger.log('home');
