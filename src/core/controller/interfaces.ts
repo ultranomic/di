@@ -38,6 +38,7 @@ export interface RouteInfo {
  * const ControllerClass: ControllerConstructor = MyController
  * const routes = ControllerClass.metadata?.routes
  */
+
 export type ControllerConstructor = {
   /**
    * Static dependencies array for constructor injection
@@ -46,7 +47,8 @@ export type ControllerConstructor = {
   /**
    * Static metadata describing the controller's configuration
    */
-  readonly metadata?: ControllerMetadata;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly metadata?: ControllerMetadata<any>;
   /**
    * Creates a new controller instance
    */
