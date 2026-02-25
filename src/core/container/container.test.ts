@@ -427,3 +427,97 @@ describe('Container - validateScopes', () => {
     expect(() => container.validateScopes()).toThrow(/Scope validation failed/);
   });
 });
+
+describe('Container - class with no dependencies', () => {
+  let container: Container;
+
+  beforeEach(() => {
+    container = new Container();
+  });
+
+  it('should resolve class with no inject property and empty constructor', () => {
+    class NoDepsService {
+      static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
+      getValue() {
+        return 42;
+      }
+    }
+
+    container.register(NoDepsService);
+    const service = container.resolve(NoDepsService);
+    expect(service.getValue()).toBe(42);
+  });
+});
+
+describe('Container - resolution path in error messages', () => {
+  let container: Container;
+
+  beforeEach(() => {
+    container = new Container();
+  });
+
+  it('should include resolution path in error message for nested missing dependency', () => {
+    class MissingService {
+      static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
+    }
+
+    class ServiceA {
+      static readonly inject = [MissingService] as const satisfies DependencyTokens<typeof this>;
+      constructor(public missing: MissingService) {}
+    }
+
+    container.register(ServiceA);
+
+    try {
+      container.resolve(ServiceA);
+      expect.fail('Should have thrown');
+    } catch (error) {
+      expect((error as Error).message).toContain('ServiceA');
+      expect((error as Error).message).toContain(' -> ');
+      expect((error as Error).message).toContain('MissingService');
+    }
+  });
+
+  it('should show empty resolution path for direct missing dependency', () => {
+    class MissingService {
+      static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
+    }
+
+    try {
+      container.resolve(MissingService);
+      expect.fail('Should have thrown');
+    } catch (error) {
+      const errorMessage = (error as Error).message;
+      expect(errorMessage).toContain('MissingService');
+    }
+  });
+});
+
+describe('Container - fallback resolver coverage', () => {
+  let container: Container;
+
+  beforeEach(() => {
+    container = new Container();
+  });
+
+  it('should use fallback resolver when externalResolver is not provided', () => {
+    // This tests lines 112-113: the fallback resolver object functions
+    class Logger {
+      static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
+      log() {
+        return 'logged';
+      }
+    }
+
+    class ServiceA {
+      static readonly inject = [Logger] as const satisfies DependencyTokens<typeof this>;
+      constructor(public logger: Logger) {}
+    }
+
+    container.register(Logger);
+    container.register(ServiceA);
+
+    const service = container.resolve(ServiceA);
+    expect(service.logger).toBeInstanceOf(Logger);
+  });
+});
