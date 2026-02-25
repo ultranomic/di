@@ -8,7 +8,7 @@ import type { Token } from '../types/token.ts';
  *
  * @example
  * class UserController extends Controller {
- *   static readonly metadata: ControllerMetadata = {
+ *   static readonly metadata: ControllerMetadata<typeof this> = {
  *     basePath: '/users',
  *     routes: [
  *       { method: 'GET', path: '/', handler: 'list' },
@@ -60,7 +60,7 @@ export interface ControllerMetadata {
  * class UserController extends Controller {
  *   static readonly inject: DepsTokens<typeof this> = [UserService];
  *
- *   static readonly metadata: ControllerMetadata = {
+ *   static readonly metadata: ControllerMetadata<typeof this> = {
  *     basePath: '/users',
  *     routes: [
  *       { method: 'GET', path: '/', handler: 'list' },
