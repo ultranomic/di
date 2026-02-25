@@ -479,14 +479,14 @@ describe('Circular Dependencies', () => {
   describe('dependency chains', () => {
     it('should resolve chain A -> B -> C correctly', () => {
       class ServiceC {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         getValue() {
           return 'C';
         }
       }
 
       class ServiceB {
-        static readonly inject = [ServiceC] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [ServiceC];
         constructor(private serviceC: ServiceC) {}
         getValue() {
           return 'B';
@@ -497,7 +497,7 @@ describe('Circular Dependencies', () => {
       }
 
       class ServiceA {
-        static readonly inject = [ServiceB] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [ServiceB];
         constructor(private serviceB: ServiceB) {}
         getValue() {
           return 'A';
@@ -523,17 +523,17 @@ describe('Circular Dependencies', () => {
 
     it('should resolve multiple dependencies from same service', () => {
       class Config {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         port = 3000;
       }
 
       class Logger {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         log(_msg: string) {}
       }
 
       class Server {
-        static readonly inject = [Config, Logger] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [Config, Logger];
         constructor(
           private config: Config,
           private logger: Logger,
@@ -556,12 +556,12 @@ describe('Circular Dependencies', () => {
   describe('singleton caching', () => {
     it('should return same singleton instance across dependency chain', () => {
       class Config {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         id = Math.random();
       }
 
       class Service {
-        static readonly inject = [Config] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [Config];
         constructor(private config: Config) {}
         getConfigId() {
           return this.config.id;
@@ -581,12 +581,12 @@ describe('Circular Dependencies', () => {
   describe('deep dependency trees', () => {
     it('should resolve deeply nested dependencies', () => {
       class A {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         value = 'A';
       }
 
       class B {
-        static readonly inject = [A] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [A];
         constructor(private a: A) {}
         getValue() {
           return `B(${this.a.value})`;
@@ -594,7 +594,7 @@ describe('Circular Dependencies', () => {
       }
 
       class C {
-        static readonly inject = [B] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [B];
         constructor(private b: B) {}
         getValue() {
           return `C(${this.b.getValue()})`;
@@ -602,7 +602,7 @@ describe('Circular Dependencies', () => {
       }
 
       class D {
-        static readonly inject = [C] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [C];
         constructor(private c: C) {}
         getValue() {
           return `D(${this.c.getValue()})`;
@@ -621,12 +621,12 @@ describe('Circular Dependencies', () => {
 
     it('should handle diamond dependency pattern', () => {
       class Shared {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         value = 'shared';
       }
 
       class Left {
-        static readonly inject = [Shared] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [Shared];
         constructor(private shared: Shared) {}
         getValue() {
           return `Left(${this.shared.value})`;
@@ -634,7 +634,7 @@ describe('Circular Dependencies', () => {
       }
 
       class Right {
-        static readonly inject = [Shared] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [Shared];
         constructor(private shared: Shared) {}
         getValue() {
           return `Right(${this.shared.value})`;
@@ -642,7 +642,7 @@ describe('Circular Dependencies', () => {
       }
 
       class Top {
-        static readonly inject = [Left, Right] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [Left, Right];
         constructor(
           private left: Left,
           private right: Right,
@@ -664,12 +664,12 @@ describe('Circular Dependencies', () => {
 
     it('should share singleton across diamond dependency', () => {
       class Shared {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         id = Math.random();
       }
 
       class Left {
-        static readonly inject = [Shared] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [Shared];
         constructor(private shared: Shared) {}
         getSharedId() {
           return this.shared.id;
@@ -677,7 +677,7 @@ describe('Circular Dependencies', () => {
       }
 
       class Right {
-        static readonly inject = [Shared] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [Shared];
         constructor(private shared: Shared) {}
         getSharedId() {
           return this.shared.id;
@@ -685,7 +685,7 @@ describe('Circular Dependencies', () => {
       }
 
       class Top {
-        static readonly inject = [Left, Right] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [Left, Right];
         constructor(
           private left: Left,
           private right: Right,
@@ -710,7 +710,7 @@ describe('Circular Dependencies', () => {
   describe('no dependencies', () => {
     it('should resolve service with no dependencies', () => {
       class Simple {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         getValue() {
           return 'simple';
         }
@@ -724,17 +724,17 @@ describe('Circular Dependencies', () => {
 
     it('should resolve multiple services with no dependencies', () => {
       class A {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         value = 'A';
       }
 
       class B {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         value = 'B';
       }
 
       class C {
-        static readonly inject = [] as const satisfies DepsTokens<typeof this>;
+        static readonly inject: DepsTokens<typeof this> = [];
         value = 'C';
       }
 
