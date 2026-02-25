@@ -25,7 +25,7 @@ export type { ModuleMetadata } from '../types/module.ts';
  * @example
  * // Provider with dependencies using array-based inject
  * class DatabaseService {
- *   static readonly inject: DepsTokens<typeof this> = [ConfigService];
+ *   static readonly inject = [ConfigService] as const satisfies DepsTokens<typeof this>;
  *   constructor(
  *     private config: ConfigService,
  *   ) {}
