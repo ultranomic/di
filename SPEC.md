@@ -43,10 +43,10 @@ type DependencyTokens<T> = readonly Injectable[];
 
 #### `InferInjectedInstanceTypes<T>`
 
-Extracts resolved types from an inject array.
+Extracts resolved types from an inject array of injectable classes.
 
 ```typescript
-type InferInjectedInstanceTypes<T extends readonly Token<any>[]> = {
+type InferInjectedInstanceTypes<T extends readonly (abstract new (...args: any[]) => any)[]> = {
   [K in keyof T]: InstanceType<T[K]>;
 };
 ```
@@ -56,7 +56,7 @@ type InferInjectedInstanceTypes<T extends readonly Token<any>[]> = {
 Type for classes using the inject pattern.
 
 ```typescript
-type InjectableClass<TInject extends readonly Token<any>[], TInstance> = {
+type InjectableClass<TInject extends readonly (abstract new (...args: any[]) => any)[], TInstance> = {
   readonly inject: TInject;
   new (...args: InferInjectedInstanceTypes<TInject>): TInstance;
 };
