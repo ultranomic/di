@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { Container } from '../container/container.ts';
 import type { ContainerInterface } from '../container/interfaces.ts';
 import type { DependencyTokens } from '../types/dependencies.ts';
+import { ModuleContainer } from './module-container.ts';
 import type { ModuleConstructor } from './interfaces.ts';
 import type { ModuleMetadata } from './module.ts';
 import { Module } from './module.ts';
+import type { Token } from '../types/token.ts';
 
 describe('Module', () => {
   describe('static metadata', () => {
@@ -574,6 +576,51 @@ describe('Module', () => {
         const module = new TestModule();
         expect(() => module.register(container)).not.toThrow();
       });
+    });
+  });
+
+  describe('ModuleContainer with non-Container base', () => {
+    it('should use fallback resolve when baseContainer is not a Container', () => {
+      // Create a mock ContainerInterface that is NOT a Container instance
+      // This tests line 85: return this.baseContainer.resolve(token)
+      class MockService {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
+        getValue() {
+          return 'mock-value';
+        }
+      }
+
+      let resolveWasCalled = false;
+      const mockBaseContainer = {
+        has: (_token: Token) => true,
+        getBinding: (token: Token) => ({
+          token,
+          scope: 'singleton' as const,
+        }),
+        resolve: <T>(_token: Token<T>): T => {
+          resolveWasCalled = true;
+          // Return a mock instance
+          return { getValue: () => 'mock-value' } as T;
+        },
+        clear: () => {},
+        register: () => {},
+        buildDependencies: <T extends readonly Token[]>(tokens: T) => {
+          return tokens.map(() => ({ getValue: () => 'mock-value' })) as unknown as T;
+        },
+      } as ContainerInterface;
+
+      // Create a ModuleContainer with the mock base
+      const moduleContainer = new ModuleContainer(
+        mockBaseContainer,
+        'TestModule',
+        [],
+        new Map(),
+      );
+
+      // Try to resolve - should use the fallback path (line 85)
+      const result = moduleContainer.resolve(MockService);
+      expect(resolveWasCalled).toBe(true);
+      expect(result).toBeDefined();
     });
   });
 });

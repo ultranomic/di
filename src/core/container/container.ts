@@ -53,7 +53,6 @@ export class Container implements ContainerInterface {
 
     const binding: Binding<InstanceType<T>> = {
       token: token as Token<InstanceType<T>>,
-      classConstructor: token as abstract new (...args: unknown[]) => InstanceType<T>,
       scope: options?.scope ?? Scope.SINGLETON,
     };
     this.bindings.set(token, binding as Binding);
@@ -83,13 +82,6 @@ export class Container implements ContainerInterface {
   ): InferInjectedInstanceTypes<TTokens> {
     const resolvedTokens = tokens.map((token) => this.resolveWithContext(token, context, externalResolver));
     return resolvedTokens as InferInjectedInstanceTypes<TTokens>;
-  }
-
-  getResolutionPath(context: ResolutionContext): string {
-    if (context.path.length === 0) {
-      return '';
-    }
-    return ' -> ' + context.path.map((t) => String(t)).join(' -> ');
   }
 
   private resolveWithContext<T>(token: Token<T>, context: ResolutionContext, externalResolver?: ResolverInterface): T {
@@ -122,7 +114,7 @@ export class Container implements ContainerInterface {
     };
 
     // Auto-instantiate using inject property
-    const instance = this.createInstance(binding.classConstructor as new (...args: unknown[]) => T, contextResolver);
+    const instance = this.createInstance(binding.token as new (...args: unknown[]) => T, contextResolver);
 
     // Cache instances for singleton and scoped bindings
     if (binding.scope === Scope.SINGLETON) {
@@ -196,7 +188,7 @@ export class Container implements ContainerInterface {
   }
 
   private validateSingletonDependencies(token: Token, binding: Binding): void {
-    const dependencies = this.extractDependenciesFromClass(binding.classConstructor);
+    const dependencies = this.extractDependenciesFromClass(binding.token);
     for (const dependencyToken of dependencies) {
       const dependencyBinding = this.getBinding(dependencyToken);
       if (dependencyBinding?.scope === Scope.SCOPED) {

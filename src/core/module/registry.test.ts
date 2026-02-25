@@ -1509,4 +1509,58 @@ describe('ModuleRegistry', () => {
       await expect(registry.destroyModules()).resolves.toBeUndefined();
     });
   });
+
+  describe('validateDependencies edge case', () => {
+    it('should handle token owner with no module container', async () => {
+      // Create a module with a provider
+      class Logger {
+        static readonly inject = [] as const;
+        log() {
+          return 'logged';
+        }
+      }
+
+      class LoggerModule extends Module {
+        static readonly metadata: ModuleMetadata = {
+          providers: [Logger],
+          exports: [Logger],
+        };
+
+        register(container: ContainerInterface): void {
+          container.register(Logger);
+        }
+      }
+
+      // Register the module
+      registry.register(LoggerModule);
+
+      // Manually manipulate the registry to create a scenario where a token owner
+      // exists but its module container doesn't (simulating an edge case)
+      const tokenOwners = (registry as unknown as { tokenOwners: Map<unknown, { module: string; isExported: boolean }> }).tokenOwners;
+
+      // Create a new token owner with a module name that doesn't exist in moduleContainers
+      const fakeModuleName = 'NonExistentModule';
+      tokenOwners.set(Logger, { module: fakeModuleName, isExported: true });
+
+      // This should not throw because moduleContainer will be undefined (line 70)
+      // and the code will skip the validation for this token
+      await expect(registry.loadModules(container)).resolves.toBeUndefined();
+    });
+  });
+
+  describe('getModuleName fallback', () => {
+    it('should handle anonymous module without name property', async () => {
+      // Create an anonymous class expression (no name property or empty name)
+      const AnonymousModule = class extends Module {
+        static readonly metadata: ModuleMetadata = {};
+        register(_container: ContainerInterface): void {}
+      };
+
+      registry.register(AnonymousModule);
+      await registry.loadModules(container);
+
+      // Should be loaded successfully even though the module might not have a proper name
+      expect(registry.isLoaded(AnonymousModule)).toBe(true);
+    });
+  });
 });

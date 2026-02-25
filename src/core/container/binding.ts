@@ -29,10 +29,8 @@ export type ContainerLike = {
  * Binding represents a provider registration in the container
  */
 export interface Binding<T = unknown> {
-  /** The token used to identify this binding */
+  /** The token used to identify this binding (is the class constructor) */
   readonly token: Token<T>;
-  /** The class constructor */
-  readonly classConstructor: abstract new (...args: unknown[]) => T;
   /** The scope of this binding */
   scope: Scope;
   /** Cached instance for singleton scope */
