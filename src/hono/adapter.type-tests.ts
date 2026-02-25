@@ -205,15 +205,6 @@ function testMultipleControllers() {
   return { client, _users, _posts };
 }
 
-// Test 9: Type exports should be available from package index
-function testPackageExports() {
-  // Verify all types are exported from the main index
-  type _1 = InferHonoAppType<HonoAdapter>;
-  type _2 = InferRoutesFromApp<HonoAdapter>;
-
-  return true;
-}
-
 // Export a dummy value to make this a module (required for type-only tests)
 export const typeTests = {
   testInferHonoAppType,
@@ -224,5 +215,4 @@ export const typeTests = {
   testRpcClientType,
   testAppClientType,
   testMultipleControllers,
-  testPackageExports,
 };

@@ -1,6 +1,5 @@
 import type { ControllerRoute } from '../types/controller.ts';
-import type { Token } from '../types/token.ts';
-import { Injectable } from '../types/injectable.ts';
+import { Injectable, type InjectableConstructor } from '../types/injectable.ts';
 
 /**
  * Controller metadata interface
@@ -93,7 +92,7 @@ export abstract class Controller extends Injectable {
    * @example
    * static readonly inject = [Logger, UserService] as const satisfies DependencyTokens<typeof MyController>;
    */
-  static readonly inject?: readonly Token[];
+  static readonly inject?: readonly InjectableConstructor[];
 
   /**
    * Static metadata describing the controller's configuration

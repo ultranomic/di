@@ -1,4 +1,4 @@
-import type { Token } from '../types/token.ts';
+import type { Injectable, InjectableConstructor } from '../types/injectable.ts';
 import { DependencyInjectionError } from './base.ts';
 
 /**
@@ -30,7 +30,7 @@ export class CircularDependencyError extends DependencyInjectionError {
    */
   readonly dependencyChain: string[];
 
-  constructor(token: Token, dependencyChain: Token[]) {
+  constructor(token: InjectableConstructor, dependencyChain: InjectableConstructor[]) {
     const tokenStr = typeof token === 'function' ? token.name : String(token);
     const chainStr = dependencyChain.map((t) => (typeof t === 'function' ? t.name : String(t)));
 

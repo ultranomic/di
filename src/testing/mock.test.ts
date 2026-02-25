@@ -68,8 +68,6 @@ describe('mock', () => {
 
   describe('type inference', () => {
     it('should infer types from implementation', () => {
-      abstract class UserService {}
-
       interface UserServiceInterface {
         getUsers(): string[];
         getUser(id: string): { id: string; name: string };

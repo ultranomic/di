@@ -1,5 +1,5 @@
 import type { ContainerInterface } from '../container/interfaces.ts';
-import type { Injectable } from '../types/injectable.ts';
+import type { Injectable, InjectableConstructor } from '../types/injectable.ts';
 import type { ModuleMetadata, OnModuleDestroy, OnModuleInit } from '../types/module.ts';
 
 export type { ModuleMetadata } from '../types/module.ts';
@@ -73,7 +73,7 @@ export abstract class Module implements OnModuleInit, OnModuleDestroy {
    *
    * @returns Array of tokens that this module exports
    */
-  getExportedTokens(): (abstract new (...args: any[]) => Injectable)[] {
+  getExportedTokens(): InjectableConstructor[] {
     const exports = (this.constructor as typeof Module).metadata?.exports;
     return exports ? [...exports] : [];
   }

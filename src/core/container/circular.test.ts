@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { Container } from './container.ts';
 import type { DependencyTokens } from '../types/dependencies.ts';
-import type { Token } from '../types/token.ts';
+import type { Injectable, InjectableConstructor } from '../types/injectable.ts';
+import { Container } from './container.ts';
 
 describe('Circular Dependencies', () => {
   let container: Container;
@@ -17,7 +17,7 @@ describe('Circular Dependencies', () => {
       // We use late binding to set up the circular reference
 
       class ServiceA {
-        static readonly inject: readonly Token[] = [];
+        static readonly inject: readonly InjectableConstructor[] = [];
         value = 'A';
         private _serviceB: ServiceB | undefined;
 
@@ -31,14 +31,14 @@ describe('Circular Dependencies', () => {
       }
 
       class ServiceB {
-        static readonly inject: readonly Token[] = [ServiceA];
+        static readonly inject: readonly InjectableConstructor[] = [ServiceA];
         value = 'B';
 
         constructor(public serviceA: ServiceA) {}
       }
 
       // Set up circular: A -> B -> A
-      (ServiceA as typeof ServiceA & { inject: readonly Token[] }).inject = [ServiceB];
+      (ServiceA as typeof ServiceA & { inject: readonly InjectableConstructor[] }).inject = [ServiceB];
 
       container.register(ServiceA);
       container.register(ServiceB);
@@ -52,19 +52,19 @@ describe('Circular Dependencies', () => {
 
     it('should handle circular dependency with property access after resolution', () => {
       class ServiceA {
-        static readonly inject: readonly Token[] = [];
+        static readonly inject: readonly InjectableConstructor[] = [];
         name = 'ServiceA';
       }
 
       class ServiceB {
-        static readonly inject: readonly Token[] = [ServiceA];
+        static readonly inject: readonly InjectableConstructor[] = [ServiceA];
         name = 'ServiceB';
 
         constructor(public serviceA: ServiceA) {}
       }
 
       // Create circular: A -> B -> A
-      (ServiceA as typeof ServiceA & { inject: readonly Token[] }).inject = [ServiceB];
+      (ServiceA as typeof ServiceA & { inject: readonly InjectableConstructor[] }).inject = [ServiceB];
 
       container.register(ServiceA);
       container.register(ServiceB);
@@ -77,20 +77,20 @@ describe('Circular Dependencies', () => {
 
     it('should handle circular dependency with method access', () => {
       class ServiceA {
-        static readonly inject: readonly Token[] = [];
+        static readonly inject: readonly InjectableConstructor[] = [];
         method() {
           return 'method from A';
         }
       }
 
       class ServiceB {
-        static readonly inject: readonly Token[] = [ServiceA];
+        static readonly inject: readonly InjectableConstructor[] = [ServiceA];
 
         constructor(public serviceA: ServiceA) {}
       }
 
       // Create circular: A -> B -> A
-      (ServiceA as typeof ServiceA & { inject: readonly Token[] }).inject = [ServiceB];
+      (ServiceA as typeof ServiceA & { inject: readonly InjectableConstructor[] }).inject = [ServiceB];
 
       container.register(ServiceA);
       container.register(ServiceB);
@@ -103,16 +103,16 @@ describe('Circular Dependencies', () => {
 
     it('should handle circular proxy toString', () => {
       class ServiceA {
-        static readonly inject: readonly Token[] = [];
+        static readonly inject: readonly InjectableConstructor[] = [];
       }
 
       class ServiceB {
-        static readonly inject: readonly Token[] = [ServiceA];
+        static readonly inject: readonly InjectableConstructor[] = [ServiceA];
         constructor(_a: ServiceA) {}
       }
 
       // Create circular: A -> B -> A
-      (ServiceA as typeof ServiceA & { inject: readonly Token[] }).inject = [ServiceB];
+      (ServiceA as typeof ServiceA & { inject: readonly InjectableConstructor[] }).inject = [ServiceB];
 
       container.register(ServiceA);
       container.register(ServiceB);
@@ -126,16 +126,16 @@ describe('Circular Dependencies', () => {
 
     it('should handle circular proxy Symbol.toStringTag', () => {
       class ServiceA {
-        static readonly inject: readonly Token[] = [];
+        static readonly inject: readonly InjectableConstructor[] = [];
       }
 
       class ServiceB {
-        static readonly inject: readonly Token[] = [ServiceA];
+        static readonly inject: readonly InjectableConstructor[] = [ServiceA];
         constructor(_a: ServiceA) {}
       }
 
       // Create circular: A -> B -> A
-      (ServiceA as typeof ServiceA & { inject: readonly Token[] }).inject = [ServiceB];
+      (ServiceA as typeof ServiceA & { inject: readonly InjectableConstructor[] }).inject = [ServiceB];
 
       container.register(ServiceA);
       container.register(ServiceB);
@@ -147,16 +147,16 @@ describe('Circular Dependencies', () => {
 
     it('should handle circular proxy inspect', () => {
       class ServiceA {
-        static readonly inject: readonly Token[] = {};
+        static readonly inject: readonly InjectableConstructor[] = {} as readonly InjectableConstructor[];
       }
 
       class ServiceB {
-        static readonly inject: readonly Token[] = [ServiceA];
+        static readonly inject: readonly InjectableConstructor[] = [ServiceA];
         constructor(_a: ServiceA) {}
       }
 
       // Create circular: A -> B -> A
-      (ServiceA as typeof ServiceA & { inject: readonly Token[] }).inject = [ServiceB];
+      (ServiceA as typeof ServiceA & { inject: readonly InjectableConstructor[] }).inject = [ServiceB];
 
       container.register(ServiceA);
       container.register(ServiceB);
@@ -167,16 +167,16 @@ describe('Circular Dependencies', () => {
 
     it('should handle circular proxy with then property being undefined', () => {
       class ServiceA {
-        static readonly inject: readonly Token[] = [];
+        static readonly inject: readonly InjectableConstructor[] = [];
       }
 
       class ServiceB {
-        static readonly inject: readonly Token[] = [ServiceA];
+        static readonly inject: readonly InjectableConstructor[] = [ServiceA];
         constructor(_a: ServiceA) {}
       }
 
       // Create circular: A -> B -> A
-      (ServiceA as typeof ServiceA & { inject: readonly Token[] }).inject = [ServiceB];
+      (ServiceA as typeof ServiceA & { inject: readonly InjectableConstructor[] }).inject = [ServiceB];
 
       container.register(ServiceA);
       container.register(ServiceB);
@@ -188,24 +188,24 @@ describe('Circular Dependencies', () => {
 
     it('should handle complex circular dependency chain', () => {
       class A {
-        static readonly inject: readonly Token[] = [];
+        static readonly inject: readonly InjectableConstructor[] = [];
         value = 'A';
       }
 
       class B {
-        static readonly inject: readonly Token[] = [A];
+        static readonly inject: readonly InjectableConstructor[] = [A];
         value = 'B';
         constructor(public a: A) {}
       }
 
       class C {
-        static readonly inject: readonly Token[] = [B];
+        static readonly inject: readonly InjectableConstructor[] = [B];
         value = 'C';
         constructor(public b: B) {}
       }
 
       // Create circular: A -> C -> B -> A
-      (A as typeof A & { inject: readonly Token[] }).inject = [C];
+      (A as typeof A & { inject: readonly InjectableConstructor[] }).inject = [C];
 
       container.register(A);
       container.register(B);
@@ -221,7 +221,7 @@ describe('Circular Dependencies', () => {
       let proxyToStringTag: string | undefined;
 
       class ServiceA {
-        static readonly inject: readonly Token[] = [];
+        static readonly inject: readonly InjectableConstructor[] = [];
         value = 'A';
 
         method() {
@@ -230,7 +230,7 @@ describe('Circular Dependencies', () => {
       }
 
       class ServiceB {
-        static readonly inject: readonly Token[] = [ServiceA];
+        static readonly inject: readonly InjectableConstructor[] = [ServiceA];
 
         constructor(a: ServiceA) {
           // Access properties on the proxy during construction
@@ -243,7 +243,7 @@ describe('Circular Dependencies', () => {
       }
 
       // Create circular: A -> B -> A
-      (ServiceA as typeof ServiceA & { inject: readonly Token[] }).inject = [ServiceB];
+      (ServiceA as typeof ServiceA & { inject: readonly InjectableConstructor[] }).inject = [ServiceB];
 
       container.register(ServiceA);
       container.register(ServiceB);
@@ -263,14 +263,14 @@ describe('Circular Dependencies', () => {
       let boundMethodResult: string | undefined;
 
       class ServiceA {
-        static readonly inject: readonly Token[] = [];
+        static readonly inject: readonly InjectableConstructor[] = [];
         getValue() {
           return 'from-A';
         }
       }
 
       class ServiceB {
-        static readonly inject: readonly Token[] = [ServiceA];
+        static readonly inject: readonly InjectableConstructor[] = [ServiceA];
 
         constructor(a: ServiceA) {
           // Try to use a method from the proxy
@@ -286,7 +286,7 @@ describe('Circular Dependencies', () => {
       }
 
       // Create circular: A -> B -> A
-      (ServiceA as typeof ServiceA & { inject: readonly Token[] }).inject = [ServiceB];
+      (ServiceA as typeof ServiceA & { inject: readonly InjectableConstructor[] }).inject = [ServiceB];
 
       container.register(ServiceA);
       container.register(ServiceB);
@@ -299,11 +299,11 @@ describe('Circular Dependencies', () => {
       let unknownProp: unknown;
 
       class ServiceA {
-        static readonly inject: readonly Token[] = [];
+        static readonly inject: readonly InjectableConstructor[] = [];
       }
 
       class ServiceB {
-        static readonly inject: readonly Token[] = [ServiceA];
+        static readonly inject: readonly InjectableConstructor[] = [ServiceA];
 
         constructor(a: ServiceA) {
           unknownProp = (a as unknown as Record<string, unknown>).nonExistentProperty;
@@ -311,7 +311,7 @@ describe('Circular Dependencies', () => {
       }
 
       // Create circular: A -> B -> A
-      (ServiceA as typeof ServiceA & { inject: readonly Token[] }).inject = [ServiceB];
+      (ServiceA as typeof ServiceA & { inject: readonly InjectableConstructor[] }).inject = [ServiceB];
 
       container.register(ServiceA);
       container.register(ServiceB);
@@ -325,7 +325,7 @@ describe('Circular Dependencies', () => {
       let storedProxy: ServiceA | undefined;
 
       class ServiceA {
-        static readonly inject: readonly Token[] = [];
+        static readonly inject: readonly InjectableConstructor[] = [];
         value = 'A-instance';
 
         method() {
@@ -334,7 +334,7 @@ describe('Circular Dependencies', () => {
       }
 
       class ServiceB {
-        static readonly inject: readonly Token[] = [ServiceA];
+        static readonly inject: readonly InjectableConstructor[] = [ServiceA];
 
         constructor(a: ServiceA) {
           // Store the proxy reference for later access
@@ -343,7 +343,7 @@ describe('Circular Dependencies', () => {
       }
 
       // Create circular: A -> B -> A
-      (ServiceA as typeof ServiceA & { inject: readonly Token[] }).inject = [ServiceB];
+      (ServiceA as typeof ServiceA & { inject: readonly InjectableConstructor[] }).inject = [ServiceB];
 
       container.register(ServiceA);
       container.register(ServiceB);
@@ -369,7 +369,7 @@ describe('Circular Dependencies', () => {
       let boundMethod: (() => string) | undefined;
 
       class ServiceA {
-        static readonly inject: readonly Token[] = [];
+        static readonly inject: readonly InjectableConstructor[] = [];
         value = 'A-value';
 
         getValue() {
@@ -378,7 +378,7 @@ describe('Circular Dependencies', () => {
       }
 
       class ServiceB {
-        static readonly inject: readonly Token[] = [ServiceA];
+        static readonly inject: readonly InjectableConstructor[] = [ServiceA];
 
         constructor(a: ServiceA) {
           storedProxy = a;
@@ -386,7 +386,7 @@ describe('Circular Dependencies', () => {
       }
 
       // Create circular: A -> B -> A
-      (ServiceA as typeof ServiceA & { inject: readonly Token[] }).inject = [ServiceB];
+      (ServiceA as typeof ServiceA & { inject: readonly InjectableConstructor[] }).inject = [ServiceB];
 
       container.register(ServiceA);
       container.register(ServiceB);
@@ -407,12 +407,12 @@ describe('Circular Dependencies', () => {
       let propValue: unknown;
 
       class ServiceA {
-        static readonly inject: readonly Token[] = [];
+        static readonly inject: readonly InjectableConstructor[] = [];
         data = { key: 'value' };
       }
 
       class ServiceB {
-        static readonly inject: readonly Token[] = [ServiceA];
+        static readonly inject: readonly InjectableConstructor[] = [ServiceA];
 
         constructor(a: ServiceA) {
           storedProxy = a;
@@ -420,7 +420,7 @@ describe('Circular Dependencies', () => {
       }
 
       // Create circular: A -> B -> A
-      (ServiceA as typeof ServiceA & { inject: readonly Token[] }).inject = [ServiceB];
+      (ServiceA as typeof ServiceA & { inject: readonly InjectableConstructor[] }).inject = [ServiceB];
 
       container.register(ServiceA);
       container.register(ServiceB);
@@ -440,12 +440,12 @@ describe('Circular Dependencies', () => {
       let inspectResult: string | undefined;
 
       class ServiceA {
-        static readonly inject: readonly Token[] = [];
+        static readonly inject: readonly InjectableConstructor[] = [];
         value = 'A';
       }
 
       class ServiceB {
-        static readonly inject: readonly Token[] = [ServiceA];
+        static readonly inject: readonly InjectableConstructor[] = [ServiceA];
 
         constructor(a: ServiceA) {
           storedProxy = a;
@@ -453,7 +453,7 @@ describe('Circular Dependencies', () => {
       }
 
       // Create circular: A -> B -> A
-      (ServiceA as typeof ServiceA & { inject: readonly Token[] }).inject = [ServiceB];
+      (ServiceA as typeof ServiceA & { inject: readonly InjectableConstructor[] }).inject = [ServiceB];
 
       container.register(ServiceA);
       container.register(ServiceB);

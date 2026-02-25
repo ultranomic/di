@@ -5,8 +5,7 @@
  * a cohesive unit of functionality.
  */
 
-import type { Token } from './token.ts';
-import type { Injectable } from './injectable.ts';
+import type { Injectable, InjectableConstructor } from './injectable.ts';
 
 /**
  * Lifecycle hook: Called when a module is initialized
@@ -83,7 +82,7 @@ export interface ModuleMetadata {
    * Only exported providers are accessible to importing modules.
    * @readonly
    */
-  exports?: readonly Token[];
+  exports?: readonly InjectableConstructor[];
 }
 
 /**

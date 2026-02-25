@@ -1,12 +1,10 @@
 import { ScopeValidationError } from '../errors/scope-validation.ts';
 import { TokenCollisionError } from '../errors/token-collision.ts';
 import { TokenNotFoundError } from '../errors/token-not-found.ts';
-import type { Injectable } from '../types/injectable.ts';
 import type { InferInjectedInstanceTypes } from '../types/dependencies.ts';
+import type { Injectable, InjectableConstructor } from '../types/injectable.ts';
 import { Scope, type Binding, type RegisterOptions } from './binding.ts';
 import type { ContainerInterface, ResolverInterface } from './interfaces.ts';
-
-type InjectableConstructor = abstract new (...args: any[]) => Injectable;
 
 interface ResolutionContext {
   path: InjectableConstructor[];
@@ -60,7 +58,7 @@ export class Container implements ContainerInterface {
     this.bindings.set(token, binding);
   }
 
-  resolve<T extends Injectable>(token: abstract new (...args: any[]) => T): T {
+  resolve<T extends Injectable>(token: InjectableConstructor<T>): T {
     return this.resolveWithContext(token, { path: [] }) as T;
   }
 
@@ -68,11 +66,16 @@ export class Container implements ContainerInterface {
    * Resolve a token using an external resolver for dependency resolution.
    * This is used by ModuleContainer to enforce encapsulation during auto-instantiation.
    */
-  resolveWithExternalResolver<T extends Injectable>(token: abstract new (...args: any[]) => T, externalResolver: ResolverInterface): T {
+  resolveWithExternalResolver<T extends Injectable>(
+    token: InjectableConstructor<T>,
+    externalResolver: ResolverInterface,
+  ): T {
     return this.resolveWithContext(token, { path: [] }, externalResolver) as T;
   }
 
-  buildDependencies<TTokens extends readonly InjectableConstructor[]>(tokens: TTokens): InferInjectedInstanceTypes<TTokens> {
+  buildDependencies<TTokens extends readonly InjectableConstructor[]>(
+    tokens: TTokens,
+  ): InferInjectedInstanceTypes<TTokens> {
     const resolvedTokens = tokens.map((token) => this.resolve(token));
     return resolvedTokens as InferInjectedInstanceTypes<TTokens>;
   }
@@ -86,7 +89,11 @@ export class Container implements ContainerInterface {
     return resolvedTokens as InferInjectedInstanceTypes<TTokens>;
   }
 
-  private resolveWithContext(token: InjectableConstructor, context: ResolutionContext, externalResolver?: ResolverInterface): Injectable {
+  private resolveWithContext(
+    token: InjectableConstructor,
+    context: ResolutionContext,
+    externalResolver?: ResolverInterface,
+  ): Injectable {
     const binding = this.getBinding(token);
     if (binding === undefined) {
       throw new TokenNotFoundError(token, context.path, Array.from(this.getAllBindings().keys()));
@@ -110,7 +117,7 @@ export class Container implements ContainerInterface {
 
     // Use external resolver for dependency resolution if provided (for module encapsulation)
     const contextResolver: ResolverInterface = externalResolver ?? {
-      resolve: <TResolve extends Injectable>(resolveToken: abstract new (...args: any[]) => TResolve): TResolve =>
+      resolve: <TResolve extends Injectable>(resolveToken: InjectableConstructor<TResolve>): TResolve =>
         this.resolveWithContext(resolveToken, context) as TResolve,
       has: (checkToken: InjectableConstructor) => this.has(checkToken),
       buildDependencies: <TTokens extends readonly InjectableConstructor[]>(tokens: TTokens) =>
@@ -118,7 +125,10 @@ export class Container implements ContainerInterface {
     };
 
     // Auto-instantiate using inject property
-    const instance = this.createInstance(binding.token as abstract new (...args: unknown[]) => Injectable, contextResolver);
+    const instance = this.createInstance(
+      binding.token as abstract new (...args: unknown[]) => Injectable,
+      contextResolver,
+    );
 
     // Cache instances for singleton and scoped bindings
     if (binding.scope === Scope.SINGLETON) {
@@ -130,7 +140,10 @@ export class Container implements ContainerInterface {
     return instance;
   }
 
-  private createInstance(ClassConstructor: abstract new (...args: unknown[]) => Injectable, resolver: ResolverInterface): Injectable {
+  private createInstance(
+    ClassConstructor: abstract new (...args: unknown[]) => Injectable,
+    resolver: ResolverInterface,
+  ): Injectable {
     const inject = this.getInjectArray(ClassConstructor);
     // Note: inject is guaranteed to be defined because register() throws if missing
     const dependencies = resolver.buildDependencies(inject!);
@@ -138,7 +151,9 @@ export class Container implements ContainerInterface {
     return new ConcreteConstructor(...(dependencies as unknown[]));
   }
 
-  private getInjectArray(ClassConstructor: abstract new (...args: unknown[]) => unknown): readonly InjectableConstructor[] | undefined {
+  private getInjectArray(
+    ClassConstructor: abstract new (...args: unknown[]) => unknown,
+  ): readonly InjectableConstructor[] | undefined {
     const ClassWithInject = ClassConstructor as typeof ClassConstructor & {
       inject?: readonly InjectableConstructor[];
     };
@@ -152,7 +167,7 @@ export class Container implements ContainerInterface {
     return this.bindings.has(token) || (this.parent?.has(token) ?? false);
   }
 
-  getBinding<T extends Injectable>(token: abstract new (...args: any[]) => T): Binding<T> | undefined {
+  getBinding<T extends Injectable>(token: InjectableConstructor<T>): Binding<T> | undefined {
     const binding = this.bindings.get(token) as Binding<T> | undefined;
     if (binding !== undefined) {
       return binding;
@@ -200,13 +215,15 @@ export class Container implements ContainerInterface {
     }
   }
 
-  private extractDependenciesFromClass(ClassConstructor: abstract new (...args: unknown[]) => unknown): InjectableConstructor[] {
+  private extractDependenciesFromClass(
+    ClassConstructor: abstract new (...args: unknown[]) => unknown,
+  ): InjectableConstructor[] {
     const inject = this.getInjectArray(ClassConstructor);
     return inject !== undefined ? [...inject] : [];
   }
 
   private createCircularProxy(token: InjectableConstructor): Injectable {
-    const getBinding = (): Binding<Injectable> | undefined => this.getBinding(token as abstract new (...args: any[]) => Injectable);
+    const getBinding = (): Binding<Injectable> | undefined => this.getBinding(token as InjectableConstructor);
     const state: CircularProxyState = {
       token,
       getBinding,
