@@ -83,9 +83,7 @@ function testInferRoutesFromApp() {
 // Test 3: createRpcClient should return properly typed client
 function testCreateRpcClient() {
   const container = new Container();
-  container.register(UserController, () => {
-    return new UserController();
-  });
+  container.register(UserController);
 
   const adapter = new HonoAdapter(container);
   adapter.registerController(UserController);
@@ -108,9 +106,7 @@ function testCreateRpcClient() {
 // Test 4: createClientFromApp should return properly typed client
 function testCreateClientFromApp() {
   const container = new Container();
-  container.register(UserController, () => {
-    return new UserController();
-  });
+  container.register(UserController);
 
   const adapter = new HonoAdapter(container);
   adapter.registerController(UserController);
@@ -130,9 +126,7 @@ function testCreateClientFromApp() {
 // Test 5: hc should work with HonoAdapter's app
 function testHcWithAdapter() {
   const container = new Container();
-  container.register(UserController, () => {
-    return new UserController();
-  });
+  container.register(UserController);
 
   const adapter = new HonoAdapter(container);
   adapter.registerController(UserController);
@@ -193,12 +187,8 @@ function testMultipleControllers() {
   }
 
   const container = new Container();
-  container.register(UserController, () => {
-    return new UserController();
-  });
-  container.register(PostController, () => {
-    return new PostController();
-  });
+  container.register(UserController);
+  container.register(PostController);
 
   const adapter = new HonoAdapter(container);
   adapter.registerController(UserController);

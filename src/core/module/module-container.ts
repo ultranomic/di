@@ -1,4 +1,5 @@
-import type { ContainerInterface } from '../container/interfaces.ts';
+import type { ContainerInterface, ResolverInterface } from '../container/interfaces.ts';
+import { Container } from '../container/container.ts';
 import type { InferInject } from '../types/deps.ts';
 import { NonExportedTokenError } from '../errors/non-exported-token.ts';
 import type { Token } from '../types/token.ts';
@@ -74,6 +75,11 @@ export class ModuleContainer implements ContainerInterface {
     // Check if this token is from another module and validate access
     if (owner !== undefined && owner.module !== this.moduleName) {
       this.validateTokenAccess(token, owner);
+    }
+
+    // Use resolveWithExternalResolver if the base container supports it (for encapsulation during auto-instantiation)
+    if (this.baseContainer instanceof Container) {
+      return (this.baseContainer as Container).resolveWithExternalResolver(token, this as ResolverInterface);
     }
 
     return this.baseContainer.resolve(token);

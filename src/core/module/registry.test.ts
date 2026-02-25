@@ -1369,12 +1369,14 @@ describe('ModuleRegistry', () => {
 
     it('should call getAccessibleTokens when module is not imported', async () => {
       class Logger {
+        static readonly inject = [] as const;
         log() {
           return 'logged';
         }
       }
 
       class Database {
+        static readonly inject = [] as const;
         query() {
           return 'results';
         }
@@ -1387,13 +1389,14 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(Logger, () => new Logger()).asSingleton();
-          container.register(Database, () => new Database()).asSingleton();
+          container.register(Logger);
+          container.register(Database);
         }
       }
 
       // Another service from a module that won't be imported by UserModule
       class SecretService {
+        static readonly inject = [] as const;
         secret() {
           return 'secret';
         }
@@ -1405,7 +1408,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(SecretService, () => new SecretService()).asSingleton();
+          container.register(SecretService);
         }
       }
 
