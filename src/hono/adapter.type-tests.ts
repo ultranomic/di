@@ -10,7 +10,7 @@
  * the type system is working correctly.
  */
 
-import { Container, Controller } from '../core/index.js';
+import { Container, Controller, type ControllerMetadata } from '../core/index.js';
 import type { Context } from 'hono';
 import { HonoAdapter } from './adapter.ts';
 import {
@@ -32,7 +32,7 @@ class UserController extends Controller {
       { method: 'GET', path: '/:id', handler: 'get' },
       { method: 'POST', path: '/', handler: 'create' },
     ] as const,
-  };
+  } as const satisfies ControllerMetadata<UserController>;
   static readonly inject = [] as const;
   constructor() {
     super();
@@ -83,9 +83,7 @@ function testInferRoutesFromApp() {
 // Test 3: createRpcClient should return properly typed client
 function testCreateRpcClient() {
   const container = new Container();
-  container.register(UserController, () => {
-    return new UserController();
-  });
+  container.register(UserController);
 
   const adapter = new HonoAdapter(container);
   adapter.registerController(UserController);
@@ -108,9 +106,7 @@ function testCreateRpcClient() {
 // Test 4: createClientFromApp should return properly typed client
 function testCreateClientFromApp() {
   const container = new Container();
-  container.register(UserController, () => {
-    return new UserController();
-  });
+  container.register(UserController);
 
   const adapter = new HonoAdapter(container);
   adapter.registerController(UserController);
@@ -130,9 +126,7 @@ function testCreateClientFromApp() {
 // Test 5: hc should work with HonoAdapter's app
 function testHcWithAdapter() {
   const container = new Container();
-  container.register(UserController, () => {
-    return new UserController();
-  });
+  container.register(UserController);
 
   const adapter = new HonoAdapter(container);
   adapter.registerController(UserController);
@@ -182,7 +176,7 @@ function testMultipleControllers() {
     static readonly metadata = {
       basePath: '/posts',
       routes: [{ method: 'GET', path: '/', handler: 'list' }] as const,
-    };
+    } as const satisfies ControllerMetadata<PostController>;
     static readonly inject = [] as const;
     constructor() {
       super();
@@ -193,12 +187,8 @@ function testMultipleControllers() {
   }
 
   const container = new Container();
-  container.register(UserController, () => {
-    return new UserController();
-  });
-  container.register(PostController, () => {
-    return new PostController();
-  });
+  container.register(UserController);
+  container.register(PostController);
 
   const adapter = new HonoAdapter(container);
   adapter.registerController(UserController);

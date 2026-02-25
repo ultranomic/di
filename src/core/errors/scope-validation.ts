@@ -1,7 +1,7 @@
 import type { Token } from '../types/token.ts';
-import { DIError } from './base.ts';
+import { DependencyInjectionError } from './base.ts';
 
-export class ScopeValidationError extends DIError {
+export class ScopeValidationError extends DependencyInjectionError {
   readonly parentToken: string;
   readonly scopedToken: string;
 

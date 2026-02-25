@@ -85,14 +85,14 @@ export interface ModuleMetadata {
 }
 
 /**
- * Module class type constraint
+ * Module constructor type constraint
  *
  * A type that ensures a class has a valid module configuration.
  *
  * @template T - The module metadata type
  */
-export type ModuleClass<T extends ModuleMetadata = ModuleMetadata> = {
+export type ModuleConstructor<T extends ModuleMetadata = ModuleMetadata> = {
   [K in keyof T]: T[K];
 } & {
-  new (...args: unknown[]): unknown;
+  new (): unknown;
 };

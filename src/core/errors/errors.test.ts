@@ -4,13 +4,13 @@ import {
   ScopeValidationError,
   TokenCollisionError,
   TokenNotFoundError,
-  DIError,
+  DependencyInjectionError,
 } from '../index.ts';
 import { NonExportedTokenError } from './non-exported-token.ts';
 
-describe('DIError', () => {
+describe('DependencyInjectionError', () => {
   it('should set error name to class name', () => {
-    class TestError extends DIError {
+    class TestError extends DependencyInjectionError {
       constructor() {
         super('test message');
       }
@@ -21,7 +21,7 @@ describe('DIError', () => {
   });
 
   it('should call captureStackTrace when available (line 14 branch)', () => {
-    class TestError extends DIError {
+    class TestError extends DependencyInjectionError {
       constructor() {
         super('test message');
       }
@@ -34,7 +34,7 @@ describe('DIError', () => {
   });
 
   it('should extend Error', () => {
-    class TestError extends DIError {
+    class TestError extends DependencyInjectionError {
       constructor() {
         super('test message');
       }
@@ -42,11 +42,11 @@ describe('DIError', () => {
 
     const error = new TestError();
     expect(error).toBeInstanceOf(Error);
-    expect(error).toBeInstanceOf(DIError);
+    expect(error).toBeInstanceOf(DependencyInjectionError);
   });
 
   it('should have message property', () => {
-    class TestError extends DIError {
+    class TestError extends DependencyInjectionError {
       constructor() {
         super('test message');
       }
@@ -173,10 +173,10 @@ describe('TokenNotFoundError', () => {
     expect(error.availableTokens).toEqual(['Database', 'Config', 'Cache']);
   });
 
-  it('should extend DIError', () => {
+  it('should extend DependencyInjectionError', () => {
     class Logger {}
     const error = new TokenNotFoundError(Logger, [], []);
-    expect(error).toBeInstanceOf(DIError);
+    expect(error).toBeInstanceOf(DependencyInjectionError);
     expect(error).toBeInstanceOf(Error);
     expect(error.name).toBe('TokenNotFoundError');
   });
@@ -255,11 +255,11 @@ describe('CircularDependencyError', () => {
     expect(error.dependencyChain).toEqual(['ServiceA', 'ServiceB', 'ServiceA']);
   });
 
-  it('should extend DIError', () => {
+  it('should extend DependencyInjectionError', () => {
     class ServiceA {}
     class ServiceB {}
     const error = new CircularDependencyError(ServiceA, [ServiceA, ServiceB, ServiceA]);
-    expect(error).toBeInstanceOf(DIError);
+    expect(error).toBeInstanceOf(DependencyInjectionError);
     expect(error).toBeInstanceOf(Error);
     expect(error.name).toBe('CircularDependencyError');
   });
@@ -335,11 +335,11 @@ describe('ScopeValidationError', () => {
     expect(error.scopedToken).toBe('RequestService');
   });
 
-  it('should extend DIError', () => {
+  it('should extend DependencyInjectionError', () => {
     class Parent {}
     class Child {}
     const error = new ScopeValidationError(Parent, Child);
-    expect(error).toBeInstanceOf(DIError);
+    expect(error).toBeInstanceOf(DependencyInjectionError);
     expect(error).toBeInstanceOf(Error);
     expect(error.name).toBe('ScopeValidationError');
   });
@@ -450,12 +450,12 @@ describe('TokenCollisionError', () => {
     expect(error.message).toBe(expected);
   });
 
-  it('should extend DIError', () => {
+  it('should extend DependencyInjectionError', () => {
     class Token {}
     class Original {}
     class Duplicate {}
     const error = new TokenCollisionError(Token, Original, Duplicate);
-    expect(error).toBeInstanceOf(DIError);
+    expect(error).toBeInstanceOf(DependencyInjectionError);
     expect(error).toBeInstanceOf(Error);
     expect(error.name).toBe('TokenCollisionError');
   });
@@ -620,16 +620,17 @@ describe('NonExportedTokenError', () => {
     expect(error.name).toBe('NonExportedTokenError');
   });
 
-  it('should extend Error', () => {
+  it('should extend DependencyInjectionError', () => {
     class Token {}
     const error = new NonExportedTokenError(Token, 'Consumer', 'Provider', []);
+    expect(error).toBeInstanceOf(DependencyInjectionError);
     expect(error).toBeInstanceOf(Error);
   });
 });
 
-describe('DIError captureStackTrace', () => {
+describe('DependencyInjectionError captureStackTrace', () => {
   it('should have stack trace property', () => {
-    class TestError extends DIError {
+    class TestError extends DependencyInjectionError {
       constructor() {
         super('test message');
       }
@@ -641,7 +642,7 @@ describe('DIError captureStackTrace', () => {
   });
 
   it('should include error message in stack trace', () => {
-    class TestError extends DIError {
+    class TestError extends DependencyInjectionError {
       constructor() {
         super('test message');
       }
@@ -652,7 +653,7 @@ describe('DIError captureStackTrace', () => {
   });
 
   it('should include error name in stack trace', () => {
-    class TestError extends DIError {
+    class TestError extends DependencyInjectionError {
       constructor() {
         super('test message');
       }

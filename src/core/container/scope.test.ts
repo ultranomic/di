@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ScopeValidationError } from '../errors/scope-validation.ts';
-import { BindingScope } from './binding.ts';
+import { Scope } from './binding.ts';
 import { Container } from './container.ts';
+import type { DependencyTokens } from '../types/dependencies.ts';
 
 describe('Container Scope Support', () => {
   let container: Container;
@@ -13,9 +14,10 @@ describe('Container Scope Support', () => {
   describe('createScope', () => {
     it('should create a child container', () => {
       class Logger {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         log(_msg: string) {}
       }
-      container.register(Logger, () => new Logger());
+      container.register(Logger);
 
       const scope = container.createScope();
 
@@ -26,32 +28,35 @@ describe('Container Scope Support', () => {
 
     it('child container should inherit parent bindings', () => {
       class Logger {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         log(_msg: string) {}
       }
-      container.register(Logger, () => new Logger());
+      container.register(Logger);
 
       const scope = container.createScope();
 
       expect(scope.has(Logger)).toBe(true);
-      expect(scope.getBinding(Logger)?.scope).toBe(BindingScope.TRANSIENT);
+      expect(scope.getBinding(Logger)?.scope).toBe(Scope.SINGLETON);
     });
 
     it('should not allow registration in child container', () => {
       class NewService {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         data = 'test';
       }
       const scope = container.createScope();
 
-      expect(() => scope.register(NewService, () => new NewService())).toThrow(
+      expect(() => scope.register(NewService)).toThrow(
         /Cannot register bindings in child container/,
       );
     });
 
     it('should support nested scopes', () => {
       class Logger {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         log(_msg: string) {}
       }
-      container.register(Logger, () => new Logger());
+      container.register(Logger);
 
       const scope1 = container.createScope();
       const scope2 = scope1.createScope();
@@ -65,12 +70,13 @@ describe('Container Scope Support', () => {
     it('should cache scoped services per scope', () => {
       let instanceCount = 0;
       class ScopedService {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         id: number;
         constructor() {
           this.id = ++instanceCount;
         }
       }
-      container.register(ScopedService, () => new ScopedService()).asScoped();
+      container.register(ScopedService, { scope: Scope.SCOPED });
 
       const scope1 = container.createScope();
       const scope2 = container.createScope();
@@ -87,12 +93,13 @@ describe('Container Scope Support', () => {
     it('should cache scoped services in child container not parent', () => {
       let instanceCount = 0;
       class ScopedService {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         id: number;
         constructor() {
           this.id = ++instanceCount;
         }
       }
-      container.register(ScopedService, () => new ScopedService()).asScoped();
+      container.register(ScopedService, { scope: Scope.SCOPED });
 
       const scope = container.createScope();
 
@@ -106,12 +113,13 @@ describe('Container Scope Support', () => {
     it('root container should also cache scoped services', () => {
       let instanceCount = 0;
       class ScopedService {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         id: number;
         constructor() {
           this.id = ++instanceCount;
         }
       }
-      container.register(ScopedService, () => new ScopedService()).asScoped();
+      container.register(ScopedService, { scope: Scope.SCOPED });
 
       const instance1 = container.resolve(ScopedService);
       const instance2 = container.resolve(ScopedService);
@@ -125,12 +133,13 @@ describe('Container Scope Support', () => {
     it('singleton should be shared across all scopes', () => {
       let instanceCount = 0;
       class SingletonService {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         id: number;
         constructor() {
           this.id = ++instanceCount;
         }
       }
-      container.register(SingletonService, () => new SingletonService()).asSingleton();
+      container.register(SingletonService);
 
       const scope1 = container.createScope();
       const scope2 = container.createScope();
@@ -149,12 +158,13 @@ describe('Container Scope Support', () => {
     it('transient should always create new instance', () => {
       let instanceCount = 0;
       class TransientService {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         id: number;
         constructor() {
           this.id = ++instanceCount;
         }
       }
-      container.register(TransientService, () => new TransientService());
+      container.register(TransientService, { scope: Scope.TRANSIENT });
 
       const scope1 = container.createScope();
       const scope2 = container.createScope();
@@ -172,26 +182,24 @@ describe('Container Scope Support', () => {
   describe('mixed scopes', () => {
     it('should handle singleton depending on transient', () => {
       class TransientDep {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         value: number;
         constructor() {
           this.value = Math.random();
         }
       }
       class SingletonService {
+        static readonly inject = [TransientDep] as const satisfies DependencyTokens<typeof this>;
         dep: TransientDep;
-        constructor(c: { resolve<T>(token: abstract new (...args: any[]) => T): T }) {
-          this.dep = c.resolve(TransientDep);
+        constructor(dep: TransientDep) {
+          this.dep = dep;
         }
       }
-      container.register(TransientDep, () => new TransientDep());
-      container
-        .register(SingletonService, (c) => ({
-          dep: c.resolve(TransientDep),
-        }))
-        .asSingleton();
+      container.register(TransientDep, { scope: Scope.TRANSIENT });
+      container.register(SingletonService);
 
-      const instance1 = container.resolve<{ dep: { value: number } }>(SingletonService);
-      const instance2 = container.resolve<{ dep: { value: number } }>(SingletonService);
+      const instance1 = container.resolve(SingletonService);
+      const instance2 = container.resolve(SingletonService);
 
       expect(instance1).toBe(instance2);
       expect(instance1.dep).toBe(instance2.dep);
@@ -199,26 +207,24 @@ describe('Container Scope Support', () => {
 
     it('should handle scoped depending on singleton', () => {
       class SingletonDep {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         value = 'singleton';
       }
       class ScopedService {
+        static readonly inject = [SingletonDep] as const satisfies DependencyTokens<typeof this>;
         dep: SingletonDep;
-        constructor(c: { resolve<T>(token: abstract new (...args: any[]) => T): T }) {
-          this.dep = c.resolve(SingletonDep);
+        constructor(dep: SingletonDep) {
+          this.dep = dep;
         }
       }
-      container.register(SingletonDep, () => new SingletonDep()).asSingleton();
-      container
-        .register(ScopedService, (c) => ({
-          dep: c.resolve(SingletonDep),
-        }))
-        .asScoped();
+      container.register(SingletonDep);
+      container.register(ScopedService, { scope: Scope.SCOPED });
 
       const scope1 = container.createScope();
       const scope2 = container.createScope();
 
-      const instance1 = scope1.resolve<{ dep: { value: string } }>(ScopedService);
-      const instance2 = scope2.resolve<{ dep: { value: string } }>(ScopedService);
+      const instance1 = scope1.resolve(ScopedService);
+      const instance2 = scope2.resolve(ScopedService);
 
       expect(instance1).not.toBe(instance2);
       expect(instance1.dep).toBe(instance2.dep);
@@ -228,40 +234,36 @@ describe('Container Scope Support', () => {
   describe('scope validation', () => {
     it('should throw when singleton depends on scoped', () => {
       class ScopedDep {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         value = 'scoped';
       }
       class SingletonService {
+        static readonly inject = [ScopedDep] as const satisfies DependencyTokens<typeof this>;
         dep: ScopedDep;
-        constructor(c: { resolve<T>(token: abstract new (...args: any[]) => T): T }) {
-          this.dep = c.resolve(ScopedDep);
+        constructor(dep: ScopedDep) {
+          this.dep = dep;
         }
       }
-      container.register(ScopedDep, () => new ScopedDep()).asScoped();
-      container
-        .register(SingletonService, (c) => ({
-          dep: c.resolve(ScopedDep),
-        }))
-        .asSingleton();
+      container.register(ScopedDep, { scope: Scope.SCOPED });
+      container.register(SingletonService);
 
       expect(() => container.validateScopes()).toThrow(ScopeValidationError);
     });
 
     it('should include token names in error message', () => {
       class ScopedDep {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         value = 'scoped';
       }
       class SingletonService {
+        static readonly inject = [ScopedDep] as const satisfies DependencyTokens<typeof this>;
         dep: ScopedDep;
-        constructor(c: { resolve<T>(token: abstract new (...args: any[]) => T): T }) {
-          this.dep = c.resolve(ScopedDep);
+        constructor(dep: ScopedDep) {
+          this.dep = dep;
         }
       }
-      container.register(ScopedDep, () => new ScopedDep()).asScoped();
-      container
-        .register(SingletonService, (c) => ({
-          dep: c.resolve(ScopedDep),
-        }))
-        .asSingleton();
+      container.register(ScopedDep, { scope: Scope.SCOPED });
+      container.register(SingletonService);
 
       try {
         container.validateScopes();
@@ -278,40 +280,36 @@ describe('Container Scope Support', () => {
 
     it('should pass when singleton depends on transient', () => {
       class TransientDep {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         value = 'transient';
       }
       class SingletonService {
+        static readonly inject = [TransientDep] as const satisfies DependencyTokens<typeof this>;
         dep: TransientDep;
-        constructor(c: { resolve<T>(token: abstract new (...args: any[]) => T): T }) {
-          this.dep = c.resolve(TransientDep);
+        constructor(dep: TransientDep) {
+          this.dep = dep;
         }
       }
-      container.register(TransientDep, () => new TransientDep());
-      container
-        .register(SingletonService, (c) => ({
-          dep: c.resolve(TransientDep),
-        }))
-        .asSingleton();
+      container.register(TransientDep, { scope: Scope.TRANSIENT });
+      container.register(SingletonService);
 
       expect(() => container.validateScopes()).not.toThrow();
     });
 
     it('should pass when singleton depends on another singleton', () => {
       class SingletonDep {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         value = 'singleton';
       }
       class SingletonService {
+        static readonly inject = [SingletonDep] as const satisfies DependencyTokens<typeof this>;
         dep: SingletonDep;
-        constructor(c: { resolve<T>(token: abstract new (...args: any[]) => T): T }) {
-          this.dep = c.resolve(SingletonDep);
+        constructor(dep: SingletonDep) {
+          this.dep = dep;
         }
       }
-      container.register(SingletonDep, () => new SingletonDep()).asSingleton();
-      container
-        .register(SingletonService, (c) => ({
-          dep: c.resolve(SingletonDep),
-        }))
-        .asSingleton();
+      container.register(SingletonDep);
+      container.register(SingletonService);
 
       expect(() => container.validateScopes()).not.toThrow();
     });
@@ -326,13 +324,15 @@ describe('Container Scope Support', () => {
   describe('clear', () => {
     it('should only clear scoped cache in child container', () => {
       class ScopedService {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         id = 1;
       }
       class SingletonService {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         id = 2;
       }
-      container.register(ScopedService, () => new ScopedService()).asScoped();
-      container.register(SingletonService, () => new SingletonService()).asSingleton();
+      container.register(ScopedService, { scope: Scope.SCOPED });
+      container.register(SingletonService);
 
       const scope = container.createScope();
       scope.resolve(ScopedService);
@@ -346,13 +346,15 @@ describe('Container Scope Support', () => {
 
     it('should clear all bindings in root container', () => {
       class ScopedService {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         id = 1;
       }
       class SingletonService {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         id = 2;
       }
-      container.register(ScopedService, () => new ScopedService()).asScoped();
-      container.register(SingletonService, () => new SingletonService()).asSingleton();
+      container.register(ScopedService, { scope: Scope.SCOPED });
+      container.register(SingletonService);
 
       container.clear();
 
@@ -364,41 +366,48 @@ describe('Container Scope Support', () => {
   describe('has and getBinding inheritance', () => {
     it('has should check parent bindings', () => {
       class Logger {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         log(_msg: string) {}
       }
-      container.register(Logger, () => new Logger());
+      container.register(Logger);
 
       const scope = container.createScope();
 
       expect(scope.has(Logger)).toBe(true);
-      class NonExistent {}
+      class NonExistent {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
+      }
       expect(scope.has(NonExistent)).toBe(false);
     });
 
     it('getBinding should return parent binding', () => {
       class Logger {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         log(_msg: string) {}
       }
-      container.register(Logger, () => new Logger()).asSingleton();
+      container.register(Logger);
 
       const scope = container.createScope();
       const binding = scope.getBinding(Logger);
 
       expect(binding).toBeDefined();
-      expect(binding?.scope).toBe(BindingScope.SINGLETON);
+      expect(binding?.scope).toBe(Scope.SINGLETON);
     });
   });
 
   describe('error messages with parent container', () => {
     it('should include available tokens from parent when token not found in child', () => {
       class Logger {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
         log(_msg: string) {}
       }
-      container.register(Logger, () => new Logger());
+      container.register(Logger);
 
       const scope = container.createScope();
 
-      class NonExistent {}
+      class NonExistent {
+        static readonly inject = [] as const satisfies DependencyTokens<typeof this>;
+      }
       try {
         scope.resolve(NonExistent);
         expect.fail('Should have thrown');
@@ -408,53 +417,6 @@ describe('Container Scope Support', () => {
         expect(err.message).toContain('NonExistent');
         expect(err.message).toContain('Logger');
       }
-    });
-  });
-
-  describe('stub proxy during scope validation', () => {
-    it('should handle factory accessing stub properties', () => {
-      class ScopedDep {
-        value = 'scoped';
-      }
-      class SingletonService {
-        dep: ScopedDep;
-        constructor(c: { resolve<T>(token: abstract new (...args: any[]) => T): T }) {
-          this.dep = c.resolve(ScopedDep);
-        }
-      }
-      container.register(ScopedDep, () => new ScopedDep()).asScoped();
-      container
-        .register(SingletonService, (c) => {
-          const dep = c.resolve(ScopedDep) as { value: string; toString: () => string };
-          const _ = dep.value;
-          const _str = dep.toString();
-          return { dep };
-        })
-        .asSingleton();
-
-      expect(() => container.validateScopes()).toThrow(ScopeValidationError);
-    });
-
-    it('should handle factory accessing then property on stub', () => {
-      class ScopedDep {
-        value = 'scoped';
-      }
-      class SingletonService {
-        dep: ScopedDep;
-        constructor(c: { resolve<T>(token: abstract new (...args: any[]) => T): T }) {
-          this.dep = c.resolve(ScopedDep);
-        }
-      }
-      container.register(ScopedDep, () => new ScopedDep()).asScoped();
-      container
-        .register(SingletonService, (c) => {
-          const dep = c.resolve(ScopedDep) as { then: unknown };
-          const _then = dep.then;
-          return { dep };
-        })
-        .asSingleton();
-
-      expect(() => container.validateScopes()).toThrow(ScopeValidationError);
     });
   });
 });
