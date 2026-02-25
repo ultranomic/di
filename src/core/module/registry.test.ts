@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Container } from '../container/container.ts';
 import type { ContainerInterface } from '../container/interfaces.ts';
+import { Scope } from '../container/binding.ts';
 import type { DepsTokens } from '../types/deps.ts';
 import type { ModuleMetadata } from './module.ts';
 import { Module } from './module.ts';
@@ -68,6 +69,7 @@ describe('ModuleRegistry', () => {
   describe('loadModules', () => {
     it('should load modules and register providers with container', async () => {
       class Logger {
+        static readonly inject = [] as const;
         log() {
           return 'logged';
         }
@@ -79,7 +81,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(Logger, () => new Logger());
+          container.register(Logger);
         }
       }
 
@@ -93,12 +95,14 @@ describe('ModuleRegistry', () => {
 
     it('should load multiple modules with different providers', async () => {
       class Logger {
+        static readonly inject = [] as const;
         log() {
           return 'logged';
         }
       }
 
       class Database {
+        static readonly inject = [] as const;
         query() {
           return [];
         }
@@ -110,7 +114,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(Logger, () => new Logger());
+          container.register(Logger);
         }
       }
 
@@ -120,7 +124,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(Database, () => new Database());
+          container.register(Database);
         }
       }
 
@@ -277,6 +281,7 @@ describe('ModuleRegistry', () => {
 
     it('should make imported providers available to importing module', async () => {
       class Logger {
+        static readonly inject = [] as const;
         log() {
           return 'logged';
         }
@@ -288,7 +293,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(Logger, () => new Logger()).asSingleton();
+          container.register(Logger, { scope: Scope.SINGLETON });
         }
       }
 
@@ -312,7 +317,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(UserService, (c) => new UserService(c.resolve(Logger))).asSingleton();
+          container.register(UserService, { scope: Scope.SINGLETON });
         }
       }
 
@@ -575,12 +580,14 @@ describe('ModuleRegistry', () => {
   describe('Module Encapsulation', () => {
     it('should allow access to exported tokens', async () => {
       class Logger {
+        static readonly inject = [] as const;
         log() {
           return 'logged';
         }
       }
 
       class Database {
+        static readonly inject = [] as const;
         query() {
           return 'results';
         }
@@ -592,7 +599,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(Logger, () => new Logger()).asSingleton();
+          container.register(Logger, { scope: Scope.SINGLETON });
         }
       }
 
@@ -603,7 +610,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(Database, () => new Database()).asSingleton();
+          container.register(Database, { scope: Scope.SINGLETON });
         }
       }
 
@@ -629,7 +636,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(AppService, (c) => new AppService(c.resolve(Logger), c.resolve(Database))).asSingleton();
+          container.register(AppService, { scope: Scope.SINGLETON });
         }
       }
 
@@ -642,6 +649,7 @@ describe('ModuleRegistry', () => {
 
     it('should deny access to non-exported tokens', async () => {
       class InternalLogger {
+        static readonly inject = [] as const;
         log() {
           return 'internal';
         }
@@ -653,7 +661,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(InternalLogger, () => new InternalLogger()).asSingleton();
+          container.register(InternalLogger, { scope: Scope.SINGLETON });
         }
       }
 
@@ -677,7 +685,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(UserService, (c) => new UserService(c.resolve(InternalLogger))).asSingleton();
+          container.register(UserService, { scope: Scope.SINGLETON });
         }
       }
 
@@ -688,6 +696,7 @@ describe('ModuleRegistry', () => {
 
     it('should include helpful error message for non-exported token', async () => {
       class InternalLogger {
+        static readonly inject = [] as const;
         log() {
           return 'internal';
         }
@@ -699,7 +708,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(InternalLogger, () => new InternalLogger()).asSingleton();
+          container.register(InternalLogger, { scope: Scope.SINGLETON });
         }
       }
 
@@ -719,7 +728,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(UserService, (c) => new UserService(c.resolve(InternalLogger))).asSingleton();
+          container.register(UserService, { scope: Scope.SINGLETON });
         }
       }
 
@@ -741,6 +750,7 @@ describe('ModuleRegistry', () => {
 
     it('should allow module to access its own non-exported tokens', async () => {
       class InternalLogger {
+        static readonly inject = [] as const;
         log() {
           return 'internal';
         }
@@ -766,8 +776,8 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(InternalLogger, () => new InternalLogger()).asSingleton();
-          container.register(PublicService, (c) => new PublicService(c.resolve(InternalLogger))).asSingleton();
+          container.register(InternalLogger, { scope: Scope.SINGLETON });
+          container.register(PublicService, { scope: Scope.SINGLETON });
         }
       }
 
@@ -790,6 +800,7 @@ describe('ModuleRegistry', () => {
 
     it('should deny access to tokens from unimported modules', async () => {
       class SecretService {
+        static readonly inject = [] as const;
         secret() {
           return 'secret';
         }
@@ -801,7 +812,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(SecretService, () => new SecretService()).asSingleton();
+          container.register(SecretService, { scope: Scope.SINGLETON });
         }
       }
 
@@ -830,7 +841,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(UserService, (c) => new UserService(c.resolve(SecretService))).asSingleton();
+          container.register(UserService, { scope: Scope.SINGLETON });
         }
       }
 
@@ -850,6 +861,7 @@ describe('ModuleRegistry', () => {
 
     it('should return false for has() on non-exported tokens from imported modules', async () => {
       class InternalLogger {
+        static readonly inject = [] as const;
         log() {
           return 'internal';
         }
@@ -861,7 +873,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(InternalLogger, () => new InternalLogger()).asSingleton();
+          container.register(InternalLogger, { scope: Scope.SINGLETON });
         }
       }
 
@@ -885,6 +897,7 @@ describe('ModuleRegistry', () => {
 
     it('should return true for has() on exported tokens from imported modules', async () => {
       class Logger {
+        static readonly inject = [] as const;
         log() {
           return 'logged';
         }
@@ -896,7 +909,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(Logger, () => new Logger()).asSingleton();
+          container.register(Logger, { scope: Scope.SINGLETON });
         }
       }
 
@@ -921,6 +934,7 @@ describe('ModuleRegistry', () => {
     // oxlint-disable-next-line jest/expect-expect
     it('should support getBinding() for exported tokens', async () => {
       class Logger {
+        static readonly inject = [] as const;
         log() {
           return 'logged';
         }
@@ -932,7 +946,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(Logger, () => new Logger()).asSingleton();
+          container.register(Logger, { scope: Scope.SINGLETON });
         }
       }
 
@@ -954,12 +968,14 @@ describe('ModuleRegistry', () => {
 
     it('should show accessible tokens in error message when module not imported', async () => {
       class Logger {
+        static readonly inject = [] as const;
         log() {
           return 'logged';
         }
       }
 
       class Database {
+        static readonly inject = [] as const;
         query() {
           return 'results';
         }
@@ -972,8 +988,8 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(Logger, () => new Logger()).asSingleton();
-          container.register(Database, () => new Database()).asSingleton();
+          container.register(Logger, { scope: Scope.SINGLETON });
+          container.register(Database, { scope: Scope.SINGLETON });
         }
       }
 
@@ -988,6 +1004,7 @@ describe('ModuleRegistry', () => {
 
       // Another module with a different exported token
       class SecretService {
+        static readonly inject = [] as const;
         secret() {
           return 'secret';
         }
@@ -1000,7 +1017,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(SecretService, () => new SecretService()).asSingleton();
+          container.register(SecretService, { scope: Scope.SINGLETON });
         }
       }
 
@@ -1032,6 +1049,7 @@ describe('ModuleRegistry', () => {
 
     it('should return false for has() on tokens from unimported modules', async () => {
       class SecretService {
+        static readonly inject = [] as const;
         secret() {
           return 'secret';
         }
@@ -1045,7 +1063,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(SecretService, () => new SecretService()).asSingleton();
+          container.register(SecretService, { scope: Scope.SINGLETON });
         }
       }
 
@@ -1080,6 +1098,7 @@ describe('ModuleRegistry', () => {
     // oxlint-disable-next-line jest/expect-expect
     it('should support clear() method', async () => {
       class Logger {
+        static readonly inject = [] as const;
         log() {
           return 'logged';
         }
@@ -1091,7 +1110,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(Logger, () => new Logger()).asSingleton();
+          container.register(Logger, { scope: Scope.SINGLETON });
         }
       }
 
@@ -1113,6 +1132,7 @@ describe('ModuleRegistry', () => {
     // oxlint-disable-next-line jest/expect-expect
     it('should return true for has() on tokens from the same module', async () => {
       class Logger {
+        static readonly inject = [] as const;
         log() {
           return 'logged';
         }
@@ -1124,7 +1144,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(Logger, () => new Logger()).asSingleton();
+          container.register(Logger, { scope: Scope.SINGLETON });
           // has() should return true for our own tokens
           expect(container.has(Logger)).toBe(true);
         }
@@ -1136,18 +1156,21 @@ describe('ModuleRegistry', () => {
 
     it('should list exported tokens in error for non-exported token access', async () => {
       class Logger {
+        static readonly inject = [] as const;
         log() {
           return 'logged';
         }
       }
 
       class Database {
+        static readonly inject = [] as const;
         query() {
           return 'results';
         }
       }
 
       class InternalCache {
+        static readonly inject = [] as const;
         get() {
           return 'cached';
         }
@@ -1159,9 +1182,9 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(Logger, () => new Logger()).asSingleton();
-          container.register(Database, () => new Database()).asSingleton();
-          container.register(InternalCache, () => new InternalCache()).asSingleton(); // Not exported
+          container.register(Logger, { scope: Scope.SINGLETON });
+          container.register(Database, { scope: Scope.SINGLETON });
+          container.register(InternalCache, { scope: Scope.SINGLETON }); // Not exported
         }
       }
 
@@ -1209,6 +1232,7 @@ describe('ModuleRegistry', () => {
 
     it('should include directly imported module exports in accessible tokens list', async () => {
       class Logger {
+        static readonly inject = [] as const;
         log() {
           return 'logged';
         }
@@ -1221,12 +1245,13 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(Logger, () => new Logger()).asSingleton();
+          container.register(Logger, { scope: Scope.SINGLETON });
         }
       }
 
       // A service from SecretModule that IS exported
       class SecretService {
+        static readonly inject = [] as const;
         secret() {
           return 'secret';
         }
@@ -1239,7 +1264,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(SecretService, () => new SecretService()).asSingleton();
+          container.register(SecretService, { scope: Scope.SINGLETON });
         }
       }
 
@@ -1257,9 +1282,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container
-            .register(UserService, (c) => new UserService(c.resolve(Logger), c.resolve(SecretService)))
-            .asSingleton();
+          container.register(UserService, { scope: Scope.SINGLETON });
         }
       }
 
@@ -1273,12 +1296,14 @@ describe('ModuleRegistry', () => {
 
     it('should list accessible exported tokens when trying to access token from unimported module', async () => {
       class Logger {
+        static readonly inject = [] as const;
         log() {
           return 'logged';
         }
       }
 
       class Database {
+        static readonly inject = [] as const;
         query() {
           return 'results';
         }
@@ -1291,13 +1316,14 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(Logger, () => new Logger()).asSingleton();
-          container.register(Database, () => new Database()).asSingleton();
+          container.register(Logger, { scope: Scope.SINGLETON });
+          container.register(Database, { scope: Scope.SINGLETON });
         }
       }
 
       // A service from a different module
       class SecretService {
+        static readonly inject = [] as const;
         secret() {
           return 'secret';
         }
@@ -1310,7 +1336,7 @@ describe('ModuleRegistry', () => {
         };
 
         register(container: ContainerInterface): void {
-          container.register(SecretService, () => new SecretService()).asSingleton();
+          container.register(SecretService, { scope: Scope.SINGLETON });
         }
       }
 
