@@ -77,7 +77,7 @@
     "express": "5.2.1",
     "fastify": "5.7.4",
     "hono": "4.12.2",
-    "oxfmt": "0.35.0",
+    "oxfmt": "0.36.0",
     "oxlint": "1.50.0",
     "typescript": "6.0.0-beta",
     "vitest": "4.0.18"
