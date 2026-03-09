@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@hono/node-server':
-        specifier: 1.19.9
-        version: 1.19.9(hono@4.12.5)
+        specifier: 1.19.11
+        version: 1.19.11(hono@4.12.5)
       '@types/express':
         specifier: 5.0.6
         version: 5.0.6
@@ -239,8 +239,8 @@ packages:
   '@fastify/proxy-addr@5.1.0':
     resolution: {integrity: sha512-INS+6gh91cLUjB+PVHfu1UqcB76Sqtpyp7bnL+FYojhjygvOPA9ctiD/JDKsyD9Xgu4hUhCSJBPig/w7duNajw==}
 
-  '@hono/node-server@1.19.9':
-    resolution: {integrity: sha512-vHL6w3ecZsky+8P5MD+eFfaGTyCeOHUIFYMGpQGbrBTSmNNoxv0if69rEZ5giu36weC5saFuznL411gRX7bJDw==}
+  '@hono/node-server@1.19.11':
+    resolution: {integrity: sha512-dr8/3zEaB+p0D2n/IUrlPF1HZm586qgJNXK1a9fhg/PzdtkK7Ksd5l312tJX2yBuALqDYBlG20QEbayqPyxn+g==}
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
@@ -1457,7 +1457,7 @@ snapshots:
       '@fastify/forwarded': 3.0.1
       ipaddr.js: 2.3.0
 
-  '@hono/node-server@1.19.9(hono@4.12.5)':
+  '@hono/node-server@1.19.11(hono@4.12.5)':
     dependencies:
       hono: 4.12.5
 
