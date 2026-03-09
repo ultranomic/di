@@ -36,8 +36,8 @@ importers:
         specifier: 1.51.0
         version: 1.51.0
       typescript:
-        specifier: 6.0.0-dev.20260302
-        version: 6.0.0-dev.20260302
+        specifier: 6.0.0-dev.20260309
+        version: 6.0.0-dev.20260309
       vitest:
         specifier: 4.0.18
         version: 4.0.18(@types/node@25.3.5)(tsx@4.21.0)
@@ -1241,8 +1241,8 @@ packages:
     resolution: {integrity: sha512-OZs6gsjF4vMp32qrCbiVSkrFmXtG/AZhY3t0iAMrMBiAZyV9oALtXO8hsrHbMXF9x6L3grlFuwW2oAz7cav+Gw==}
     engines: {node: '>= 0.6'}
 
-  typescript@6.0.0-dev.20260302:
-    resolution: {integrity: sha512-f1OyfRwerbx6t8dQdNRa3YLgPqAbmE3ugnqDvf7dJBq40ZSTN9NpibhfTcGuUBP0kB/o0MHFOlxv2Cznguk65Q==}
+  typescript@6.0.0-dev.20260309:
+    resolution: {integrity: sha512-GVl/SCg1QEwsj/FIKGJxV4aEeaRFqANQADZL0xT/6dCnbM+ysvpQvsTmjDERYQ7wlqp7TqiBOSXyQ8kJzOEohg==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -2422,7 +2422,7 @@ snapshots:
       media-typer: 1.1.0
       mime-types: 3.0.2
 
-  typescript@6.0.0-dev.20260302: {}
+  typescript@6.0.0-dev.20260309: {}
 
   undici-types@7.18.2: {}
 
