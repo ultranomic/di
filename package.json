@@ -70,7 +70,7 @@
     "prepublishOnly": "pnpm run typecheck && pnpm run test:coverage"
   },
   "devDependencies": {
-    "@hono/node-server": "1.19.11",
+    "@hono/node-server": "1.19.12",
     "@types/express": "5.0.6",
     "@types/node": "25.5.0",
     "@vitest/coverage-v8": "4.0.18",
