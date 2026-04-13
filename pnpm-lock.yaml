@@ -10,7 +10,7 @@ importers:
     devDependencies:
       '@hono/node-server':
         specifier: 1.19.14
-        version: 1.19.14(hono@4.12.11)
+        version: 1.19.14(hono@4.12.12)
       '@types/express':
         specifier: 5.0.6
         version: 5.0.6
@@ -27,8 +27,8 @@ importers:
         specifier: 5.8.4
         version: 5.8.4
       hono:
-        specifier: 4.12.11
-        version: 4.12.11
+        specifier: 4.12.12
+        version: 4.12.12
       oxfmt:
         specifier: 0.43.0
         version: 0.43.0
@@ -1071,8 +1071,8 @@ packages:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
 
-  hono@4.12.11:
-    resolution: {integrity: sha512-r4xbIa3mGGGoH9nN4A14DOg2wx7y2oQyJEb5O57C/xzETG/qx4c7CVDQ5WMeKHZ7ORk2W0hZ/sQKXTav3cmYBA==}
+  hono@4.12.12:
+    resolution: {integrity: sha512-p1JfQMKaceuCbpJKAPKVqyqviZdS0eUxH9v82oWo1kb9xjQ5wA6iP3FNVAPDFlz5/p7d45lO+BpSk1tuSZMF4Q==}
     engines: {node: '>=16.9.0'}
 
   html-escaper@2.0.2:
@@ -1697,9 +1697,9 @@ snapshots:
       '@fastify/forwarded': 3.0.1
       ipaddr.js: 2.3.0
 
-  '@hono/node-server@1.19.14(hono@4.12.11)':
+  '@hono/node-server@1.19.14(hono@4.12.12)':
     dependencies:
-      hono: 4.12.11
+      hono: 4.12.12
 
   '@jridgewell/resolve-uri@3.1.2': {}
 
@@ -2311,7 +2311,7 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
-  hono@4.12.11: {}
+  hono@4.12.12: {}
 
   html-escaper@2.0.2: {}
 
