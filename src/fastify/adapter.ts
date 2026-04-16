@@ -53,9 +53,9 @@ export class FastifyAdapter {
             if (result instanceof Promise) {
               await result;
             }
-          } catch (error) {
+          } catch (_error) {
             await reply.status(500).send({
-              error: error instanceof Error ? error.message : 'Internal server error',
+              error: 'Internal server error',
             });
           }
         },
@@ -63,8 +63,8 @@ export class FastifyAdapter {
     }
   }
 
-  async listen(port: number): Promise<void> {
-    await this.app.listen({ port, host: '0.0.0.0' });
+  async listen(port: number, host?: string): Promise<void> {
+    await this.app.listen({ port, host: host ?? '0.0.0.0' });
   }
 
   async close(): Promise<void> {
