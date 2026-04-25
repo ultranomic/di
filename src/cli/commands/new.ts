@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 export interface ProjectTemplate {
   name: string;
@@ -172,14 +172,26 @@ export async function createProject(projectName: string, targetDir?: string): Pr
   }
 
   const baseDir = targetDir ?? process.cwd();
-  const projectDir = join(baseDir, projectName);
+  const projectDir = resolve(baseDir, projectName);
+
+  // Ensure the resolved project directory is within the base directory
+  const resolvedBaseDir = resolve(baseDir);
+  if (!projectDir.startsWith(resolvedBaseDir)) {
+    throw new Error(`Invalid target directory. The project path must be within the base directory.`);
+  }
   const template = getTemplateFiles(projectName);
 
   await mkdir(projectDir, { recursive: true });
   await mkdir(join(projectDir, 'src', 'services'), { recursive: true });
 
   for (const [filePath, content] of Object.entries(template.files)) {
-    const fullPath = join(projectDir, filePath);
+    const fullPath = resolve(projectDir, filePath);
+
+    // Ensure each file path stays within the project directory
+    if (!fullPath.startsWith(projectDir)) {
+      throw new Error(`Invalid file path "${filePath}". File paths must be within the project directory.`);
+    }
+
     await writeFile(fullPath, content, 'utf-8');
   }
 }

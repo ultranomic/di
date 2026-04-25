@@ -45,9 +45,9 @@ export class ExpressAdapter {
           if (result instanceof Promise) {
             await result;
           }
-        } catch (error) {
+        } catch (_error) {
           res.status(500).json({
-            error: error instanceof Error ? error.message : 'Internal server error',
+            error: 'Internal server error',
           });
         }
       };
@@ -56,9 +56,9 @@ export class ExpressAdapter {
     }
   }
 
-  async listen(port: number): Promise<void> {
+  async listen(port: number, host?: string): Promise<void> {
     return new Promise((resolve) => {
-      this.server = this.app.listen(port, () => {
+      this.server = this.app.listen(port, host ?? '0.0.0.0', () => {
         resolve();
       });
     });

@@ -129,10 +129,10 @@ export class HonoAdapter {
         }
 
         return c.body(null);
-      } catch (error) {
+      } catch (_error) {
         return c.json(
           {
-            error: error instanceof Error ? error.message : 'Internal server error',
+            error: 'Internal server error',
           },
           500,
         );
@@ -140,13 +140,13 @@ export class HonoAdapter {
     };
   }
 
-  async listen(port: number): Promise<void> {
+  async listen(port: number, host?: string): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
         this.server = serve({
           fetch: (req) => this.app.fetch(req),
           port,
-          hostname: '0.0.0.0',
+          hostname: host ?? '0.0.0.0',
         });
 
         this.server.once('listening', () => {
