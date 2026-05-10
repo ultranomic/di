@@ -13,3 +13,7 @@ Docs are local at `node_modules/vite-plus/docs` or online at https://viteplus.de
 - [ ] Check if there are `vite.config.ts` tasks or `package.json` scripts necessary for validation, run via `vp run <script>`.
 
 <!--VITE PLUS END-->
+
+## AGENTS.md Convention
+
+All `AGENTS.md` files in this repo are instruction files for AI agents. Only write what an agent **cannot infer from reading the source code**. Omit: architecture tables, data flow descriptions, code examples that duplicate existing patterns, dependency lists, error code tables. Include: scope boundaries, coding conventions, cross-file change instructions, non-obvious constraints, ecosystem context.

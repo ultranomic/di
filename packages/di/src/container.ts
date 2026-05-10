@@ -4,11 +4,15 @@ import { buildGraph } from "./graph.ts";
 import { SCOPE } from "./scope.ts";
 import type { InjectableClass, ModuleClass } from "./types.ts";
 
-type RequestStore = Map<InjectableClass, unknown>;
+type RequestStore = Map<InjectableClass | typeof IN_REQUEST_START, unknown>;
 
 const PENDING: unique symbol = Symbol("pending");
+const IN_REQUEST_START: unique symbol = Symbol("inRequestStart");
 
-const createLazyProxy = <T>(cls: InjectableClass<T>, map: Map<InjectableClass, unknown>): T => {
+const createLazyProxy = <T>(
+  cls: InjectableClass<T>,
+  map: Map<InjectableClass | typeof IN_REQUEST_START, unknown>,
+): T => {
   const lazyTarget = (): T => {
     const cached = map.get(cls);
     if (cached !== undefined && cached !== PENDING) {
@@ -17,7 +21,7 @@ const createLazyProxy = <T>(cls: InjectableClass<T>, map: Map<InjectableClass, u
     if (cached === undefined) {
       throw new DIError(
         DI_ERROR_CODE.CIRCULAR_DEPENDENCY,
-        `${cls.name} failed to construct and cannot be accessed. Check the error that caused the construction failure.`,
+        `${cls.name} is no longer available. This can happen if the container was stopped or if the instance failed to construct.`,
       );
     }
     throw new DIError(
@@ -51,6 +55,10 @@ const createLazyProxy = <T>(cls: InjectableClass<T>, map: Map<InjectableClass, u
     },
     getOwnPropertyDescriptor(_target, prop) {
       return Object.getOwnPropertyDescriptor(lazyTarget() as object, prop);
+    },
+    defineProperty(_target, prop, descriptor) {
+      Object.defineProperty(lazyTarget() as object, prop, descriptor);
+      return true;
     },
   }) as T;
 };
@@ -270,20 +278,30 @@ export class Container {
     if (this.#state !== "started") {
       throw new DIError(DI_ERROR_CODE.CONTAINER_NOT_STARTED, MSG_NOT_STARTED);
     }
+    const currentStore = this.#als.getStore();
+    if (currentStore?.has(IN_REQUEST_START)) {
+      throw new DIError(
+        DI_ERROR_CODE.CIRCULAR_DEPENDENCY,
+        "Cannot call withRequestScope() from within a request-scoped onStart hook — this would cause infinite recursion.",
+      );
+    }
 
     const store: RequestStore = new Map();
     return await this.#als.run(store, async () => {
       const requestProviders = this.#requestProviders;
+      store.set(IN_REQUEST_START, true);
       try {
         await this.#startProviders(requestProviders, { rollback: false });
       } catch (startErr) {
+        store.delete(IN_REQUEST_START);
         const cleanupErrors = await this.#stopInstances([...store.values()].toReversed());
         if (cleanupErrors.length > 0) {
           throwAggregate([toError(startErr), ...cleanupErrors], "Request scope startup failed");
         } else {
-          throw startErr;
+          throw toError(startErr);
         }
       }
+      store.delete(IN_REQUEST_START);
 
       let result: T | undefined = undefined;
       let callbackError: unknown = undefined;
@@ -362,7 +380,10 @@ export class Container {
     return errors;
   }
 
-  #getOrCreate<T>(map: Map<InjectableClass, unknown>, cls: InjectableClass<T>): T {
+  #getOrCreate<T>(
+    map: Map<InjectableClass | typeof IN_REQUEST_START, unknown>,
+    cls: InjectableClass<T>,
+  ): T {
     const cached = map.get(cls);
     if (cached !== undefined) {
       if (cached === PENDING) {

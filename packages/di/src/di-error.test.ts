@@ -35,11 +35,15 @@ describe("DIError", () => {
     }
   });
 
-  it("code property is typed readonly but mutable at runtime", () => {
+  it("code property is immutable at runtime (backed by private field)", () => {
     const error = new DIError(DI_ERROR_CODE.CONTAINER_STOPPED, "stopped");
-    // @ts-expect-error — code is typed readonly but JS allows runtime mutation
-    error.code = DI_ERROR_CODE.CIRCULAR_DEPENDENCY;
-    expect(error.code).toBe(DI_ERROR_CODE.CIRCULAR_DEPENDENCY);
+    try {
+      // @ts-expect-error — code is readonly
+      error.code = DI_ERROR_CODE.CIRCULAR_DEPENDENCY;
+    } catch {
+      // Strict mode throws TypeError for setter-less properties
+    }
+    expect(error.code).toBe(DI_ERROR_CODE.CONTAINER_STOPPED);
   });
 
   it("D5: supports cause option for error chaining", () => {

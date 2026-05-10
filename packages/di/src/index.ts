@@ -13,4 +13,3 @@ export type {
 } from "./types.ts";
 export type { DIErrorCode } from "./di-error.ts";
 export type { Scope } from "./scope.ts";
-export type { ResolvedProviders } from "./module.ts";
