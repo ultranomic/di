@@ -1,5 +1,5 @@
 import { Container, Injectable, Module, SCOPE } from "@ultranomic/di";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vite-plus/test";
 import { z } from "zod";
 import { Controller } from "./controller.ts";
 

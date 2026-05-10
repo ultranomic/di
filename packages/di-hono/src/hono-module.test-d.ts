@@ -1,4 +1,4 @@
-import { assertType, describe, test } from "vitest";
+import { assertType, describe, test } from "vite-plus/test";
 import { HonoModule } from "./hono-module.ts";
 import type { HonoModuleClass, HonoModuleOptionsFactory, HonoModuleOptions } from "./types.ts";
 import { HonoService } from "./hono-service.ts";

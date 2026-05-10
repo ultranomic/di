@@ -1,7 +1,7 @@
-import { expect } from "vitest";
+import { expect } from "vite-plus/test";
 import { DIError, type DIErrorCode } from "./di-error.ts";
 
-declare module "vitest" {
+declare module "vite-plus/test" {
   // oxlint-disable-next-line typescript/consistent-type-definitions, typescript/no-explicit-any
   interface Assertion<T = any> {
     toThrowDIError(code: DIErrorCode, pattern?: RegExp): T;

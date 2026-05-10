@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { DIError, DI_ERROR_CODE } from "./di-error.ts";
 
 describe("DIError", () => {

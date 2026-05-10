@@ -3,7 +3,7 @@
  * transient-scope.ts — Transient-scoped services: fresh instance per resolve
  *
  * Demonstrates: SCOPE.TRANSIENT, new instance on every resolve(), transient depending on singleton
- * Run: node libs/di/examples/transient-scope.ts
+ * Run: node packages/di/examples/transient-scope.ts
  */
 
 import { Container, Injectable, Module, SCOPE } from "../src/index.ts";

@@ -1,6 +1,12 @@
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "vite-plus";
 
 export default defineConfig({
+  pack: {
+    dts: {
+      tsgo: true,
+    },
+    exports: true,
+  },
   test: {
     include: ["src/**/*.test.ts"],
     typecheck: {
@@ -15,4 +21,11 @@ export default defineConfig({
       },
     },
   },
+  lint: {
+    options: {
+      typeAware: true,
+      typeCheck: true,
+    },
+  },
+  fmt: {},
 });

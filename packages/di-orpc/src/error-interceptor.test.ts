@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vite-plus/test";
 import { DIError } from "@ultranomic/di";
 import { ORPCError } from "@orpc/server";
 import { defaultErrorInterceptor, createErrorInterceptor } from "./error-interceptor.js";

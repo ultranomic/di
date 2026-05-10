@@ -1,5 +1,5 @@
 import { type ModuleClass, Container } from "@ultranomic/di";
-import { expect } from "vitest";
+import { expect } from "vite-plus/test";
 import { HonoService, VALIDATION_ERROR_MESSAGE } from "./hono-service.ts";
 
 export const setupModule = async (moduleClass: ModuleClass) => {

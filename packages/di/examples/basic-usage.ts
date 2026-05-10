@@ -3,7 +3,7 @@
  * basic-usage.ts — Minimal DI example
  *
  * Demonstrates: Injectable, Module, Container, resolve
- * Run: node libs/di/examples/basic-usage.ts
+ * Run: node packages/di/examples/basic-usage.ts
  */
 
 import { Container, Injectable, Module, SCOPE } from "../src/index.ts";

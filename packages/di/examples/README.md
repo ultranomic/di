@@ -9,12 +9,12 @@ Node.js 25+ with TypeScript support. Examples import directly from `../src/index
 ## Run
 
 ```bash
-node libs/di/examples/basic-usage.ts
-node libs/di/examples/module-imports.ts
-node libs/di/examples/module-re-exports.ts
-node libs/di/examples/request-scope.ts
-node libs/di/examples/transient-scope.ts
-node libs/di/examples/lifecycle.ts
+node packages/di/examples/basic-usage.ts
+node packages/di/examples/module-imports.ts
+node packages/di/examples/module-re-exports.ts
+node packages/di/examples/request-scope.ts
+node packages/di/examples/transient-scope.ts
+node packages/di/examples/lifecycle.ts
 ```
 
 ## Examples

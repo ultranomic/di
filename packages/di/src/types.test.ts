@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SCOPE, type Scope } from "./scope.ts";
 import type {
   Constructor,

@@ -1,7 +1,7 @@
 import { Container, DIError, Injectable, Module, SCOPE } from "@ultranomic/di";
 import { type Context, type MiddlewareHandler, Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vite-plus/test";
 import { z } from "zod";
 import { Controller } from "./controller.ts";
 import { HonoModule } from "./hono-module.ts";

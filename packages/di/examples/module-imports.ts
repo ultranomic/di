@@ -3,7 +3,7 @@
  * module-imports.ts — Multi-module DI with imports/exports
  *
  * Demonstrates: Module imports, exports, provider accessibility
- * Run: node libs/di/examples/module-imports.ts
+ * Run: node packages/di/examples/module-imports.ts
  */
 
 import { Container, Injectable, Module, SCOPE } from "../src/index.ts";

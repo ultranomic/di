@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vite-plus/test";
 import { Container, Module, Injectable, SCOPE } from "@ultranomic/di";
 import { isProcedure } from "@orpc/server";
 import { z } from "zod";

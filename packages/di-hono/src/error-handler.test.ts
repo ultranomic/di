@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { type DIErrorCode, DIError } from "@ultranomic/di";
