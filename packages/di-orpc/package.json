@@ -1,0 +1,45 @@
+{
+  "name": "@ultranomic/di-orpc",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build:lib": "tsgo --noCheck",
+    "build:dev": "pnpm run build:lib --declaration --declarationMap --removeComments false",
+    "test:dev": "vitest dev",
+    "test": "vitest run",
+    "typecheck": "tsgo --noEmit"
+  },
+  "dependencies": {
+    "@ultranomic/di": "workspace:*"
+  },
+  "devDependencies": {
+    "@orpc/server": "1.14.0",
+    "@types/node": "25.6.0",
+    "@typescript/native-preview": "7.0.0-dev.20260430.1",
+    "@ultranomic/di-hono": "workspace:*",
+    "@ultranomic/tsconfig": "workspace:*",
+    "@vitest/coverage-v8": "4.1.5",
+    "hono": "4.12.16",
+    "typescript": "6.0.3",
+    "vitest": "4.1.5",
+    "zod": "4.4.3"
+  },
+  "peerDependencies": {
+    "@orpc/server": "^1.14.0",
+    "@ultranomic/di-hono": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@ultranomic/di-hono": {
+      "optional": true
+    }
+  }
+}

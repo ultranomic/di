@@ -1,0 +1,11 @@
+{
+  "extends": ["@ultranomic/tsconfig/base.json"],
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "tsBuildInfoFile": "dist/.tsbuildinfo",
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts", "examples/**/*.ts"],
+  "exclude": ["**/*.test.ts", "**/*.d.ts"]
+}

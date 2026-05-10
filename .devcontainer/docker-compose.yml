@@ -1,6 +1,6 @@
 services:
   app:
-    image: mcr.microsoft.com/devcontainers/base:bookworm
+    image: mcr.microsoft.com/devcontainers/base:trixie
     volumes:
       - ../..:/workspaces:delegated
       - ~/.ssh:/home/vscode/.ssh:ro
