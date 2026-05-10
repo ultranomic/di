@@ -2487,3 +2487,122 @@ describe("Container — withRequestScope with no request providers", () => {
     await container.stop();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Re-entrant withRequestScope from request-scoped onStart
+// ---------------------------------------------------------------------------
+describe("Container — re-entrant withRequestScope from onStart", () => {
+  it("throws CIRCULAR_DEPENDENCY when withRequestScope is called from request-scoped onStart", async () => {
+    let caughtError: DIError | undefined;
+
+    class ReqService extends Injectable({ scope: SCOPE.REQUEST }) {
+      public onStart(container: Container) {
+        container
+          .withRequestScope(() => {})
+          .catch((e: unknown) => {
+            caughtError = e as DIError;
+          });
+      }
+    }
+
+    class AppModule extends Module({
+      providers: [ReqService],
+    }) {}
+
+    const container = new Container(AppModule);
+    await container.start();
+
+    await container.withRequestScope(() => {
+      container.resolve(ReqService);
+    });
+
+    expect(caughtError).toBeInstanceOf(DIError);
+    expect(caughtError!.code).toBe(DI_ERROR_CODE.CIRCULAR_DEPENDENCY);
+    expect(caughtError!.message).toMatch(/withRequestScope.*onStart/);
+
+    await container.stop();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// withRequestScope onStart non-Error throw with cleanup errors
+// ---------------------------------------------------------------------------
+describe("Container — withRequestScope onStart non-Error with cleanup failure", () => {
+  it("wraps non-Error onStart throw into Error when cleanup also fails", async () => {
+    class ReqA extends Injectable({ scope: SCOPE.REQUEST }) {
+      public onStart() {
+        /* ok */
+      }
+      public onStop() {
+        throw new Error("cleanup-failed");
+      }
+    }
+    class ReqB extends Injectable({
+      scope: SCOPE.REQUEST,
+      inject: [["reqA", ReqA]],
+    }) {
+      public onStart() {
+        throw "string-from-onStart";
+      }
+    }
+
+    class AppModule extends Module({
+      providers: [ReqA, ReqB] as const,
+    }) {}
+
+    const container = new Container(AppModule);
+    await container.start();
+
+    const err = await container.withRequestScope(() => {}).catch((e: any) => e);
+
+    expect(err).toBeInstanceOf(AggregateError);
+    expect(err.errors[0]).toBeInstanceOf(Error);
+    expect(err.errors[0].message).toBe("string-from-onStart");
+    expect(err.errors[1].message).toBe("cleanup-failed");
+
+    await container.stop();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Proxy: Object.seal, Object.freeze, Object.defineProperty
+// ---------------------------------------------------------------------------
+describe("Container — proxy Object.defineProperty", () => {
+  it("supports Object.defineProperty on circular dep proxy", async () => {
+    class _Fwd extends Injectable({ scope: SCOPE.SINGLETON }) {}
+    class ServiceA extends Injectable({
+      scope: SCOPE.SINGLETON,
+      inject: [["serviceB", _Fwd]],
+    }) {
+      public getValue() {
+        return "A";
+      }
+    }
+    class ServiceB extends Injectable({
+      scope: SCOPE.SINGLETON,
+      inject: [["serviceA", ServiceA]],
+    }) {
+      public existingProp = "yes";
+    }
+    (ServiceA as any)._inject = [ServiceB];
+
+    class AppModule extends Module({
+      providers: [ServiceA, ServiceB],
+    }) {}
+
+    const container = new Container(AppModule);
+    await container.start();
+
+    const a = container.resolve(ServiceA);
+    const proxyB = a.inject.serviceB;
+
+    Object.defineProperty(proxyB, "definedProp", {
+      value: 42,
+      configurable: true,
+      writable: true,
+    });
+    expect((proxyB as any).definedProp).toBe(42);
+
+    await container.stop();
+  });
+});

@@ -259,19 +259,19 @@ try {
 }
 ```
 
-| Code                      | When                                                                                                  |
-| ------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `CIRCULAR_DEPENDENCY`     | Provider graph contains a cycle.                                                                      |
-| `MISSING_PROVIDER`        | A dependency is not registered in any reachable module.                                               |
-| `DUPLICATE_PROVIDER`      | The same provider appears in multiple modules.                                                        |
-| `EXPORT_NOT_IN_PROVIDERS` | A class listed in `exports` is not in `providers`.                                                    |
-| `SCOPE_VIOLATION`         | A Singleton provider directly or transitively depends on a Request-scoped provider.                   |
-| `NOT_IN_REQUEST_SCOPE`    | Resolving a Request-scoped provider, or a provider that depends on one, outside `withRequestScope()`. |
-| `CONTAINER_STOPPED`       | Calling `resolve()` after `container.stop()`.                                                         |
-| `CONTAINER_NOT_STARTED`   | Calling `resolve()` before `container.start()`.                                                       |
-| `ALREADY_STARTED`         | Calling `start()` on a container that has already been started or is starting.                        |
-| `UNKNOWN_SCOPE`           | Provider has an unrecognized scope value. Internal error.                                             |
-| `DUPLICATE_INJECT_KEY`    | Duplicate inject key in `Injectable` config.                                                          |
+| Code                      | When                                                                                                                      |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `CIRCULAR_DEPENDENCY`     | Provider graph contains a cycle.                                                                                          |
+| `MISSING_PROVIDER`        | A dependency is not registered in any reachable module.                                                                   |
+| `DUPLICATE_PROVIDER`      | The same provider appears in multiple modules.                                                                            |
+| `EXPORT_NOT_IN_PROVIDERS` | A class listed in `exports` is not in `providers`.                                                                        |
+| `SCOPE_VIOLATION`         | A Singleton provider directly or transitively depends on a Request-scoped provider.                                       |
+| `NOT_IN_REQUEST_SCOPE`    | Resolving a Request-scoped provider, or a provider that depends on one, outside `withRequestScope()`.                     |
+| `CONTAINER_STOPPED`       | Calling `resolve()`, `start()`, or `withRequestScope()` after `container.stop()`.                                         |
+| `CONTAINER_NOT_STARTED`   | Calling `resolve()`, `stop()`, or `withRequestScope()` before `container.start()` completes, or after a failed `start()`. |
+| `ALREADY_STARTED`         | Calling `start()` on a container that has already been started or is starting.                                            |
+| `UNKNOWN_SCOPE`           | Provider has an unrecognized scope value. Internal error.                                                                 |
+| `DUPLICATE_INJECT_KEY`    | Duplicate inject key in `Injectable` config.                                                                              |
 
 ## Examples
 

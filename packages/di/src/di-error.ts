@@ -17,10 +17,13 @@ export type DIErrorCode = (typeof DI_ERROR_CODE)[keyof typeof DI_ERROR_CODE];
 
 /** Typed error with a `code` discriminator for programmatic error handling in the DI system. */
 export class DIError extends Error {
-  public readonly code: DIErrorCode;
+  #code: DIErrorCode;
+  public get code(): DIErrorCode {
+    return this.#code;
+  }
   public constructor(code: DIErrorCode, message: string, options?: ErrorOptions) {
     super(message, options);
-    this.code = code;
+    this.#code = code;
     this.name = "DIError";
   }
 }
