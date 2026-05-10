@@ -1,0 +1,16 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "autoupdate": true,
+  "model": "zai-coding-plan/glm-5-turbo",
+  "experimental": {
+    "disable_paste_summary": true
+  },
+  "formatter": true,
+  "mcp": {},
+  "permission": {
+    "read": {
+      "*.env.defaults": "allow",
+      "**/*.env.defaults": "allow"
+    }
+  }
+}

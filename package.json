@@ -1,108 +1,18 @@
 {
-  "name": "@ultranomic/di",
-  "version": "5.0.9",
-  "description": "A powerful dependency injection framework for TypeScript",
-  "keywords": [
-    "dependency-injection",
-    "di",
-    "framework"
-  ],
-  "homepage": "https://github.com/ultranomic/di#readme",
-  "bugs": {
-    "url": "https://github.com/ultranomic/di/issues"
-  },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ultranomic/di.git"
-  },
-  "bin": {
-    "di": "./dist/cli/index.js"
-  },
-  "files": [
-    "src",
-    "dist"
-  ],
+  "name": "@ultranomic/di-monorepo",
+  "version": "0.0.0",
+  "private": true,
   "type": "module",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "./core": {
-      "types": "./dist/core/index.d.ts",
-      "import": "./dist/core/index.js"
-    },
-    "./express": {
-      "types": "./dist/express/index.d.ts",
-      "import": "./dist/express/index.js"
-    },
-    "./fastify": {
-      "types": "./dist/fastify/index.d.ts",
-      "import": "./dist/fastify/index.js"
-    },
-    "./hono": {
-      "types": "./dist/hono/index.d.ts",
-      "import": "./dist/hono/index.js"
-    },
-    "./hono/client": {
-      "types": "./dist/hono/client.d.ts",
-      "import": "./dist/hono/client.js"
-    },
-    "./testing": {
-      "types": "./dist/testing/index.d.ts",
-      "import": "./dist/testing/index.js"
-    },
-    "./cli": {
-      "types": "./dist/cli/index.d.ts",
-      "import": "./dist/cli/index.js"
-    }
-  },
   "scripts": {
-    "build": "tsc",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "lint": "oxlint",
-    "format": "oxfmt --write .",
-    "format:check": "oxfmt --check .",
-    "prepublishOnly": "pnpm run typecheck && pnpm run test:coverage"
+    "ready": "vp check && vp run -r test && vp run -r build",
+    "dev": "vp run website#dev",
+    "prepare": "vp config"
   },
   "devDependencies": {
-    "@hono/node-server": "2.0.1",
-    "@types/express": "5.0.6",
-    "@types/node": "25.6.0",
-    "@vitest/coverage-v8": "4.0.18",
-    "express": "5.2.1",
-    "fastify": "5.8.5",
-    "hono": "4.12.16",
-    "oxfmt": "0.47.0",
-    "oxlint": "1.62.0",
-    "typescript": "6.0.3",
-    "vitest": "4.0.18"
-  },
-  "peerDependencies": {
-    "@hono/node-server": "1.19.0 || 2.0.0",
-    "express": "4.0.0 || 5.0.0",
-    "fastify": "5.0.0",
-    "hono": "4.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@hono/node-server": {
-      "optional": true
-    },
-    "express": {
-      "optional": true
-    },
-    "fastify": {
-      "optional": true
-    },
-    "hono": {
-      "optional": true
-    }
+    "vite-plus": "catalog:"
   },
   "engines": {
-    "node": ">=24.0.0"
-  }
+    "node": ">=26.1.0"
+  },
+  "packageManager": "pnpm@11.0.9"
 }

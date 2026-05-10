@@ -1,0 +1,159 @@
+import {
+  type Container,
+  type InjectableClass,
+  type ModuleClass,
+  Injectable,
+  SCOPE,
+} from "@ultranomic/di";
+import { type Context, type MiddlewareHandler, Hono } from "hono";
+import { validator } from "hono/validator";
+import { errorHandler } from "./error-handler.ts";
+import { RequestContext } from "./request-context.ts";
+import {
+  type ControllerClass,
+  type HonoModuleClass,
+  type RouteDefinition,
+  type StandardSchema,
+  VALIDATE_TARGETS,
+} from "./types.ts";
+
+export const VALIDATION_ERROR_MESSAGE = "Validation failed" as const;
+
+type ValidateTarget = (typeof VALIDATE_TARGETS)[number];
+
+const isControllerClass = (cls: InjectableClass): cls is ControllerClass =>
+  "_path" in cls && typeof cls._path === "string";
+
+const isRouteDefinition = (value: unknown): value is RouteDefinition =>
+  typeof value === "object" && value !== null && "_isRoute" in value && value._isRoute === true;
+
+const isHonoModuleClass = (moduleClass: ModuleClass): moduleClass is HonoModuleClass =>
+  "_isHonoModule" in moduleClass && moduleClass._isHonoModule === true;
+
+const getRouteProperties = (instance: object): RouteDefinition[] => {
+  const routes: RouteDefinition[] = [];
+  for (const key of Object.keys(instance)) {
+    const value = (instance as Record<string, unknown>)[key];
+    if (isRouteDefinition(value)) {
+      routes.push(value);
+    }
+  }
+  return routes;
+};
+
+const createValidationMiddleware = (target: ValidateTarget, schema: StandardSchema) => {
+  return validator(target, async (value, c) => {
+    const result = await schema["~standard"].validate(value);
+    if (result.issues) {
+      return c.json({ error: VALIDATION_ERROR_MESSAGE, issues: result.issues }, 400);
+    }
+    return result.value;
+  });
+};
+
+export class HonoService extends Injectable({ scope: SCOPE.SINGLETON }) {
+  public static readonly _isHonoService = true as const;
+  #app = new Hono();
+  #container: Container | undefined;
+  #initialized = false;
+  #port: number | undefined;
+  #host: string | undefined;
+
+  public get hono(): Hono {
+    if (!this.#initialized && this.#container) {
+      this.#registerRoutes(this.#container);
+    }
+    return this.#app;
+  }
+
+  public get port(): number | undefined {
+    return this.#port;
+  }
+
+  public get host(): string | undefined {
+    return this.#host;
+  }
+
+  public onStart = (container: Container): void => {
+    this.#container = container;
+  };
+
+  public onStop = (_: Container): void => {
+    this.#initialized = false;
+    this.#container = undefined;
+    this.#port = undefined;
+    this.#host = undefined;
+    this.#app = new Hono();
+  };
+
+  #registerRoutes(container: Container): void {
+    const moduleClass = container.module;
+
+    const options = this.#readOptions(moduleClass, container);
+    const app = new Hono();
+    app.onError(errorHandler);
+    if (options?.middlewares) {
+      for (const mw of options.middlewares) {
+        app.use(mw);
+      }
+    }
+
+    this.#port = options?.port;
+    this.#host = options?.host;
+
+    const providers = container.sorted;
+
+    for (const provider of providers) {
+      if (!isControllerClass(provider)) continue;
+
+      const instance = container.resolve(provider) as object;
+      const routes = getRouteProperties(instance);
+      if (routes.length === 0) continue;
+
+      const controllerApp = new Hono();
+      const prefix = provider._path;
+
+      for (const route of routes) {
+        const middlewares: MiddlewareHandler[] = [];
+
+        if (route.validate) {
+          for (const target of VALIDATE_TARGETS) {
+            const schema = route.validate[target];
+            if (schema) {
+              middlewares.push(createValidationMiddleware(target, schema));
+            }
+          }
+        }
+
+        const wrappedHandler = (c: Context): Promise<Response> =>
+          RequestContext.run(c, () => container.withRequestScope(() => route.handler(c)));
+
+        for (const mw of middlewares) {
+          controllerApp.on(route.method, route.path, mw);
+        }
+        controllerApp.on(route.method, route.path, wrappedHandler);
+      }
+
+      app.route(prefix, controllerApp);
+    }
+
+    this.#app = app;
+    this.#initialized = true;
+  }
+
+  #readOptions(moduleClass: ModuleClass, container: Container) {
+    const honoModule = this.#findHonoModule(moduleClass);
+    if (!honoModule) return undefined;
+    const factory = honoModule._honoOptions;
+    return factory(<T>(cls: InjectableClass<T>): T => container.resolve(cls));
+  }
+
+  #findHonoModule(moduleClass: ModuleClass): HonoModuleClass | undefined {
+    if (isHonoModuleClass(moduleClass)) return moduleClass;
+    for (const imp of moduleClass._imports) {
+      const found = this.#findHonoModule(imp);
+      if (found) return found;
+    }
+    return undefined;
+  }
+}

@@ -28,7 +28,7 @@ jobs:
         id: wait-for-ci
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: 'validate'
+          checkName: "validate"
           ref: ${{ github.event.pull_request.head.sha }}
           timeoutSeconds: 600
 
