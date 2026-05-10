@@ -3,7 +3,7 @@ import { Container, DIError, Injectable, Module, SCOPE } from "@ultranomic/di";
 import { Controller, HonoModule, HonoService } from "@ultranomic/di-hono";
 import { ORPCError, isProcedure } from "@orpc/server";
 import { StandardRPCHandler } from "@orpc/server/standard";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vite-plus/test";
 import { z } from "zod";
 import { OrpcRequestContext } from "./orpc-request-context.ts";
 import { OrpcModule } from "./orpc-module.ts";

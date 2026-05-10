@@ -1,4 +1,4 @@
-import { assertType, describe, test } from "vitest";
+import { assertType, describe, test } from "vite-plus/test";
 import { Injectable } from "./injectable.ts";
 import { SCOPE } from "./scope.ts";
 

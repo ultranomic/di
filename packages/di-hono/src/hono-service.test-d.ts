@@ -1,4 +1,4 @@
-import { assertType, describe, test } from "vitest";
+import { assertType, describe, test } from "vite-plus/test";
 import { HonoService, VALIDATION_ERROR_MESSAGE } from "./hono-service.ts";
 import { Injectable, Module, Container } from "@ultranomic/di";
 import type { Container as ContainerType } from "@ultranomic/di";

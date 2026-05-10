@@ -3,7 +3,7 @@
  * request-scope.ts — Request-scoped services with isolation
  *
  * Demonstrates: SCOPE.REQUEST, withRequestScope(), per-request instances
- * Run: node libs/di/examples/request-scope.ts
+ * Run: node packages/di/examples/request-scope.ts
  */
 
 import { Container, Injectable, Module, SCOPE } from "../src/index.ts";

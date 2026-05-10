@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { DI_ERROR_CODE } from "./di-error.ts";
 import { buildGraph } from "./graph.ts";
 import { Injectable } from "./injectable.ts";

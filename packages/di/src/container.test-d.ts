@@ -1,5 +1,5 @@
 // oxlint-disable max-classes-per-file
-import { assertType, describe, test } from "vitest";
+import { assertType, describe, test } from "vite-plus/test";
 import { Container } from "./container.ts";
 import { Injectable } from "./injectable.ts";
 import { Module } from "./module.ts";

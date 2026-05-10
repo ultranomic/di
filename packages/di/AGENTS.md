@@ -1,6 +1,6 @@
 # @ultranomic/di
 
-Dependency injection framework for GTN. Zero runtime dependencies, no decorators, no reflect-metadata.
+Dependency injection framework for Ultranomic. Zero runtime dependencies, no decorators, no reflect-metadata.
 
 ## Package Overview
 
@@ -40,8 +40,8 @@ Data flow: `Module()` resolves providers and exports at construction time — `_
 Run tests:
 
 ```bash
-cd libs/di
-pnpm test
+cd packages/di
+vp test
 ```
 
 Coverage requirement: 100%. Every source file has a corresponding `.test.ts` file in the same directory.
@@ -63,7 +63,7 @@ Test utilities:
 
 - `test-utils.ts` (custom `toThrowDIError` matcher)
 
-Tests use vitest. Write tests first (TDD).
+Tests use vite-plus/test. Write tests first (TDD).
 
 ## Common Tasks
 
@@ -181,7 +181,7 @@ Common error codes and their meanings:
 
 Runtime dependencies: none.
 
-Dev dependencies: vitest, typescript, @vitest/coverage-v8, @ultranomic/tsconfig, @types/node, @typescript/native-preview. See `package.json` for the full list.
+Dev dependencies: vite-plus, typescript, bumpp, @ultranomic/tsconfig, @types/node, @typescript/native-preview. See `package.json` for the full list.
 
 ## Related Packages
 

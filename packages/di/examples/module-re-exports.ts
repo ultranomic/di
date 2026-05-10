@@ -3,7 +3,7 @@
  * module-re-exports.ts — Module re-exports: exporting imported modules
  *
  * Demonstrates: ModuleClass in exports preserves the ModuleClass entry in _exports
- * Run: node libs/di/examples/module-re-exports.ts
+ * Run: node packages/di/examples/module-re-exports.ts
  */
 
 import { Container, Injectable, Module, SCOPE } from "../src/index.ts";

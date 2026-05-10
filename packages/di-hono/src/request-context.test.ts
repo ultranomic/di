@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { RequestContext } from "./request-context.ts";
 
 const mockContext = { req: { header: () => "test" } } as unknown as Context;

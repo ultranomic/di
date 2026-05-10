@@ -1,5 +1,5 @@
 import { Injectable, Module, SCOPE } from "@ultranomic/di";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { OrpcModule } from "./orpc-module.ts";
 import { OrpcService } from "./orpc-service.ts";
 

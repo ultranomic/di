@@ -3,7 +3,7 @@
  * lifecycle.ts — Container lifecycle hooks (onStart / onStop)
  *
  * Demonstrates: onStart(container), onStop(container), dependency ordering
- * Run: node libs/di/examples/lifecycle.ts
+ * Run: node packages/di/examples/lifecycle.ts
  */
 
 import { Container, Injectable, Module, SCOPE } from "../src/index.ts";

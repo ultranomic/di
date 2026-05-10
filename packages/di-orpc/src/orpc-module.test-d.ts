@@ -1,4 +1,4 @@
-import { assertType, describe, test } from "vitest";
+import { assertType, describe, test } from "vite-plus/test";
 import { Injectable, Module, SCOPE } from "@ultranomic/di";
 import { os } from "@orpc/server";
 import { z } from "zod";

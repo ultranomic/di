@@ -1,4 +1,4 @@
-import { assertType, describe, test } from "vitest";
+import { assertType, describe, test } from "vite-plus/test";
 import { Controller } from "./controller.ts";
 import type { ControllerClass, RouteDefinition, HttpMethod, ValidateTargets } from "./types.ts";
 import { Injectable } from "@ultranomic/di";
