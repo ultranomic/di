@@ -1,4 +1,4 @@
-name: Publish to npm
+name: Release
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
 
 concurrency:
-  group: publish-${{ github.ref }}
+  group: release-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
@@ -16,9 +16,9 @@ permissions:
   pull-requests: write
 
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
@@ -27,121 +27,23 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Determine diff range for version analysis
-        id: diff-range
-        run: |
-          # First try to use the push event's before/after
-          if [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
-            DIFF_RANGE="${{ github.event.before }}..${{ github.sha }}"
-            echo "Using push event range: $DIFF_RANGE"
-            echo "diff-range=$DIFF_RANGE" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # If no push event range, try to get last release commit
-          echo "No push event range available, checking for last release..."
-          LAST_RELEASE_COMMIT=""
-
-          # Try to get latest release, handling 404 for first release gracefully
-          if RELEASE_RESPONSE=$(gh api repos/${{ github.repository }}/releases/latest 2>/dev/null); then
-            LAST_RELEASE_COMMIT=$(echo "$RELEASE_RESPONSE" | jq -r '.target_commitish // ""')
-            echo "Found latest release with commit: $LAST_RELEASE_COMMIT"
-          else
-            echo "No releases found (this may be the first release) - using fallback diff range"
-            LAST_RELEASE_COMMIT=""
-          fi
-
-          if [ -n "$LAST_RELEASE_COMMIT" ]; then
-            DIFF_RANGE="${LAST_RELEASE_COMMIT}..${{ github.sha }}"
-            echo "Using last release commit as base: $DIFF_RANGE"
-            echo "diff-range=$DIFF_RANGE" >> $GITHUB_OUTPUT
-          else
-            echo "No releases found, using default: HEAD~1..HEAD"
-            echo "diff-range=HEAD~1..HEAD" >> $GITHUB_OUTPUT
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Check if current version has a tag
-        id: tag-check
-        run: |
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
-          TAG_NAME="v$CURRENT_VERSION"
-
-          echo "Current package version: $CURRENT_VERSION"
-          echo "Checking for tag: $TAG_NAME"
-
-          # Output the current version for later use
-          echo "current-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-
-          # Get the previous release tag for changelog comparison
-          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD 2>/dev/null || echo "")
-          echo "previous-tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
-
-          # Check if the tag exists
-          if git tag -l "$TAG_NAME" | grep -q "^${TAG_NAME}$"; then
-            echo "Tag $TAG_NAME exists - version was released, will bump"
-            echo "should-bump=true" >> $GITHUB_OUTPUT
-            echo "## ✅ Version Bump Required" >> $GITHUB_STEP_SUMMARY
-            echo "Tag \`$TAG_NAME\` exists - proceeding with version bump." >> $GITHUB_STEP_SUMMARY
-          else
-            echo "Tag $TAG_NAME does not exist - version not yet released, skipping bump"
-            echo "should-bump=false" >> $GITHUB_OUTPUT
-            echo "## ⏭️ Version Bump Skipped" >> $GITHUB_STEP_SUMMARY
-            echo "Tag \`$TAG_NAME\` does not exist - current version has not been released yet." >> $GITHUB_STEP_SUMMARY
-          fi
-
-      - name: Auto-bump version if needed
-        id: auto-version
-        if: steps.tag-check.outputs.should-bump == 'true'
-        uses: ultranomic/auto-version-action@v1
-        with:
-          gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
-          diff-range: ${{ steps.diff-range.outputs.diff-range }}
-          auto-push: "true"
-
-      - name: Check if version needs publishing
-        id: version-check
-        run: |
-          # Use the potentially new version after auto-bump
-          PACKAGE_NAME=$(node -p "require('./package.json').name")
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
-          echo "version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
-
-          # Check if this version is already published (early exit)
-          if npm view $PACKAGE_NAME@$PACKAGE_VERSION version 2>/dev/null; then
-            echo "Version $PACKAGE_VERSION already published, skipping..." | tee -a $GITHUB_STEP_SUMMARY
-            echo "skip=true" >> $GITHUB_OUTPUT
-            echo "## 📦 Publishing Skipped" >> $GITHUB_STEP_SUMMARY
-            echo "Version \`$PACKAGE_VERSION\` is already published to npm." >> $GITHUB_STEP_SUMMARY
-          else
-            echo "Version $PACKAGE_VERSION not published, proceeding..." | tee -a $GITHUB_STEP_SUMMARY
-            echo "skip=false" >> $GITHUB_OUTPUT
-            echo "## 🚀 Publishing Version $PACKAGE_VERSION" >> $GITHUB_STEP_SUMMARY
-          fi
-
       - name: Setup Node.js
-        if: steps.version-check.outputs.skip == 'false'
         uses: actions/setup-node@v4
         with:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
       - name: Setup pnpm
-        if: steps.version-check.outputs.skip == 'false'
         uses: pnpm/action-setup@v4
         with:
           version: 10.15.0
 
       - name: Get pnpm store directory
-        if: steps.version-check.outputs.skip == 'false'
         shell: bash
         run: |
           echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
       - name: Setup pnpm cache
-        if: steps.version-check.outputs.skip == 'false'
         uses: actions/cache@v4
         with:
           path: ${{ env.STORE_PATH }}
@@ -150,85 +52,58 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        if: steps.version-check.outputs.skip == 'false'
         run: pnpm install --frozen-lockfile --prefer-offline
 
       - name: Run full pipeline
-        if: steps.version-check.outputs.skip == 'false'
-        run: pnpm run prepublishOnly
+        run: pnpm run ready
 
-      - name: Publish to npm
-        if: steps.version-check.outputs.skip == 'false'
+      - name: Determine changed packages
+        id: changes
         run: |
-          # Verify package contents before publishing
-          pnpm pack
+          DIFF_RANGE="${{ github.event.before }}..${{ github.sha }}"
 
-          # Publish with retry logic (uses Trusted Publishing via OIDC)
-          for i in {1..3}; do
-            if pnpm publish --access public --no-git-checks; then
-              echo "✅ Successfully published version ${{ steps.version-check.outputs.version }} to npm" | tee -a $GITHUB_STEP_SUMMARY
-              echo "📋 Install with: \`pnpm add ${{ steps.version-check.outputs.name }}@${{ steps.version-check.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
-              break
-            else
-              echo "Publish attempt $i failed, retrying..."
-              sleep 5
-              if [ $i -eq 3 ]; then
-                echo "❌ Failed to publish after 3 attempts" | tee -a $GITHUB_STEP_SUMMARY
-                exit 1
-              fi
-            fi
-          done
-
-      - name: Create GitHub Release
-        if: steps.version-check.outputs.skip == 'false'
-        run: |
-          VERSION="${{ steps.version-check.outputs.version }}"
-          # Use auto-version output if available (version was bumped), otherwise use previous-tag (version was not bumped)
-          if [ -n "${{ steps.auto-version.outputs.current-version }}" ]; then
-            CURRENT_VERSION="${{ steps.auto-version.outputs.current-version }}"
-          elif [ -n "${{ steps.tag-check.outputs.previous-tag }}" ]; then
-            CURRENT_VERSION="${{ steps.tag-check.outputs.previous-tag }}"
-          else
-            CURRENT_VERSION="${{ steps.tag-check.outputs.current-version }}"
+          if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            DIFF_RANGE="HEAD~1..HEAD"
           fi
-          CHANGELOG="${{ steps.auto-version.outputs.changelog || '- Various improvements and fixes' }}"
 
-          # Create release notes using a temporary file to handle special characters safely
-          cat > release_notes.md << RELEASE_EOF
-          Version ${{ steps.version-check.outputs.version }} of ${{ steps.version-check.outputs.name }} is now available!
+          if git diff --name-only $DIFF_RANGE | grep -q "^packages/di/"; then
+            echo "di=true" >> $GITHUB_OUTPUT
+          else
+            echo "di=false" >> $GITHUB_OUTPUT
+          fi
 
-          ## What's Changed
+          if git diff --name-only $DIFF_RANGE | grep -q "^packages/di-hono/"; then
+            echo "di-hono=true" >> $GITHUB_OUTPUT
+          else
+            echo "di-hono=false" >> $GITHUB_OUTPUT
+          fi
 
-          "$CHANGELOG"
+          if git diff --name-only $DIFF_RANGE | grep -q "^packages/di-orpc/"; then
+            echo "di-orpc=true" >> $GITHUB_OUTPUT
+          else
+            echo "di-orpc=false" >> $GITHUB_OUTPUT
+          fi
 
-          ## Installation
-
-          \`\`\`bash
-          pnpm add ${{ steps.version-check.outputs.name }}@${{ steps.version-check.outputs.version }}
-          npm install ${{ steps.version-check.outputs.name }}@${{ steps.version-check.outputs.version }}
-          \`\`\`
-
-          ---
-
-          **Full Changelog**: https://github.com/${{ github.repository }}/compare/${CURRENT_VERSION}...v${{ steps.version-check.outputs.version }}
-          RELEASE_EOF
-
-          gh release create "v$VERSION" \
-            --title "v$VERSION" \
-            --notes-file release_notes.md
+      - name: Release @ultranomic/di
+        if: steps.changes.outputs.di == 'true'
+        working-directory: packages/di
+        run: pnpm exec semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Update workflow summary
-        if: steps.version-check.outputs.skip == 'false'
-        run: |
-          echo "📦 Published to npm: [${{ steps.version-check.outputs.name }}@${{ steps.version-check.outputs.version }}](https://www.npmjs.com/package/${{ steps.version-check.outputs.name }}/v/${{ steps.version-check.outputs.version }})" >> $GITHUB_STEP_SUMMARY
-          echo "🏷️ Created GitHub release: [v${{ steps.version-check.outputs.version }}](https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version-check.outputs.version }})" >> $GITHUB_STEP_SUMMARY
+      - name: Release @ultranomic/di-hono
+        if: steps.changes.outputs.di-hono == 'true'
+        working-directory: packages/di-hono
+        run: pnpm exec semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-          # Add changelog to summary if available
-          CHANGELOG="${{ steps.auto-version.outputs.changelog }}"
-          if [ -n "$CHANGELOG" ]; then
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "## 📋 What's Changed" >> $GITHUB_STEP_SUMMARY
-            echo "$CHANGELOG" >> $GITHUB_STEP_SUMMARY
-          fi
+      - name: Release @ultranomic/di-orpc
+        if: steps.changes.outputs.di-orpc == 'true'
+        working-directory: packages/di-orpc
+        run: pnpm exec semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

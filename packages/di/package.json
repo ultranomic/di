@@ -1,9 +1,8 @@
 {
   "name": "@ultranomic/di",
-  "version": "1.0.0",
-  "private": true,
+  "version": "6.0.0",
   "description": "Minimal, type-safe dependency injection library built on class mixins",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "files": [
     "dist"
   ],
