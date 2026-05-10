@@ -3,14 +3,14 @@ import type { Context } from "hono";
 
 type RequestStore = { hono: Context };
 
-const storage = new AsyncLocalStorage<RequestStore>();
+const REQUEST_STORAGE = new AsyncLocalStorage<RequestStore>();
 
 export const RequestContext = {
   get(): Context | undefined {
-    const store = storage.getStore();
+    const store = REQUEST_STORAGE.getStore();
     return store?.hono;
   },
   run<T>(c: Context, fn: () => Promise<T>): Promise<T> {
-    return storage.run({ hono: c }, fn);
+    return REQUEST_STORAGE.run({ hono: c }, fn);
   },
 } as const;
