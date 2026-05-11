@@ -4,71 +4,113 @@ import { RequestContext } from './request-context.ts';
 
 const mockContext = { req: { header: () => 'test' } } as unknown as Context;
 
+class TestContext extends RequestContext({
+  create: (c) => ({ url: c.req.url, header: c.req.header('any') }),
+}) {}
+
 describe('RequestContext', () => {
   it('get() returns undefined outside run()', () => {
-    expect(RequestContext.get()).toBeUndefined();
+    const instance = new TestContext();
+    expect(instance.get()).toBeUndefined();
   });
 
-  it('get() returns Context inside run()', async () => {
-    const result = await RequestContext.run(mockContext, async () => {
-      return RequestContext.get();
+  it('get() returns context value inside run()', async () => {
+    const instance = new TestContext();
+    const result = await TestContext.run(mockContext, async () => {
+      return instance.get();
     });
-    expect(result).toBe(mockContext);
+    expect(result).toEqual({ url: undefined, header: 'test' });
   });
 
   it('nested run() calls are isolated', async () => {
-    const inner = { req: { header: () => 'inner' } } as unknown as Context;
-    const result = await RequestContext.run(mockContext, async () => {
-      expect(RequestContext.get()).toBe(mockContext);
-      const innerResult = await RequestContext.run(inner, async () => {
-        return RequestContext.get();
+    const inner = { req: { header: () => 'inner', url: '/inner' } } as unknown as Context;
+    const instance = new TestContext();
+    const result = await TestContext.run(mockContext, async () => {
+      expect(instance.get()).toEqual({ url: undefined, header: 'test' });
+      const innerResult = await TestContext.run(inner, async () => {
+        return instance.get();
       });
-      expect(innerResult).toBe(inner);
-      expect(RequestContext.get()).toBe(mockContext);
+      expect(innerResult).toEqual({ url: '/inner', header: 'inner' });
+      expect(instance.get()).toEqual({ url: undefined, header: 'test' });
       return innerResult;
     });
-    expect(result).toBe(inner);
+    expect(result).toEqual({ url: '/inner', header: 'inner' });
   });
 
   it('get() returns undefined after run() completes', async () => {
-    await RequestContext.run(mockContext, async () => {});
-    expect(RequestContext.get()).toBeUndefined();
-  });
-
-  it('can access mock context properties from inside run()', async () => {
-    await RequestContext.run(mockContext, async () => {
-      const c = RequestContext.get()!;
-      expect(c.req.header('any')).toBe('test');
-    });
+    const instance = new TestContext();
+    await TestContext.run(mockContext, async () => {});
+    expect(instance.get()).toBeUndefined();
   });
 
   it('context is cleaned up after run() callback throws', async () => {
+    const instance = new TestContext();
     const error = new Error('test error');
     await expect(
-      RequestContext.run(mockContext, async () => {
-        expect(RequestContext.get()).toBe(mockContext);
+      TestContext.run(mockContext, async () => {
+        expect(instance.get()).toBeDefined();
         throw error;
       }),
     ).rejects.toThrow(error);
-    expect(RequestContext.get()).toBeUndefined();
+    expect(instance.get()).toBeUndefined();
   });
 
   it('concurrent run() calls — each sees its own context', async () => {
-    const ctx1 = { req: { header: () => 'ctx1' } } as unknown as Context;
-    const ctx2 = { req: { header: () => 'ctx2' } } as unknown as Context;
+    const ctx1 = { req: { header: () => 'ctx1', url: '/ctx1' } } as unknown as Context;
+    const ctx2 = { req: { header: () => 'ctx2', url: '/ctx2' } } as unknown as Context;
 
+    const instance = new TestContext();
     const results = await Promise.all([
-      RequestContext.run(ctx1, async () => {
+      TestContext.run(ctx1, async () => {
         await new Promise((resolve) => setTimeout(resolve, 5));
-        return RequestContext.get();
+        return instance.get();
       }),
-      RequestContext.run(ctx2, async () => {
+      TestContext.run(ctx2, async () => {
         await new Promise((resolve) => setTimeout(resolve, 5));
-        return RequestContext.get();
+        return instance.get();
       }),
     ]);
 
-    expect(results[0]).toBe(ctx1);
-    expect(results[1]).toBe(ctx2);
+    expect(results[0]).toEqual({ url: '/ctx1', header: 'ctx1' });
+    expect(results[1]).toEqual({ url: '/ctx2', header: 'ctx2' });
+  });
+
+  it('multiple RequestContext subclasses are isolated', async () => {
+    class AuthContext extends RequestContext({
+      create: (c) => ({ user: c.req.header('Authorization') }),
+    }) {}
+    class TraceContext extends RequestContext({
+      create: (c) => ({ traceId: c.req.header('x-trace-id') }),
+    }) {}
+
+    const authInstance = new AuthContext();
+    const traceInstance = new TraceContext();
+
+    const authCtx = {
+      req: { header: (name: string) => (name === 'Authorization' ? 'Bearer token' : undefined) },
+    } as unknown as Context;
+    const traceCtx = {
+      req: { header: (name: string) => (name === 'x-trace-id' ? 'trace-123' : undefined) },
+    } as unknown as Context;
+
+    await AuthContext.run(authCtx, async () => {
+      await TraceContext.run(traceCtx, async () => {
+        expect(authInstance.get()).toEqual({ user: 'Bearer token' });
+        expect(traceInstance.get()).toEqual({ traceId: 'trace-123' });
+      });
+    });
+  });
+
+  it('has _isRequestContext static marker', () => {
+    expect(TestContext._isRequestContext).toBe(true);
+  });
+
+  it('has _createContext static factory', () => {
+    expect(typeof TestContext._createContext).toBe('function');
+  });
+
+  it('is Injectable — has _scope and _isInjectable', () => {
+    expect(TestContext._isInjectable).toBe(true);
+    expect(TestContext._scope).toBe('SINGLETON');
   });
 });

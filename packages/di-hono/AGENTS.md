@@ -11,17 +11,17 @@ Not in scope: DI container mechanics, service scope definitions, dependency grap
 
 ## Architecture
 
-| File                     | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `src/types.ts`           | Public type definitions: `HttpMethod`, `StandardSchema` (Standard Schema spec), `StandardIssue`, `StandardPathSegment`, `StandardResult`, `ValidateTargets`, `RouteDefinition`, `ControllerConfig`, `ControllerClass`, `HonoModuleClass`, `HonoModuleOptions`, `HonoModuleOptionsFactory`.                                                                                                                                           |
-| `src/controller.ts`      | `Controller()` mixin factory. Wraps `Injectable()` with `Scope.Singleton`. Adds `_path` static and `this.route()` public method for declaring routes with optional validation.                                                                                                                                                                                                                                                       |
-| `src/hono-module.ts`     | `HonoModule()` mixin factory. Wraps `Module()`. Auto-adds `HonoService` to providers and exports if missing. Stores `_isHonoModule` and `_honoOptions` static metadata. Exports `HonoModuleConfig` type.                                                                                                                                                                                                                             |
-| `src/hono-service.ts`    | `HonoService` singleton injectable. Lazily builds the Hono app on first `hono` getter access. Iterates `container.sorted` to find controller classes, resolves instances, collects route definitions from enumerable properties, wires validation middleware per target (json, query, param, header, form, cookie), wraps handlers in `withRequestScope` + `RequestContext.run`. Uses `container.module` to read HonoModule options. |
-| `src/request-context.ts` | `RequestContext` const object wrapping `AsyncLocalStorage`. Stores the Hono `Context` per request. `get()` retrieves current context, `run()` sets it for a callback scope.                                                                                                                                                                                                                                                          |
-| `src/error-handler.ts`   | `errorHandler` function matching Hono's `ErrorHandler` signature. Maps `DIError` to 500 JSON responses, delegates `HTTPException` to Hono's built-in handling, re-throws unknown errors.                                                                                                                                                                                                                                             |
-| `src/index.ts`           | Barrel exports.                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| File                     | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/types.ts`           | Public type definitions: `HttpMethod`, `StandardSchema` (Standard Schema spec), `StandardIssue`, `StandardPathSegment`, `StandardResult`, `ValidateTargets`, `RouteDefinition`, `ControllerConfig`, `ControllerClass`, `HonoModuleClass`, `HonoModuleOptions`, `HonoModuleOptionsFactory`.                                                                                                                                                                                           |
+| `src/controller.ts`      | `Controller()` mixin factory. Wraps `Injectable()` with `Scope.Singleton`. Adds `_path` static and `this.route()` public method for declaring routes with optional validation.                                                                                                                                                                                                                                                                                                       |
+| `src/hono-module.ts`     | `HonoModule()` mixin factory. Wraps `Module()`. Auto-adds `HonoService` to providers and exports if missing. Stores `_isHonoModule` and `_honoOptions` static metadata. Exports `HonoModuleConfig` type.                                                                                                                                                                                                                                                                             |
+| `src/hono-service.ts`    | `HonoService` singleton injectable. Lazily builds the Hono app on first `hono` getter access. Iterates `container.sorted` to find controller classes, resolves instances, collects route definitions from enumerable properties, wires validation middleware per target (json, query, param, header, form, cookie), wraps handlers in `withRequestScope` + all `RequestContext` subclass `run()` calls nested via `reduceRight`. Uses `container.module` to read HonoModule options. |
+| `src/request-context.ts` | `RequestContext` mixin factory. Returns an `Injectable` subclass (singleton scope) with per-subclass `AsyncLocalStorage`. `create(c)` factory builds the typed context value from Hono's `Context`. Instance `get()` reads from ALS; static `run(c, fn)` populates it. Multiple subclasses are isolated — each has its own ALS via closure.                                                                                                                                          |
+| `src/error-handler.ts`   | `errorHandler` function matching Hono's `ErrorHandler` signature. Maps `DIError` to 500 JSON responses, delegates `HTTPException` to Hono's built-in handling, re-throws unknown errors.                                                                                                                                                                                                                                                                                             |
+| `src/index.ts`           | Barrel exports.                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
-Data flow: `HonoModule()` registers providers and stores `_isHonoModule`/`_honoOptions` metadata. When `honoService.hono` is first accessed, `HonoService` reads `container.module` to find the root module class, walks the module tree, finds all controllers (classes with `_path`), resolves them from the container, collects their route properties, wires validation middleware, and mounts them on the Hono app. Each handler runs inside `withRequestScope` + `RequestContext.run`, giving request-scoped services a fresh store and access to the Hono context.
+Data flow: `HonoModule()` registers providers and stores `_isHonoModule`/`_honoOptions` metadata. When `honoService.hono` is first accessed, `HonoService` reads `container.module` to find the root module class, walks the module tree, finds all controllers (classes with `_path`), resolves them from the container, collects their route properties, wires validation middleware, and mounts them on the Hono app. Each handler runs inside `withRequestScope` with all `RequestContext` subclasses nested via `reduceRight` — each subclass's `run(c, fn)` populates its own `AsyncLocalStorage` before the request scope creates instances.
 
 ## Conventions
 
@@ -116,12 +116,31 @@ Any Standard Schema compliant library works natively (Zod v4, Valibot, ArkType).
 ```typescript
 import { RequestContext } from '@ultranomic/di-hono';
 
-// Inside any service resolved during a request:
-const honoContext = RequestContext.get();
-// honoContext is the Hono Context for the current request
+// 1. Define a typed context
+class AppContext extends RequestContext({
+  create: (c) => ({
+    user: extractUser(c.req.header('Authorization')),
+    requestId: crypto.randomUUID(),
+  }),
+}) {}
+
+// 2. Register in a HonoModule
+class HttpModule extends HonoModule({
+  providers: [AppContext],
+  exports: [AppContext],
+}) {}
+
+// 3. Inject into any service
+class AuditService extends Injectable({
+  inject: [['ctx', AppContext]],
+}) {
+  log(action: string) {
+    const { user, requestId } = this.inject.ctx.get()!;
+  }
+}
 ```
 
-`RequestContext` is available inside any handler or service called during a request. It returns `undefined` outside a request scope.
+Each `RequestContext` subclass is an `Injectable` (singleton scope) with its own `AsyncLocalStorage`. Multiple subclasses are isolated — define as many as needed. `HonoService` discovers all `RequestContext` providers and nests their `run()` calls automatically.
 
 ### Debugging routes
 

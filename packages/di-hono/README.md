@@ -4,7 +4,7 @@
 
 ## TL;DR
 
-Hono adapter for `@ultranomic/di`. Define route handlers as class methods with `Controller`, declare validation with the Standard Schema interface, and wire everything together with `HonoModule`. Each request runs inside a container request scope with the Hono `Context` available via `RequestContext`.
+Hono adapter for `@ultranomic/di`. Define route handlers as class methods with `Controller`, declare validation with the Standard Schema interface, and wire everything together with `HonoModule`. Create typed request context with `RequestContext` — injectable via DI like any other provider.
 
 ## Installation
 
@@ -129,7 +129,7 @@ create = this.route({
 });
 ```
 
-Every handler automatically runs inside a container request scope with `RequestContext` set. You don't need to wrap handlers yourself.
+Every handler automatically runs inside a container request scope with any `RequestContext` subclasses populated. You don't need to wrap handlers yourself.
 
 ### Validation
 
@@ -237,7 +237,7 @@ class HttpModule extends HonoModule({
 
 `HonoService` is an auto-registered singleton that creates and configures the Hono app. You don't instantiate it directly. `HonoModule` adds it to providers for you.
 
-When `.hono` is first accessed, `HonoService` discovers all controller providers, resolves their instances, collects their route definitions, and registers them on the Hono app. Each handler is wrapped to run inside a container request scope with `RequestContext` set.
+When `.hono` is first accessed, `HonoService` discovers all controller providers, resolves their instances, collects their route definitions, and registers them on the Hono app. Each handler is wrapped to run inside a container request scope with all `RequestContext` subclasses populated.
 
 **Accessing the Hono instance:**
 
@@ -258,26 +258,71 @@ const app = honoService.hono;
 
 ### RequestContext
 
-`RequestContext` provides access to the current Hono `Context` from anywhere in the request scope. It uses `AsyncLocalStorage` under the hood.
+`RequestContext` is a mixin factory that creates typed, injectable request context providers. Each subclass has its own `AsyncLocalStorage` and a `create` factory that builds the context value from Hono's `Context`. The type flows through DI — no casting needed.
+
+**Configuration:**
+
+| Field    | Type                | Required | Description                                                  |
+| -------- | ------------------- | -------- | ------------------------------------------------------------ |
+| `create` | `(c: Context) => T` | Yes      | Factory that builds the context value from the Hono request. |
+
+**Define a context:**
 
 ```typescript
 import { RequestContext } from '@ultranomic/di-hono';
 
+class AppContext extends RequestContext({
+  create: (c) => ({
+    user: extractUser(c.req.header('Authorization')),
+    requestId: crypto.randomUUID(),
+  }),
+}) {}
+```
+
+**Register in a module:**
+
+```typescript
+class HttpModule extends HonoModule({
+  providers: [AppContext],
+  exports: [AppContext],
+}) {}
+```
+
+**Inject and use:**
+
+```typescript
 class AuditService extends Injectable({
-  scope: SCOPE.REQUEST,
+  inject: [['ctx', AppContext]],
 }) {
   log(action: string) {
-    const c = RequestContext.get();
-    const requestId = c?.req.header('x-request-id') ?? 'unknown';
-    console.log(`[${requestId}] ${action}`);
+    const { user, requestId } = this.inject.ctx.get()!;
+    console.log(`[${requestId}] user=${user.id} ${action}`);
   }
 }
 ```
 
-| Method | Signature                                             | Description                                                                     |
-| ------ | ----------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `get`  | `() => Context \| undefined`                          | Returns the current Hono `Context`, or `undefined` if called outside a request. |
-| `run`  | `<T>(c: Context, fn: () => Promise<T>) => Promise<T>` | Runs a callback with the given context set. Called internally by HonoService.   |
+**Multiple contexts:**
+
+You can define multiple `RequestContext` subclasses — each has its own isolated storage. `HonoService` nests all of them automatically.
+
+```typescript
+class AuthContext extends RequestContext({
+  create: (c) => ({ user: extractUser(c.req.header('Authorization')) }),
+}) {}
+
+class TraceContext extends RequestContext({
+  create: (c) => ({ traceId: c.req.header('x-trace-id') }),
+}) {}
+
+class HttpModule extends HonoModule({
+  providers: [AuthContext, TraceContext],
+}) {}
+```
+
+| Method | Signature                                             | Description                                                                                       |
+| ------ | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `get`  | `() => T \| undefined`                                | Instance method. Returns the context value for the current request, or `undefined` outside one.   |
+| `run`  | `<R>(c: Context, fn: () => Promise<R>) => Promise<R>` | Static method. Runs a callback with context populated from a Hono request. Called by HonoService. |
 
 ### Options Factory
 
@@ -302,7 +347,8 @@ Controllers are always singletons. But route handlers run inside `container.with
 | `Controller`               | Function | Mixin factory. Returns a base class extending `Injectable` with a `path` prefix and `route()` method.                                                                                                    |
 | `HonoModule`               | Function | Mixin factory. Returns a base class extending `Module` with Hono server configuration.                                                                                                                   |
 | `HonoService`              | Class    | Auto-registered singleton that creates and configures the Hono app.                                                                                                                                      |
-| `RequestContext`           | Object   | `AsyncLocalStorage` wrapper providing access to the Hono `Context` during requests.                                                                                                                      |
+| `RequestContext`           | Function | Mixin factory. Returns an `Injectable` subclass with typed per-request context via `AsyncLocalStorage`. `get()` on the instance reads context; `run()` on the class populates it.                        |
+| `RequestContextClass`      | Type     | Type marker for classes created by `RequestContext()`: `InjectableClass & { _isRequestContext, _createContext, run }`.                                                                                   |
 | `errorHandler`             | Function | Default Hono error handler. Maps `DIError` to `500` and `HTTPException` to its response.                                                                                                                 |
 | `ControllerConfig`         | Type     | Configuration for `Controller`: `{ path, inject? }`.                                                                                                                                                     |
 | `ControllerClass`          | Type     | Type marker for controller classes: `InjectableClass & { _path: string }`.                                                                                                                               |
@@ -329,19 +375,20 @@ Unhandled errors are re-thrown to Hono's default handling.
 
 **DIError to HTTP status mapping:**
 
-| DIError Code              | HTTP Status | When                                                                  |
-| ------------------------- | ----------- | --------------------------------------------------------------------- |
-| `CIRCULAR_DEPENDENCY`     | 500         | Provider graph contains a cycle.                                      |
-| `MISSING_PROVIDER`        | 500         | A dependency is not registered in any reachable module.               |
-| `DUPLICATE_PROVIDER`      | 500         | The same provider appears in multiple modules.                        |
-| `EXPORT_NOT_IN_PROVIDERS` | 500         | A class listed in `exports` is not in `providers`.                    |
-| `SCOPE_VIOLATION`         | 500         | A Singleton provider depends on a Request-scoped provider.            |
-| `NOT_IN_REQUEST_SCOPE`    | 500         | Resolving a Request-scoped provider outside `withRequestScope()`.     |
-| `CONTAINER_STOPPED`       | 500         | Calling `resolve()` after `container.stop()`.                         |
-| `CONTAINER_NOT_STARTED`   | 500         | Calling `resolve()` before `container.start()`.                       |
-| `ALREADY_STARTED`         | 500         | Calling `start()` on an already-started container.                    |
-| `UNKNOWN_SCOPE`           | 500         | Provider has an unrecognized scope value.                             |
-| `DUPLICATE_INJECT_KEY`    | 500         | The same inject key appears more than once in an `Injectable` config. |
+| DIError Code              | HTTP Status | When                                                                                     |
+| ------------------------- | ----------- | ---------------------------------------------------------------------------------------- |
+| `CIRCULAR_DEPENDENCY`     | 500         | Provider graph contains a cycle.                                                         |
+| `MISSING_PROVIDER`        | 500         | A dependency is not registered in any reachable module.                                  |
+| `DUPLICATE_PROVIDER`      | 500         | The same provider appears in multiple modules.                                           |
+| `EXPORT_NOT_IN_PROVIDERS` | 500         | A class listed in `exports` is not in `providers`.                                       |
+| `EXPORT_NOT_IN_IMPORTS`   | 500         | A module listed in `exports` is not in `imports`.                                        |
+| `SCOPE_VIOLATION`         | 500         | A Singleton provider depends on a Request-scoped provider.                               |
+| `NOT_IN_REQUEST_SCOPE`    | 500         | Resolving a Request-scoped provider outside `withRequestScope()`.                        |
+| `CONTAINER_STOPPED`       | 500         | Calling `resolve()` after `container.stop()`.                                            |
+| `CONTAINER_NOT_STARTED`   | 500         | Calling `resolve()` before `container.start()`.                                          |
+| `ALREADY_STARTED`         | 500         | Calling `start()` on an already-started container.                                       |
+| `UNKNOWN_SCOPE`           | 500         | Provider has an unrecognized scope value.                                                |
+| `DUPLICATE_INJECT_KEY`    | 500         | The same inject key appears more than once in an `Injectable` config (type-level check). |
 
 All `DIError` codes map to `500` because they indicate infrastructure or configuration problems, not client errors. Validation errors return `400` separately through the validation middleware.
 
