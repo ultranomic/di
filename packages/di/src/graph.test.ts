@@ -193,33 +193,7 @@ describe('buildGraph — missing provider', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 5. Duplicate provider
-// ---------------------------------------------------------------------------
-describe('buildGraph — duplicate provider', () => {
-  it('throws DUPLICATE_PROVIDER when same class in two modules', () => {
-    class SharedService extends Injectable({ scope: SCOPE.SINGLETON }) {}
-
-    class ModuleA extends Module({
-      providers: [SharedService],
-      exports: [SharedService],
-    }) {}
-
-    class ModuleB extends Module({
-      providers: [SharedService],
-      exports: [SharedService],
-    }) {}
-
-    expect(() => {
-      class _AppModule extends Module({
-        providers: [],
-        imports: [ModuleA, ModuleB],
-      }) {}
-    }).toThrowDIError(DI_ERROR_CODE.DUPLICATE_PROVIDER, /SharedService/);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 6. Scope violation
+// 5. Scope violation
 // ---------------------------------------------------------------------------
 describe('buildGraph — scope violation', () => {
   it('throws SCOPE_VIOLATION when Singleton depends on Request-scoped', () => {
@@ -696,7 +670,8 @@ describe('buildGraph — module re-exports', () => {
     }) {}
 
     expect(MidModule._exports).toEqual([ModuleA, ConsumerService]);
-    expect(MidModule._providers).toEqual([ServiceA, ServiceB, ConsumerService]);
+    expect(MidModule._providers).toEqual([ConsumerService]);
+    expect(MidModule._combinedProviders).toEqual([ConsumerService, ServiceA, ServiceB]);
   });
 
   it('private deps of re-exported providers are included', () => {

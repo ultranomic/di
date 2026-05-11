@@ -47,6 +47,12 @@ describe('types (compile-time + Runtime checks)', () => {
       public static _exports: readonly (InjectableClass | ModuleClass)[] = [
         Provider as unknown as InjectableClass,
       ];
+      public static _combinedProviders: readonly InjectableClass[] = [
+        Provider as unknown as InjectableClass,
+      ];
+      public static _combinedExports: readonly InjectableClass[] = [
+        Provider as unknown as InjectableClass,
+      ];
     }
     const mod: ModuleClass = MyModule as unknown as ModuleClass;
     expect(mod._providers).toHaveLength(1);

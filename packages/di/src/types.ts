@@ -65,10 +65,21 @@ export type InjectableClassBase = Constructor<unknown> & {
 /** Tuple of `[name, InjectableClassBase]` for declaring injectable dependencies. The name becomes a property on `this.inject`. */
 export type InjectEntry = readonly [string, InjectableClassBase];
 
+type _DupKeys<T extends readonly InjectEntry[], Seen extends string = never> = T extends readonly [
+  infer First extends InjectEntry,
+  ...infer Rest extends InjectEntry[],
+]
+  ? First[0] extends Seen
+    ? First[0] | _DupKeys<Rest, Seen | First[0]>
+    : _DupKeys<Rest, Seen | First[0]>
+  : never;
+
 export type ValidInjectEntries<T extends readonly InjectEntry[]> = {
   readonly [K in keyof T]: T[K] extends readonly [infer S extends string, ...any[]]
     ? ValidIdentifier<S> extends S
-      ? T[K]
+      ? S extends _DupKeys<T>
+        ? readonly [`🚨 ERROR: Duplicate inject key "${S}" 🚨`, T[K][1]]
+        : T[K]
       : readonly [ValidIdentifier<S>, T[K][1]]
     : T[K];
 };
@@ -91,6 +102,8 @@ export type ModuleClass = Constructor & {
   readonly _providers: readonly InjectableClass[];
   readonly _exports: readonly (InjectableClass | ModuleClass)[];
   readonly _imports: readonly ModuleClass[];
+  readonly _combinedProviders: readonly InjectableClass[];
+  readonly _combinedExports: readonly InjectableClass[];
 };
 
 /** Optional lifecycle hooks that providers can implement for startup and shutdown. */

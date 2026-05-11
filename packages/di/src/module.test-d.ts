@@ -37,9 +37,7 @@ class EmptyModule extends Module({}) {}
 describe('Module types', () => {
   test('_providers is correct type', () => {
     assertType<readonly [typeof ConfigService]>(SharedModule._providers);
-    assertType<readonly [typeof ConfigService, typeof DatabaseService, typeof CacheService]>(
-      FeatureModule._providers,
-    );
+    assertType<readonly [typeof DatabaseService, typeof CacheService]>(FeatureModule._providers);
     assertType<readonly []>(EmptyModule._providers);
   });
 
@@ -98,7 +96,7 @@ describe('Module types', () => {
     }) {}
 
     assertType<readonly [typeof SubModule, typeof ConfigService]>(ParentModule._exports);
-    assertType<readonly [typeof LoggerService, typeof ConfigService]>(ParentModule._providers);
+    assertType<readonly [typeof ConfigService]>(ParentModule._providers);
   });
 
   test('_isModule is true on Module classes', () => {

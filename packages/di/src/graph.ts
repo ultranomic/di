@@ -9,7 +9,7 @@ const collectModuleDeps = (
   module: ModuleClass,
   exports: readonly InjectableClass[],
 ): InjectableClass[] => {
-  const moduleProviders = new Set<InjectableClass>(module._providers);
+  const moduleProviders = new Set<InjectableClass>(module._combinedProviders);
   const result = new Set<InjectableClass>();
 
   const trace = (provider: InjectableClass): void => {
@@ -59,7 +59,7 @@ const collectImports = (
 };
 
 const collectProviders = (module: ModuleClass): InjectableClass[] => {
-  const providerSet = new Set<InjectableClass>(module._providers);
+  const providerSet = new Set<InjectableClass>(module._combinedProviders);
   const path = new Set<ModuleClass>();
   const collected = new Set<ModuleClass>();
 

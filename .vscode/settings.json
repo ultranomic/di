@@ -53,5 +53,6 @@
   "scm.defaultViewMode": "tree",
   "terminal.integrated.suggest.enabled": true,
   "workbench.commandPalette.experimental.enableNaturalLanguageSearch": true,
-  "workbench.commandPalette.experimental.suggestCommands": true
+  "workbench.commandPalette.experimental.suggestCommands": true,
+  "typescript.native-preview.tsdk": "/workspaces/di/node_modules/@typescript/native-preview"
 }
