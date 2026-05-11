@@ -78,4 +78,16 @@ describe('Injectable types', () => {
     class _BadChar extends Injectable({ inject: [['bad-name', ConfigService]] }) {}
     void _BadChar;
   });
+
+  test('rejects duplicate inject keys', () => {
+    class _BadDup extends Injectable({
+      inject: [
+        // @ts-expect-error -- duplicate inject key "dup"
+        ['dup', ConfigService],
+        // @ts-expect-error -- duplicate inject key "dup"
+        ['dup', ConfigService],
+      ],
+    }) {}
+    void _BadDup;
+  });
 });
