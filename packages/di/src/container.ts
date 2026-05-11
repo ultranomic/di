@@ -99,6 +99,7 @@ export class Container {
     | 'bootstrapped'
     | 'starting'
     | 'started'
+    | 'shutting_down'
     | 'stopping'
     | 'stopped'
     | undefined = 'idle';
@@ -267,7 +268,7 @@ export class Container {
    * Call `onStop` hooks on all singleton providers in reverse dependency order, then mark the container as stopped.
    * @throws {DIError} When the container has not been started or is still starting (code `CONTAINER_NOT_STARTED`).
    * @throws {DIError} When the container has been stopped or is stopping (code `CONTAINER_STOPPED`).
-   * @throws {AggregateError} When one or more `onStop` hooks fail.
+   * @throws {AggregateError} When one or more `beforeApplicationShutdown` or `onStop` hooks fail.
    */
   public async stop(): Promise<void> {
     if (
@@ -279,18 +280,23 @@ export class Container {
       throw new DIError(DI_ERROR_CODE.CONTAINER_NOT_STARTED, MSG_NOT_IN_STARTED_STATE);
     }
     if (this.#state !== 'started') return;
+    this.#state = 'shutting_down';
+
+    const shutdownErrors = await this.#callBeforeApplicationShutdown(this.#singletonProviders);
+
     this.#state = 'stopping';
 
     try {
       const singletonProviders = this.#reversedSingletonProviders;
-      const errors = await this.#stopInstances(
+      const stopErrors = await this.#stopInstances(
         singletonProviders
           .map((p) => this.#singletons.get(p))
           .filter((inst): inst is object => inst !== undefined),
       );
 
-      if (errors.length > 0) {
-        throwAggregate(errors, 'Stop failed');
+      const allErrors = [...shutdownErrors, ...stopErrors];
+      if (allErrors.length > 0) {
+        throwAggregate(allErrors, 'Stop failed');
       }
     } finally {
       this.#singletons.clear();
@@ -401,6 +407,22 @@ export class Container {
         await Promise.try(() => instance.onStart(this));
       }
     }
+  }
+
+  async #callBeforeApplicationShutdown(providers: readonly InjectableClass[]): Promise<Error[]> {
+    const errors: Error[] = [];
+    for (const provider of providers) {
+      const instance = this.#singletons.get(provider);
+      if (!instance) continue;
+      if (hasLifecycleHook(instance, 'beforeApplicationShutdown')) {
+        try {
+          await Promise.try(() => instance.beforeApplicationShutdown(this));
+        } catch (err) {
+          errors.push(toError(err));
+        }
+      }
+    }
+    return errors;
   }
 
   async #rollbackStarted(instances: unknown[]): Promise<void> {
