@@ -20,7 +20,7 @@ Dependency injection framework for Ultranomic. Zero runtime dependencies, no dec
 - No proxy-based resolution for non-circular dependencies. Circular dependencies where at least one participant is cached (singleton/request) resolve via transparent Proxy injection at runtime. Transient↔Transient cycles still throw.
 - No service locator pattern. Inject dependencies explicitly.
 - Constructor injection only. Dependencies arrive as constructor parameters in the order declared in `inject`.
-- Lifecycle hooks receive the container as their argument: `onStart(container)`, `onStop(container)`.
+- Lifecycle hooks receive the container as their argument: `onApplicationBootstrap(container)`, `onStart(container)`, `onStop(container)`.
 - Test file sits next to source file: `foo.ts` -> `foo.test.ts`.
 
 ## Cross-file Changes

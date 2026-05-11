@@ -69,8 +69,11 @@ describe('HonoService', () => {
     });
 
     it('onStart returns void (not Promise)', async () => {
-      const service = new HonoService();
-      const result = service.onStart({} as Container);
+      class TestModule extends HonoModule({ providers: [] }) {}
+      container = new Container(TestModule);
+      await container.start();
+      const service = container.resolve(HonoService);
+      const result = service.onStart(container);
       expect(result).toBeUndefined();
     });
 
@@ -1515,10 +1518,8 @@ describe('HonoService', () => {
         }),
       }) {}
       container = new Container(TestModule);
-      await container.start();
-      const service = container.resolve(HonoService);
       try {
-        void service.hono;
+        await container.start();
         expect.unreachable();
       } catch (e) {
         expect(e).toBeInstanceOf(DIError);
@@ -1534,9 +1535,13 @@ describe('HonoService', () => {
         },
       }) {}
       container = new Container(TestModule);
-      await container.start();
-      const service = container.resolve(HonoService);
-      expect(() => service.hono).toThrow('Options factory crashed');
+      try {
+        await container.start();
+        expect.unreachable();
+      } catch (e) {
+        expect(e).toBeInstanceOf(Error);
+        expect((e as Error).message).toBe('Options factory crashed');
+      }
     });
 
     it('middleware short-circuits — handler not called', async () => {
@@ -1595,7 +1600,7 @@ describe('HonoService', () => {
   });
 
   describe('lifecycle', () => {
-    it('onStop resets initialized and container state', async () => {
+    it('onStop resets app state', async () => {
       class UserController extends Controller({ path: '/users' }) {
         get = this.route({
           method: 'GET',
@@ -1612,7 +1617,6 @@ describe('HonoService', () => {
       expect(resBefore.status).toBe(200);
       await container.stop();
       expect(service.hono).toBeInstanceOf(Hono);
-      // After stop, #app is reset to a clean Hono instance with no routes
       const resAfter = await service.hono.fetch(new Request('http://localhost/users'));
       expect(resAfter.status).toBe(404);
     });

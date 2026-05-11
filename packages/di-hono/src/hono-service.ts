@@ -57,15 +57,10 @@ const createValidationMiddleware = (target: ValidateTarget, schema: StandardSche
 export class HonoService extends Injectable({ scope: SCOPE.SINGLETON }) {
   public static readonly _isHonoService = true as const;
   #app = new Hono();
-  #container: Container | undefined;
-  #initialized = false;
   #port: number | undefined;
   #host: string | undefined;
 
   public get hono(): Hono {
-    if (!this.#initialized && this.#container) {
-      this.#registerRoutes(this.#container);
-    }
     return this.#app;
   }
 
@@ -78,12 +73,10 @@ export class HonoService extends Injectable({ scope: SCOPE.SINGLETON }) {
   }
 
   public onStart = (container: Container): void => {
-    this.#container = container;
+    this.#registerRoutes(container);
   };
 
   public onStop = (_: Container): void => {
-    this.#initialized = false;
-    this.#container = undefined;
     this.#port = undefined;
     this.#host = undefined;
     this.#app = new Hono();
@@ -146,7 +139,6 @@ export class HonoService extends Injectable({ scope: SCOPE.SINGLETON }) {
     }
 
     this.#app = app;
-    this.#initialized = true;
   }
 
   #readOptions(moduleClass: ModuleClass, container: Container) {

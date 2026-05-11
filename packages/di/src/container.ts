@@ -93,7 +93,15 @@ export class Container {
   readonly #singletons = new Map<InjectableClass, unknown>();
   readonly #als = new AsyncLocalStorage<RequestStore>();
   readonly #resolutionStack = new Set<InjectableClass>();
-  #state: 'idle' | 'starting' | 'started' | 'stopping' | 'stopped' = 'idle';
+  #state:
+    | 'idle'
+    | 'bootstrapping'
+    | 'bootstrapped'
+    | 'starting'
+    | 'started'
+    | 'stopping'
+    | 'stopped'
+    | undefined = 'idle';
 
   /**
    * Create a new container for the given root module.
@@ -146,10 +154,10 @@ export class Container {
     if (this.#state === 'idle') {
       throw new DIError(DI_ERROR_CODE.CONTAINER_NOT_STARTED, MSG_NOT_STARTED);
     }
-    if (this.#state === 'starting') {
+    if (this.#state === 'bootstrapping') {
       throw new DIError(
         DI_ERROR_CODE.CONTAINER_NOT_STARTED,
-        'Container is still starting. resolve() is not available during startup.',
+        'Container is still bootstrapping. resolve() is not available during bootstrap.',
       );
     }
 
@@ -201,10 +209,16 @@ export class Container {
   }
 
   /**
-   * Instantiate all singleton providers and call their `onStart` hooks in dependency order.
+   * Instantiate all singleton providers and call their lifecycle hooks in dependency order.
+   *
+   * Lifecycle phases:
+   * 1. **Bootstrapping** — providers are instantiated and their `onApplicationBootstrap` hooks are called.
+   *    `resolve()` is NOT available during this phase.
+   * 2. **Starting** — providers' `onStart` hooks are called. `resolve()` IS available during this phase.
+   *
    * @throws {DIError} When the container has already been started or is starting (code `ALREADY_STARTED`).
    * @throws {DIError} When the container has been stopped or is stopping (code `CONTAINER_STOPPED`).
-   * @throws {Error} When an `onStart` hook throws; already-started providers are rolled back.
+   * @throws {Error} When a lifecycle hook throws; already-started providers are rolled back.
    * @example
    * ```ts
    * const container = new Container(AppModule);
@@ -212,19 +226,34 @@ export class Container {
    * ```
    */
   public async start(): Promise<void> {
-    if (this.#state === 'started' || this.#state === 'starting') {
+    this.#throwIfStopped();
+    if (this.#state !== 'idle') {
       throw new DIError(
         DI_ERROR_CODE.ALREADY_STARTED,
         'Container has already been started or is starting',
       );
     }
-    this.#throwIfStopped();
+    this.#state = 'bootstrapping';
+
+    try {
+      await this.#startProviders(this.#singletonProviders);
+    } catch (err) {
+      this.#singletons.clear();
+      this.#resolutionStack.clear();
+      this.#state = 'idle';
+      throw err;
+    }
+
+    this.#state = 'bootstrapped';
     this.#state = 'starting';
 
-    const providers = this.#singletonProviders;
     try {
-      await this.#startProviders(providers);
+      await this.#callOnStart(this.#singletonProviders);
     } catch (err) {
+      const instances = this.#singletonProviders
+        .map((p) => this.#singletons.get(p))
+        .filter((inst): inst is object => inst !== undefined);
+      await this.#rollbackStarted(instances);
       this.#singletons.clear();
       this.#resolutionStack.clear();
       this.#state = 'idle';
@@ -241,7 +270,12 @@ export class Container {
    * @throws {AggregateError} When one or more `onStop` hooks fail.
    */
   public async stop(): Promise<void> {
-    if (this.#state === 'idle' || this.#state === 'starting') {
+    if (
+      this.#state === 'idle' ||
+      this.#state === 'bootstrapping' ||
+      this.#state === 'bootstrapped' ||
+      this.#state === 'starting'
+    ) {
       throw new DIError(DI_ERROR_CODE.CONTAINER_NOT_STARTED, MSG_NOT_IN_STARTED_STATE);
     }
     if (this.#state !== 'started') return;
@@ -282,7 +316,7 @@ export class Container {
     if (currentStore?.has(IN_REQUEST_START)) {
       throw new DIError(
         DI_ERROR_CODE.CIRCULAR_DEPENDENCY,
-        'Cannot call withRequestScope() from within a request-scoped onStart hook — this would cause infinite recursion.',
+        'Cannot call withRequestScope() from within a request-scoped onApplicationBootstrap or onStart hook — this would cause infinite recursion.',
       );
     }
 
@@ -292,6 +326,12 @@ export class Container {
       store.set(IN_REQUEST_START, true);
       try {
         await this.#startProviders(requestProviders, { rollback: false });
+        for (const provider of requestProviders) {
+          const instance = store.get(provider);
+          if (instance && hasLifecycleHook(instance, 'onStart')) {
+            await Promise.try(() => instance.onStart(this));
+          }
+        }
       } catch (startErr) {
         store.delete(IN_REQUEST_START);
         const cleanupErrors = await this.#stopInstances([...store.values()].toReversed());
@@ -341,14 +381,24 @@ export class Container {
         if (rollback) {
           startedInstances.push(instance);
         }
-        if (hasLifecycleHook(instance, 'onStart')) {
-          await Promise.try(() => instance.onStart(this));
+        if (hasLifecycleHook(instance, 'onApplicationBootstrap')) {
+          await Promise.try(() => instance.onApplicationBootstrap(this));
         }
       } catch (err) {
         if (rollback) {
           await this.#rollbackStarted(startedInstances);
         }
         throw err;
+      }
+    }
+  }
+
+  async #callOnStart(providers: readonly InjectableClass[]): Promise<void> {
+    for (const provider of providers) {
+      const instance = this.#singletons.get(provider);
+      if (!instance) continue;
+      if (hasLifecycleHook(instance, 'onStart')) {
+        await Promise.try(() => instance.onStart(this));
       }
     }
   }
