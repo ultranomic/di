@@ -18,7 +18,7 @@ export type HonoModuleConfig<
   readonly providers?: TProviders;
   readonly exports?: TExports;
   readonly imports?: TImports;
-  readonly options?: HonoModuleOptionsFactory;
+  readonly options: HonoModuleOptionsFactory;
 };
 
 const ensureIncluded = <T>(list: readonly T[] | undefined, item: T): readonly T[] =>
@@ -30,7 +30,7 @@ export const HonoModule = <
   const TExports extends readonly HonoExportEntry<TProviders, TImports>[] =
     readonly HonoExportEntry<TProviders, TImports>[],
 >(
-  config?: HonoModuleConfig<TProviders, TImports, TExports>,
+  config: HonoModuleConfig<TProviders, TImports, TExports>,
 ) => {
   const providers = ensureIncluded(config?.providers, HonoService);
   const exports = ensureIncluded(
@@ -46,6 +46,6 @@ export const HonoModule = <
 
   return class extends Base {
     public static readonly _isHonoModule = true as const;
-    public static readonly _honoOptions = config?.options ?? (() => ({}));
+    public static readonly _honoOptions = config.options;
   };
 };

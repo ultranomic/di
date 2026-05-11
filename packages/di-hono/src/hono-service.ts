@@ -6,11 +6,15 @@ import {
   SCOPE,
 } from '@ultranomic/di';
 import { type Context, type MiddlewareHandler, Hono } from 'hono';
+import type { Server as HttpServer } from 'node:http';
+import type { Http2Server, Http2SecureServer } from 'node:http2';
+import type { Server as HttpsServer } from 'node:https';
 import { validator } from 'hono/validator';
 import { errorHandler } from './error-handler.ts';
 import {
   type ControllerClass,
   type HonoModuleClass,
+  type HonoModuleOptions,
   type RequestContextClass,
   type RouteDefinition,
   type StandardSchema,
@@ -33,6 +37,9 @@ const isHonoModuleClass = (moduleClass: ModuleClass): moduleClass is HonoModuleC
 const isRequestContextClass = (cls: InjectableClass): cls is RequestContextClass =>
   '_isRequestContext' in cls && cls._isRequestContext === true;
 
+const isNode = () =>
+  typeof process !== 'undefined' && !process?.versions?.bun && !!process?.versions?.node;
+
 const getRouteProperties = (instance: object): RouteDefinition[] => {
   const routes: RouteDefinition[] = [];
   for (const key of Object.keys(instance)) {
@@ -54,11 +61,15 @@ const createValidationMiddleware = (target: ValidateTarget, schema: StandardSche
   });
 };
 
+type NodeServer = HttpServer | Http2Server | Http2SecureServer | HttpsServer;
+
 export class HonoService extends Injectable({ scope: SCOPE.SINGLETON }) {
   public static readonly _isHonoService = true as const;
   #app = new Hono();
   #port: number | undefined;
   #host: string | undefined;
+  #serverOptions: HonoModuleOptions['server'] | undefined;
+  #server: NodeServer | undefined;
 
   public get hono(): Hono {
     return this.#app;
@@ -72,15 +83,50 @@ export class HonoService extends Injectable({ scope: SCOPE.SINGLETON }) {
     return this.#host;
   }
 
-  public onStart = (container: Container): void => {
+  public onStart = async (container: Container): Promise<void> => {
     this.#registerRoutes(container);
+    await this.#startServer();
+  };
+
+  public beforeApplicationShutdown = async (_: Container): Promise<void> => {
+    const server = this.#server;
+    if (!server) return;
+    await new Promise<void>((resolve) => {
+      server.close(() => resolve());
+    });
+    this.#server = undefined;
   };
 
   public onStop = (_: Container): void => {
+    this.#server = undefined;
+    this.#serverOptions = undefined;
     this.#port = undefined;
     this.#host = undefined;
     this.#app = new Hono();
   };
+
+  async #startServer(): Promise<void> {
+    if (!isNode() || this.#port === undefined) return;
+
+    const { serve } = await import('@hono/node-server');
+    const opts: Parameters<typeof serve>[0] = {
+      fetch: this.#app.fetch,
+      port: this.#port,
+      hostname: this.#host,
+    };
+    if (this.#serverOptions?.createServer) {
+      opts.createServer = this.#serverOptions.createServer as NonNullable<typeof opts.createServer>;
+    }
+    if (this.#serverOptions?.serverOptions) {
+      opts.serverOptions = this.#serverOptions.serverOptions as NonNullable<typeof opts.serverOptions>;
+    }
+    this.#server = await new Promise<NodeServer>((resolve) => {
+      const server = serve(opts, (info) => {
+        this.#port = info.port;
+        resolve(server as NodeServer);
+      });
+    });
+  }
 
   #registerRoutes(container: Container): void {
     const moduleClass = container.module;
@@ -96,6 +142,7 @@ export class HonoService extends Injectable({ scope: SCOPE.SINGLETON }) {
 
     this.#port = options?.port;
     this.#host = options?.host;
+    this.#serverOptions = options?.server;
 
     const providers = container.sorted;
 

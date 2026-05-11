@@ -16,12 +16,12 @@ Not in scope: DI container mechanics, service scope definitions, dependency grap
 | `src/types.ts`           | Public type definitions: `HttpMethod`, `StandardSchema` (Standard Schema spec), `StandardIssue`, `StandardPathSegment`, `StandardResult`, `ValidateTargets`, `RouteDefinition`, `ControllerConfig`, `ControllerClass`, `HonoModuleClass`, `HonoModuleOptions`, `HonoModuleOptionsFactory`.                                                                                                                                                                                                                   |
 | `src/controller.ts`      | `Controller()` mixin factory. Wraps `Injectable()` with `Scope.Singleton`. Adds `_path` static and `this.route()` public method for declaring routes with optional validation.                                                                                                                                                                                                                                                                                                                               |
 | `src/hono-module.ts`     | `HonoModule()` mixin factory. Wraps `Module()`. Auto-adds `HonoService` to providers and exports if missing. Stores `_isHonoModule` and `_honoOptions` static metadata. Exports `HonoModuleConfig` type.                                                                                                                                                                                                                                                                                                     |
-| `src/hono-service.ts`    | `HonoService` singleton injectable. Eagerly builds the Hono app in `onStart` (post-bootstrap, `resolve()` available). Iterates `container.sorted` to find controller classes, resolves instances, collects route definitions from enumerable properties, wires validation middleware per target (json, query, param, header, form, cookie), wraps handlers in `withRequestScope` + all `RequestContext` subclass `run()` calls nested via `reduceRight`. Uses `container.module` to read HonoModule options. |
+| `src/hono-service.ts`    | `HonoService` singleton injectable. Eagerly builds the Hono app in `onStart` (async, post-bootstrap, `resolve()` available). Iterates `container.sorted` to find controller classes, resolves instances, collects route definitions from enumerable properties, wires validation middleware per target (json, query, param, header, form, cookie), wraps handlers in `withRequestScope` + all `RequestContext` subclass `run()` calls nested via `reduceRight`. Uses `container.module` to read HonoModule options (required `port`/`host`, optional `server` for HTTP/2 or HTTPS). In Node.js, auto-starts an HTTP server via `@hono/node-server`. Graceful shutdown via `beforeApplicationShutdown` (closes server). |
 | `src/request-context.ts` | `RequestContext` mixin factory. Returns an `Injectable` subclass (singleton scope) with per-subclass `AsyncLocalStorage`. `create(c)` factory builds the typed context value from Hono's `Context`. Instance `get()` reads from ALS; static `run(c, fn)` populates it. Multiple subclasses are isolated — each has its own ALS via closure.                                                                                                                                                                  |
 | `src/error-handler.ts`   | `errorHandler` function matching Hono's `ErrorHandler` signature. Maps `DIError` to 500 JSON responses, delegates `HTTPException` to Hono's built-in handling, re-throws unknown errors.                                                                                                                                                                                                                                                                                                                     |
 | `src/index.ts`           | Barrel exports.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
-Data flow: `HonoModule()` registers providers and stores `_isHonoModule`/`_honoOptions` metadata. When the container starts, `HonoService.onStart` reads `container.module` to find the root module class, walks the module tree, finds all controllers (classes with `_path`), resolves them from the container, collects their route properties, wires validation middleware, and mounts them on the Hono app. Each handler runs inside `withRequestScope` with all `RequestContext` subclasses nested via `reduceRight` — each subclass's `run(c, fn)` populates its own `AsyncLocalStorage` before the request scope creates instances.
+Data flow: `HonoModule()` registers providers and stores `_isHonoModule`/`_honoOptions` metadata. `options` is required — must include `port` and `host`. An optional `server` field supports HTTP/2 (`node:http2` `createServer`/`createSecureServer`) or HTTPS (`node:https` `createServer`). When the container starts, `HonoService.onStart` (async) reads `container.module` to find the root module class, walks the module tree, finds all controllers (classes with `_path`), resolves them from the container, collects their route properties, wires validation middleware, and mounts them on the Hono app. Then `#startServer()` starts an HTTP server via `@hono/node-server` (HTTP/1.1 by default, HTTP/2 or HTTPS if `server` option is configured). On shutdown, `beforeApplicationShutdown` closes the server before the container stops. Each handler runs inside `withRequestScope` with all `RequestContext` subclasses nested via `reduceRight` — each subclass's `run(c, fn)` populates its own `AsyncLocalStorage` before the request scope creates instances.
 
 ## Conventions
 
@@ -40,8 +40,8 @@ Data flow: `HonoModule()` registers providers and stores `_isHonoModule`/`_honoO
 Run tests:
 
 ```bash
-cd libs/di-hono
-pnpm test
+cd packages/di-hono
+vp test
 ```
 
 Coverage requirement: 100%. Every source file has a corresponding `.test.ts` file in the same directory.
@@ -156,12 +156,14 @@ Routes are discovered by enumerating instance properties. If a route doesn't app
 ```typescript
 import { HonoModule } from '@ultranomic/di-hono';
 import { Module } from '@ultranomic/di';
+import { createServer } from 'node:http2';
 
 class HttpModule extends HonoModule({
   options: (resolve) => ({
     middlewares: [cors(), logger()],
     port: 3000,
     host: '0.0.0.0',
+    server: { createServer },
   }),
 }) {}
 
@@ -170,7 +172,7 @@ class AppModule extends Module({
 }) {}
 ```
 
-The `options` factory receives a `resolve` function (delegates to `container.resolve`) so options can reference registered services.
+The `options` factory receives a `resolve` function (delegates to `container.resolve`) so options can reference registered services. `port` and `host` are required. `server` is optional — pass `{ createServer }` from `node:http2` or `node:https` to enable HTTP/2 or HTTPS.
 
 ## Guardrails
 
@@ -190,17 +192,15 @@ The `options` factory receives a `resolve` function (delegates to `container.res
 ## Build Commands
 
 ```bash
-cd libs/di-hono
-pnpm build:lib      # Production build (tsgo --noCheck)
-pnpm build:dev      # Dev build with declarations and source maps
-pnpm typecheck       # Type check without emitting
-pnpm test            # Run tests once
-pnpm test:dev        # Run tests in watch mode
+cd packages/di-hono
+vp run build      # Production build
+vp test           # Run tests
+vp check          # Type check + lint
 ```
 
 ## Dependencies
 
-Runtime dependencies: `@ultranomic/di` (workspace), `hono` (peer dependency, ^4.0.0).
+Runtime dependencies: `@ultranomic/di` (workspace peer), `hono` (peer dependency, ^4.0.0), `@hono/node-server` (^2.0.2).
 
 Dev dependencies: vitest, typescript, zod (test fixtures only). See `package.json` for the full list.
 

@@ -1,5 +1,7 @@
 import type { InjectableClass, InjectEntry, ModuleClass } from '@ultranomic/di';
 import type { Context, MiddlewareHandler } from 'hono';
+import type { ServerOptions as Http2ServerOptions, SecureServerOptions as Http2SecureServerOptions } from 'node:http2';
+import type { ServerOptions as HttpsServerOptions } from 'node:https';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
 
@@ -73,10 +75,26 @@ export type HonoModuleClass = ModuleClass & {
   readonly _honoOptions: HonoModuleOptionsFactory;
 };
 
+export type Http2Options = {
+  readonly createServer: typeof import('node:http2').createServer;
+  readonly serverOptions?: Http2ServerOptions;
+};
+
+export type Http2SecureOptions = {
+  readonly createServer: typeof import('node:http2').createSecureServer;
+  readonly serverOptions?: Http2SecureServerOptions;
+};
+
+export type HttpsOptions = {
+  readonly createServer: typeof import('node:https').createServer;
+  readonly serverOptions?: HttpsServerOptions;
+};
+
 export type HonoModuleOptions = {
   readonly middlewares?: readonly MiddlewareHandler[];
-  readonly port?: number;
-  readonly host?: string;
+  readonly port: number;
+  readonly host: string;
+  readonly server?: Http2Options | Http2SecureOptions | HttpsOptions;
 };
 
 export type HonoModuleOptionsFactory = (

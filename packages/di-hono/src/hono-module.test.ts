@@ -16,42 +16,42 @@ afterEach(async () => {
 
 describe('HonoModule', () => {
   it('returns class with _isHonoModule === true', () => {
-    const mod = HonoModule({ providers: [] });
+    const mod = HonoModule({ providers: [], options: () => ({ port: 0, host: '0.0.0.0' }) });
     expect(mod._isHonoModule).toBe(true);
   });
 
   it('auto-adds HonoService to _providers', () => {
-    const mod = HonoModule({ providers: [] });
+    const mod = HonoModule({ providers: [], options: () => ({ port: 0, host: '0.0.0.0' }) });
     expect(mod._providers).toContain(HonoService);
   });
 
   it('HonoModule with custom providers — HonoService still auto-added', () => {
     class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {}
-    const mod = HonoModule({ providers: [MyService] });
+    const mod = HonoModule({ providers: [MyService], options: () => ({ port: 0, host: '0.0.0.0' }) });
     expect(mod._providers).toContain(HonoService);
     expect(mod._providers).toContain(MyService);
   });
 
   it('deduplicates HonoService if already in providers', () => {
-    const mod = HonoModule({ providers: [HonoService] });
+    const mod = HonoModule({ providers: [HonoService], options: () => ({ port: 0, host: '0.0.0.0' }) });
     const honoCount = mod._providers.filter((p) => p === HonoService).length;
     expect(honoCount).toBe(1);
   });
 
   it('auto-exports HonoService', () => {
-    const mod = HonoModule({ providers: [] });
+    const mod = HonoModule({ providers: [], options: () => ({ port: 0, host: '0.0.0.0' }) });
     expect(mod._exports).toContain(HonoService);
   });
 
   it('deduplicates HonoService if already in exports', () => {
     // @ts-expect-error — intentionally testing runtime dedup of auto-included HonoService
-    const mod = HonoModule({ providers: [], exports: [HonoService] });
+    const mod = HonoModule({ providers: [], exports: [HonoService], options: () => ({ port: 0, host: '0.0.0.0' }) });
     const honoCount = mod._exports.filter((p) => p === HonoService).length;
     expect(honoCount).toBe(1);
   });
 
   it('is a valid ModuleClass (has _providers, _exports, _imports)', () => {
-    const mod = HonoModule({ providers: [] });
+    const mod = HonoModule({ providers: [], options: () => ({ port: 0, host: '0.0.0.0' }) });
     expect('_providers' in mod).toBe(true);
     expect('_exports' in mod).toBe(true);
     expect('_imports' in mod).toBe(true);
@@ -62,7 +62,7 @@ describe('HonoModule', () => {
 
   it('passes exports to Module', () => {
     class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {}
-    const mod = HonoModule({ providers: [MyService], exports: [MyService] });
+    const mod = HonoModule({ providers: [MyService], exports: [MyService], options: () => ({ port: 0, host: '0.0.0.0' }) });
     expect(mod._exports).toContain(MyService);
   });
 
@@ -72,7 +72,7 @@ describe('HonoModule', () => {
       providers: [SharedService],
       exports: [SharedService],
     });
-    const mod = HonoModule({ providers: [], imports: [SharedModule] });
+    const mod = HonoModule({ providers: [], imports: [SharedModule], options: () => ({ port: 0, host: '0.0.0.0' }) });
     expect(mod._imports).toContain(SharedModule);
   });
 
@@ -82,33 +82,33 @@ describe('HonoModule', () => {
       providers: [SharedService],
       exports: [SharedService],
     });
-    const mod = HonoModule({ providers: [], imports: [SharedModule], exports: [SharedModule] });
+    const mod = HonoModule({ providers: [], imports: [SharedModule], exports: [SharedModule], options: () => ({ port: 0, host: '0.0.0.0' }) });
     expect(mod._exports).toContain(SharedModule);
     expect(mod._exports).toContain(HonoService);
   });
 
   it('deduplicates HonoService when importing HonoModule', () => {
-    const SharedHonoModule = HonoModule({ providers: [] });
-    const mod = HonoModule({ providers: [], imports: [SharedHonoModule] });
+    const SharedHonoModule = HonoModule({ providers: [], options: () => ({ port: 0, host: '0.0.0.0' }) });
+    const mod = HonoModule({ providers: [], imports: [SharedHonoModule], options: () => ({ port: 0, host: '0.0.0.0' }) });
     const honoCount = mod._providers.filter((p) => p === HonoService).length;
     expect(honoCount).toBe(1);
     expect(mod._exports).toContain(HonoService);
   });
 
   it('_honoOptions stores factory function', () => {
-    const factory: HonoModuleOptionsFactory = () => ({});
+    const factory: HonoModuleOptionsFactory = () => ({ port: 0, host: '0.0.0.0' });
     const mod = HonoModule({ providers: [], options: factory });
     expect(mod._honoOptions).toBe(factory);
   });
 
-  it('default _honoOptions returns empty object', () => {
-    const mod = HonoModule({ providers: [] });
+  it('default _honoOptions returns provided options', () => {
+    const mod = HonoModule({ providers: [], options: () => ({ port: 0, host: '0.0.0.0' }) });
     const result = mod._honoOptions(<T>(_cls: InjectableClass<T>): T => ({}) as T);
-    expect(result).toEqual({});
+    expect(result).toEqual({ port: 0, host: '0.0.0.0' });
   });
 
   it('Container.start() with HonoModule → HonoService.onStart() called', async () => {
-    class TestModule extends HonoModule({ providers: [] }) {}
+    class TestModule extends HonoModule({ providers: [], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
     const result = await setupModule(TestModule);
     container = result.container;
     expect(result.app).toBeInstanceOf(Hono);
@@ -123,7 +123,7 @@ describe('HonoModule', () => {
       });
     }
 
-    class TestModule extends HonoModule({ providers: [TestController] }) {}
+    class TestModule extends HonoModule({ providers: [TestController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
     const result = await setupModule(TestModule);
     container = result.container;
 
@@ -149,7 +149,7 @@ describe('HonoModule', () => {
       });
     }
 
-    class TestModule extends HonoModule({ providers: [TestController] }) {}
+    class TestModule extends HonoModule({ providers: [TestController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
     const result = await setupModule(TestModule);
     container = result.container;
 
@@ -179,8 +179,8 @@ describe('HonoModule', () => {
     expectValidationFailed(invalidBody);
   });
 
-  it('HonoModule() with no args — auto-adds HonoService, defaults work', () => {
-    const mod = HonoModule();
+  it('HonoModule({ options: () => ({ port: 0, host: "0.0.0.0" }) }) with no args — auto-adds HonoService, defaults work', () => {
+    const mod = HonoModule({ options: () => ({ port: 0, host: "0.0.0.0" }) });
     expect(mod._isHonoModule).toBe(true);
     expect(mod._providers).toContain(HonoService);
     expect(mod._exports).toContain(HonoService);
@@ -206,6 +206,7 @@ describe('HonoModule', () => {
 
     class TestModule extends HonoModule({
       providers: [UserController, ProductController],
+      options: () => ({ port: 0, host: '0.0.0.0' }),
     }) {}
     const result = await setupModule(TestModule);
     container = result.container;

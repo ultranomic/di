@@ -72,7 +72,7 @@ class AuthModule extends Module({
   exports: [UserController, AuthController],
 }) {}
 
-class HttpModule extends HonoModule() {}
+class HttpModule extends HonoModule({ options: () => ({ port: 0, host: "0.0.0.0" }) }) {}
 
 class AppModule extends Module({
   imports: [HttpModule, AuthModule],

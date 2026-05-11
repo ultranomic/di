@@ -16,12 +16,13 @@ class AppModule extends HonoModule({
   }),
 }) {}
 
-class EmptyModule extends HonoModule() {}
+class EmptyModule extends HonoModule({ options: () => ({ port: 3000, host: '0.0.0.0' }) }) {}
 
 class ModuleWithMiddlewares extends HonoModule({
   options: () => ({
     middlewares: [],
     port: 8080,
+    host: '0.0.0.0',
   }),
 }) {}
 
@@ -35,6 +36,7 @@ class SharedModule extends Module({
 class ReExportModule extends HonoModule({
   imports: [SharedModule],
   exports: [SharedModule],
+  options: () => ({ port: 3000, host: '0.0.0.0' }),
 }) {}
 
 describe('HonoModule types', () => {
@@ -97,12 +99,12 @@ describe('HonoModuleOptions type', () => {
   });
 
   test('HonoModuleOptions with middlewares', () => {
-    const opts: HonoModuleOptions = { middlewares: [], port: 8080 };
+    const opts: HonoModuleOptions = { middlewares: [], port: 8080, host: '0.0.0.0' };
     assertType<HonoModuleOptions>(opts);
   });
 
   test('HonoModuleOptions empty', () => {
-    const opts: HonoModuleOptions = {};
+    const opts: HonoModuleOptions = { port: 3000, host: '0.0.0.0' };
     assertType<HonoModuleOptions>(opts);
   });
 });
@@ -117,7 +119,7 @@ describe('HonoModuleOptionsFactory type', () => {
   });
 
   test('factory returning minimal options', () => {
-    const factory: HonoModuleOptionsFactory = () => ({ port: 3000 });
+    const factory: HonoModuleOptionsFactory = () => ({ port: 3000, host: '0.0.0.0' });
     assertType<HonoModuleOptionsFactory>(factory);
   });
 });
