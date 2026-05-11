@@ -2086,7 +2086,7 @@ describe('Container — circular dependency resolution', () => {
         return 'B';
       }
     }
-    (ServiceA as any)._inject = [ServiceB];
+    (ServiceA as any)._injectClasses = [ServiceB];
 
     class AppModule extends Module({
       providers: [ServiceA, ServiceB],
@@ -2132,7 +2132,7 @@ describe('Container — circular dependency resolution', () => {
         return 'B';
       }
     }
-    (ReqA as any)._inject = [ReqB];
+    (ReqA as any)._injectClasses = [ReqB];
 
     class AppModule extends Module({
       providers: [ReqA, ReqB],
@@ -2164,7 +2164,7 @@ describe('Container — circular dependency resolution', () => {
       scope: SCOPE.TRANSIENT,
       inject: [['transA', TransA]],
     }) {}
-    (TransA as any)._inject = [TransB];
+    (TransA as any)._injectClasses = [TransB];
 
     class AppModule extends Module({
       providers: [TransA, TransB],
@@ -2198,7 +2198,7 @@ describe('Container — circular dependency resolution', () => {
         return 'transient';
       }
     }
-    (SingletonService as any)._inject = [TransientService];
+    (SingletonService as any)._injectClasses = [TransientService];
 
     class AppModule extends Module({
       providers: [SingletonService, TransientService],
@@ -2236,7 +2236,7 @@ describe('Container — circular dependency resolution', () => {
         return 'B';
       }
     }
-    (ServiceA as any)._inject = [ServiceB];
+    (ServiceA as any)._injectClasses = [ServiceB];
 
     class AppModule extends Module({
       providers: [ServiceA, ServiceB],
@@ -2288,7 +2288,7 @@ describe('Container — circular dependency resolution', () => {
         return 'C';
       }
     }
-    (ServiceA as any)._inject = [ServiceC];
+    (ServiceA as any)._injectClasses = [ServiceC];
 
     class AppModule extends Module({
       providers: [ServiceA, ServiceB, ServiceC],
@@ -2325,7 +2325,7 @@ describe('Container — circular dependency resolution', () => {
         return this.inject.serviceA.getValue();
       }
     }
-    (ServiceA as any)._inject = [ServiceB];
+    (ServiceA as any)._injectClasses = [ServiceB];
 
     class AppModule extends Module({
       providers: [ServiceA, ServiceB],
@@ -2358,7 +2358,7 @@ describe('Container — circular dependency resolution', () => {
       scope: SCOPE.SINGLETON,
       inject: [['serviceA', ServiceA]],
     }) {}
-    (ServiceA as any)._inject = [ServiceB];
+    (ServiceA as any)._injectClasses = [ServiceB];
 
     class AppModule extends Module({
       providers: [ServiceA, ServiceB],
@@ -2389,7 +2389,7 @@ describe('Container — circular dependency resolution', () => {
     }) {
       public existingProp = 'yes';
     }
-    (ServiceA as any)._inject = [ServiceB];
+    (ServiceA as any)._injectClasses = [ServiceB];
 
     class AppModule extends Module({
       providers: [ServiceA, ServiceB],
@@ -2420,7 +2420,7 @@ describe('Container — circular dependency resolution', () => {
       public alpha = 1;
       public beta = 2;
     }
-    (ServiceA as any)._inject = [ServiceB];
+    (ServiceA as any)._injectClasses = [ServiceB];
 
     class AppModule extends Module({
       providers: [ServiceA, ServiceB],
@@ -2450,7 +2450,7 @@ describe('Container — circular dependency resolution', () => {
       scope: SCOPE.SINGLETON,
       inject: [['serviceA', ServiceA]],
     }) {}
-    (ServiceA as any)._inject = [ServiceB];
+    (ServiceA as any)._injectClasses = [ServiceB];
 
     class AppModule extends Module({
       providers: [ServiceA, ServiceB],
@@ -2586,7 +2586,7 @@ describe('Container — proxy Object.defineProperty', () => {
     }) {
       public existingProp = 'yes';
     }
-    (ServiceA as any)._inject = [ServiceB];
+    (ServiceA as any)._injectClasses = [ServiceB];
 
     class AppModule extends Module({
       providers: [ServiceA, ServiceB],

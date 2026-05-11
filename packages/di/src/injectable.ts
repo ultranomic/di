@@ -1,10 +1,9 @@
-import { DI_ERROR_CODE, DIError } from './di-error.ts';
 import { SCOPE, type Scope } from './scope.ts';
-import type { InjectableClass, InjectEntry, ValidInjectEntries } from './types.ts';
+import type { InjectEntry, ValidInjectEntries, Simplify } from './types.ts';
 
-type ExtractInjectObject<TInject extends readonly InjectEntry[]> = {
+type ToInjectObject<TInject extends readonly InjectEntry[]> = Simplify<{
   readonly [K in TInject[number] as K[0]]: InstanceType<K[1]>;
-};
+}>;
 
 type InjectClasses<TInject extends readonly InjectEntry[]> = {
   readonly [K in keyof TInject]: TInject[K][1];
@@ -28,35 +27,26 @@ export const Injectable = <
   scope?: TScope;
   inject?: ValidInjectEntries<TInject>;
 }) => {
-  const injectEntries = [...(config?.inject ?? [])] as unknown as TInject;
-  const seenKeys = new Set<string>();
-  for (const [key] of injectEntries) {
-    if (seenKeys.has(key)) {
-      throw new DIError(DI_ERROR_CODE.DUPLICATE_INJECT_KEY, `Duplicate inject key: "${key}"`);
-    }
-    seenKeys.add(key);
-  }
+  const scope = (config?.scope ?? SCOPE.SINGLETON) as TScope;
+  const inject = (config?.inject ?? []) as TInject;
+  //No need to check for duplicated key, we will do it at the type level
 
-  const injectClasses = Object.freeze(
-    injectEntries.map(([, cls]) => cls),
-  ) as InjectClasses<TInject>;
-
-  type InjectObject = ExtractInjectObject<TInject>;
-  type Instance = { readonly inject: InjectObject };
+  const injectClasses = inject.map(([, cls]) => cls) as InjectClasses<TInject>;
 
   const InjectableBase = class {
     public static readonly _isInjectable = true as const;
-    public static readonly _scope: TScope = (config?.scope ?? SCOPE.SINGLETON) as TScope;
-    public static readonly _inject: InjectClasses<TInject> = injectClasses;
+    public static readonly _scope = scope;
+    public static readonly _inject = inject;
+    public static readonly _injectClasses = injectClasses;
 
-    public readonly inject: InjectObject;
+    public readonly inject;
 
     public constructor(...deps: { [K in keyof TInject]: InstanceType<TInject[K][1]> }) {
-      this.inject = Object.freeze(
-        Object.fromEntries(injectEntries.map(([key], index) => [key, deps[index]])),
-      ) as InjectObject;
+      this.inject = Object.fromEntries(
+        inject.map(([key], index) => [key, deps[index]]),
+      ) as ToInjectObject<TInject>;
     }
-  } as InjectableClass<Instance, InjectClasses<TInject>, TScope>;
+  };
 
   return InjectableBase;
 };

@@ -1,4 +1,4 @@
-import { assertType, describe, test } from 'vite-plus/test';
+import { assertType, describe, expectTypeOf, test } from 'vite-plus/test';
 import { Injectable } from './injectable.ts';
 import { SCOPE } from './scope.ts';
 
@@ -34,30 +34,31 @@ class TransientService extends Injectable({
 describe('Injectable types', () => {
   test('instance properties work correctly', () => {
     const db = new DatabaseService(new ConfigService());
-    const url: string = db.inject.config.getDbUrl();
-    assertType<string>(url);
+    expectTypeOf(db.inject.config.getDbUrl()).toBeString();
 
     const cache = new CacheService(new DatabaseService(new ConfigService()), new ConfigService());
-    const dbUrl: string = cache.inject.db.connect();
-    const configUrl: string = cache.inject.config.getDbUrl();
-    assertType<string>(dbUrl);
-    assertType<string>(configUrl);
+    expectTypeOf(cache.inject.db.connect()).toBeString();
+    expectTypeOf(cache.inject.config.getDbUrl()).toBeString();
   });
 
   test('static properties are correct', () => {
-    assertType<'SINGLETON'>(ConfigService._scope);
-    assertType<'SINGLETON'>(DatabaseService._scope);
-    assertType<'TRANSIENT'>(TransientService._scope);
+    expectTypeOf(ConfigService._scope).toEqualTypeOf<'SINGLETON'>();
+    expectTypeOf(DatabaseService._scope).toEqualTypeOf<'SINGLETON'>();
+    expectTypeOf(TransientService._scope).toEqualTypeOf<'TRANSIENT'>();
   });
 
   test('inject metadata is correct', () => {
     assertType<readonly []>(ConfigService._inject);
-    assertType<readonly [typeof ConfigService]>(DatabaseService._inject);
+    assertType<readonly [readonly ['config', typeof ConfigService]]>(DatabaseService._inject);
+  });
+
+  test('empty inject shape is empty object', () => {
+    expectTypeOf(new ConfigService().inject).toEqualTypeOf<{}>();
   });
 
   test('empty inject shape rejects property access', () => {
     // @ts-expect-error -- no inject properties on no-config Injectable
-    assertType(new ConfigService().inject.nonexistent);
+    void new ConfigService().inject.nonexistent;
   });
 
   test('rejects empty string as inject key', () => {

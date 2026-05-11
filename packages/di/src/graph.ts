@@ -16,7 +16,7 @@ const collectModuleDeps = (
     if (result.has(provider)) return;
     if (!moduleProviders.has(provider)) return;
     result.add(provider);
-    for (const dep of provider._inject) {
+    for (const dep of provider._injectClasses) {
       trace(dep);
     }
   };
@@ -78,7 +78,7 @@ const buildAdjacencyList = (
 
   for (const provider of providers) {
     const deps: InjectableClass[] = [];
-    for (const dep of provider._inject) {
+    for (const dep of provider._injectClasses) {
       if (!providerSet.has(dep)) {
         throw new DIError(
           DI_ERROR_CODE.MISSING_PROVIDER,
@@ -134,7 +134,9 @@ const validateScope = (sorted: InjectableClass[]): void => {
     changed = false;
     for (const provider of sorted) {
       const isRequest = provider._scope === SCOPE.REQUEST;
-      const anyDepIsRequest = provider._inject.some((dep) => requestDepMap.get(dep) === true);
+      const anyDepIsRequest = provider._injectClasses.some(
+        (dep) => requestDepMap.get(dep) === true,
+      );
       const newValue = isRequest || anyDepIsRequest;
       if (newValue !== (requestDepMap.get(provider) === true)) {
         requestDepMap.set(provider, newValue);
@@ -152,7 +154,7 @@ const validateScope = (sorted: InjectableClass[]): void => {
     }
 
     if (provider._scope === SCOPE.SINGLETON) {
-      for (const dep of provider._inject) {
+      for (const dep of provider._injectClasses) {
         if (dep._scope === SCOPE.REQUEST) {
           throw new DIError(
             DI_ERROR_CODE.SCOPE_VIOLATION,

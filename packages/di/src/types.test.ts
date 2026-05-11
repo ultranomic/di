@@ -26,16 +26,19 @@ describe('types (compile-time + Runtime checks)', () => {
     class MyService {
       public static _scope: Scope = SCOPE.SINGLETON;
       public static _inject: readonly InjectableClass[] = [];
+      public static _injectClasses: readonly InjectableClass[] = [];
     }
     const svc: InjectableClass = MyService as unknown as InjectableClass;
     expect(svc._scope).toBe(SCOPE.SINGLETON);
     expect(svc._inject).toHaveLength(0);
+    expect(svc._injectClasses).toHaveLength(0);
   });
 
   it('ModuleClass shape is assignable', () => {
     class Provider {
       public static _scope: Scope = SCOPE.TRANSIENT;
       public static _inject: readonly InjectableClass[] = [];
+      public static _injectClasses: readonly InjectableClass[] = [];
     }
     class MyModule {
       public static _providers: readonly InjectableClass[] = [
@@ -65,6 +68,7 @@ describe('types (compile-time + Runtime checks)', () => {
     class A {
       public static _scope: Scope = SCOPE.SINGLETON;
       public static _inject: readonly InjectableClass[] = [];
+      public static _injectClasses: readonly InjectableClass[] = [];
     }
     const result: GraphResult = {
       sorted: [A as unknown as InjectableClass],

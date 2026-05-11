@@ -100,7 +100,7 @@ describe('buildGraph — cycle detection', () => {
     }) {}
 
     // Mutate _inject to create cycle A→B→A
-    (ServiceA as any)._inject = [ServiceB];
+    (ServiceA as any)._injectClasses = [ServiceB];
 
     class AppModule extends Module({
       providers: [ServiceA, ServiceB],
@@ -119,7 +119,7 @@ describe('buildGraph — cycle detection', () => {
     }) {}
 
     // Force self-dep
-    (ServiceA as any)._inject = [ServiceA];
+    (ServiceA as any)._injectClasses = [ServiceA];
 
     class AppModule extends Module({
       providers: [ServiceA],
@@ -144,7 +144,7 @@ describe('buildGraph — cycle detection', () => {
       inject: [['serviceB', ServiceB]],
     }) {}
 
-    (ServiceA as any)._inject = [ServiceC];
+    (ServiceA as any)._injectClasses = [ServiceC];
 
     class AppModule extends Module({
       providers: [ServiceA, ServiceB, ServiceC],
@@ -158,7 +158,7 @@ describe('buildGraph — cycle detection', () => {
     class TransA extends Injectable({ scope: SCOPE.TRANSIENT, inject: [] }) {}
     class TransB extends Injectable({ scope: SCOPE.TRANSIENT, inject: [['transA', TransA]] }) {}
 
-    (TransA as any)._inject = [TransB];
+    (TransA as any)._injectClasses = [TransB];
 
     class AppModule extends Module({
       providers: [TransA, TransB],
@@ -411,10 +411,10 @@ describe('buildGraph — large graph', () => {
     // Build a chain: S1 → S2 → S3 → ... → S10
     const services: any[] = [];
     for (let i = 10; i >= 1; i--) {
-      const deps: [string, any][] | [] = i < 10 ? [['dep', services.at(-1)]] : [];
+      const deps = i < 10 ? ([['dep', services.at(-1)]] as const) : ([] as const);
       const cls = class extends Injectable({
         scope: i % 3 === 0 ? SCOPE.TRANSIENT : SCOPE.SINGLETON,
-        inject: deps,
+        inject: deps as any,
       }) {};
       // Give a meaningful name
       Object.defineProperty(cls, 'name', { value: `Svc${i}`, configurable: true });

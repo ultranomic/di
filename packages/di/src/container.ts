@@ -404,7 +404,7 @@ export class Container {
   }
 
   #createInstance<T>(provider: InjectableClass<T>): T {
-    const deps = provider._inject.map((dep) => this.#resolveInternal(dep));
+    const deps = provider._injectClasses.map((dep) => this.#resolveInternal(dep));
     return new provider(...deps);
   }
 
