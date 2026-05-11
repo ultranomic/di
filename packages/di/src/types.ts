@@ -110,6 +110,7 @@ export type ModuleClass = Constructor & {
 export type LifecycleHooks<T = unknown> = {
   onApplicationBootstrap?(container: T): Promise<void> | void;
   onStart?(container: T): Promise<void> | void;
+  beforeApplicationShutdown?(container: T): Promise<void> | void;
   onStop?(container: T): Promise<void> | void;
 };
 

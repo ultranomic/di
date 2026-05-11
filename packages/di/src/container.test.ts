@@ -2778,3 +2778,207 @@ describe('Container — onStart hook', () => {
     await container.stop();
   });
 });
+
+// ---------------------------------------------------------------------------
+// beforeApplicationShutdown hook
+// ---------------------------------------------------------------------------
+describe('Container — beforeApplicationShutdown hook', () => {
+  it('is called before onStop, resolve() is available', async () => {
+    let resolveInBeforeShutdown: unknown;
+
+    class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {
+      public onApplicationBootstrap() {}
+      public beforeApplicationShutdown(container: Container) {
+        resolveInBeforeShutdown = container.resolve(MyService);
+      }
+    }
+
+    class AppModule extends Module({ providers: [MyService] }) {}
+    const container = new Container(AppModule);
+    await container.start();
+
+    await container.stop();
+
+    expect(resolveInBeforeShutdown).toBeInstanceOf(MyService);
+  });
+
+  it('is called in dependency order', async () => {
+    const order: string[] = [];
+
+    class ServiceB extends Injectable({ scope: SCOPE.SINGLETON }) {
+      public onApplicationBootstrap() {}
+      public beforeApplicationShutdown() {
+        order.push('B');
+      }
+    }
+    class ServiceA extends Injectable({
+      scope: SCOPE.SINGLETON,
+      inject: [['serviceB', ServiceB]],
+    }) {
+      public onApplicationBootstrap() {}
+      public beforeApplicationShutdown() {
+        order.push('A');
+      }
+    }
+
+    class AppModule extends Module({ providers: [ServiceA, ServiceB] }) {}
+    const container = new Container(AppModule);
+    await container.start();
+    await container.stop();
+
+    expect(order).toEqual(['B', 'A']);
+  });
+
+  it('runs before onStop, which runs in reverse order', async () => {
+    const order: string[] = [];
+
+    class ServiceB extends Injectable({ scope: SCOPE.SINGLETON }) {
+      public onApplicationBootstrap() {}
+      public beforeApplicationShutdown() {
+        order.push('before:B');
+      }
+      public onStop() {
+        order.push('stop:B');
+      }
+    }
+    class ServiceA extends Injectable({
+      scope: SCOPE.SINGLETON,
+      inject: [['serviceB', ServiceB]],
+    }) {
+      public onApplicationBootstrap() {}
+      public beforeApplicationShutdown() {
+        order.push('before:A');
+      }
+      public onStop() {
+        order.push('stop:A');
+      }
+    }
+
+    class AppModule extends Module({ providers: [ServiceA, ServiceB] }) {}
+    const container = new Container(AppModule);
+    await container.start();
+    await container.stop();
+
+    expect(order).toEqual(['before:B', 'before:A', 'stop:A', 'stop:B']);
+  });
+
+  it('receives the container instance', async () => {
+    let receivedContainer: Container | undefined;
+
+    class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {
+      public onApplicationBootstrap() {}
+      public beforeApplicationShutdown(container: Container) {
+        receivedContainer = container;
+      }
+    }
+
+    class AppModule extends Module({ providers: [MyService] }) {}
+    const container = new Container(AppModule);
+    await container.start();
+    await container.stop();
+
+    expect(receivedContainer).toBe(container);
+  });
+
+  it('handles async beforeApplicationShutdown', async () => {
+    let resolved = false;
+
+    class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {
+      public onApplicationBootstrap() {}
+      public async beforeApplicationShutdown() {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        resolved = true;
+      }
+    }
+
+    class AppModule extends Module({ providers: [MyService] }) {}
+    const container = new Container(AppModule);
+    await container.start();
+    await container.stop();
+
+    expect(resolved).toBe(true);
+  });
+
+  it('errors are collected and aggregated with onStop errors', async () => {
+    class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {
+      public onApplicationBootstrap() {}
+      public beforeApplicationShutdown() {
+        throw new Error('beforeShutdown failed');
+      }
+      public onStop() {
+        throw new Error('onStop failed');
+      }
+    }
+
+    class AppModule extends Module({ providers: [MyService] }) {}
+    const container = new Container(AppModule);
+    await container.start();
+
+    const err = await container.stop().catch((e: any) => e);
+    expect(err).toBeInstanceOf(AggregateError);
+    expect(err.errors).toHaveLength(2);
+    expect(err.errors[0].message).toBe('beforeShutdown failed');
+    expect(err.errors[1].message).toBe('onStop failed');
+
+    expect(() => container.resolve(MyService)).toThrowDIError(DI_ERROR_CODE.CONTAINER_STOPPED);
+  });
+
+  it('error in beforeApplicationShutdown does not prevent onStop from running', async () => {
+    const stopped: string[] = [];
+
+    class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {
+      public onApplicationBootstrap() {}
+      public beforeApplicationShutdown() {
+        throw new Error('beforeShutdown failed');
+      }
+      public onStop() {
+        stopped.push('A');
+      }
+    }
+
+    class AppModule extends Module({ providers: [MyService] }) {}
+    const container = new Container(AppModule);
+    await container.start();
+
+    await expect(container.stop()).rejects.toThrow();
+    expect(stopped).toEqual(['A']);
+  });
+
+  it('stop() is a no-op when called twice (idempotent after full stop)', async () => {
+    let stopCount = 0;
+    class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {
+      public onApplicationBootstrap() {}
+      public beforeApplicationShutdown() {}
+      public onStop() {
+        stopCount++;
+      }
+    }
+
+    class AppModule extends Module({ providers: [MyService] }) {}
+    const container = new Container(AppModule);
+    await container.start();
+
+    await container.stop();
+    await container.stop();
+
+    expect(stopCount).toBe(1);
+  });
+
+  it('non-Error throws are wrapped', async () => {
+    class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {
+      public onApplicationBootstrap() {}
+      public beforeApplicationShutdown() {
+        throw 'string-error';
+      }
+    }
+
+    class AppModule extends Module({ providers: [MyService] }) {}
+    const container = new Container(AppModule);
+    await container.start();
+
+    const err = await container.stop().catch((e: any) => e);
+    expect(err).toBeInstanceOf(AggregateError);
+    expect(err.errors[0]).toBeInstanceOf(Error);
+    expect(err.errors[0].message).toBe('string-error');
+  });
+});
