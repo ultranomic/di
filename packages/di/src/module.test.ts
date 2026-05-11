@@ -1,15 +1,15 @@
-import { describe, expect, it } from "vite-plus/test";
-import { DI_ERROR_CODE } from "./di-error.ts";
-import { Injectable } from "./injectable.ts";
-import { Module } from "./module.ts";
-import { resolveExports } from "./module.ts";
-import { SCOPE } from "./scope.ts";
-import "./test-utils.ts";
-import type { InjectableClass, ModuleClass } from "./types.ts";
+import { describe, expect, it } from 'vite-plus/test';
+import { DI_ERROR_CODE } from './di-error.ts';
+import { Injectable } from './injectable.ts';
+import { Module } from './module.ts';
+import { resolveExports } from './module.ts';
+import { SCOPE } from './scope.ts';
+import './test-utils.ts';
+import type { InjectableClass, ModuleClass } from './types.ts';
 
 class ServiceA extends Injectable({ scope: SCOPE.SINGLETON }) {
   public greet() {
-    return "hello";
+    return 'hello';
   }
 }
 
@@ -21,8 +21,8 @@ class ServiceB extends Injectable({ scope: SCOPE.TRANSIENT }) {
 
 class ServiceC extends Injectable({ scope: SCOPE.REQUEST }) {}
 
-describe("Module", () => {
-  it("creates a module with providers and exports", () => {
+describe('Module', () => {
+  it('creates a module with providers and exports', () => {
     class AppModule extends Module({
       providers: [ServiceA, ServiceB],
       exports: [ServiceA],
@@ -32,7 +32,7 @@ describe("Module", () => {
     expect(AppModule._exports).toEqual([ServiceA]);
   });
 
-  it("defaults exports to empty array when omitted", () => {
+  it('defaults exports to empty array when omitted', () => {
     class PrivateModule extends Module({
       providers: [ServiceA],
     }) {}
@@ -40,7 +40,7 @@ describe("Module", () => {
     expect(PrivateModule._exports).toEqual([]);
   });
 
-  it("defaults imports to empty array when omitted", () => {
+  it('defaults imports to empty array when omitted', () => {
     class NoImports extends Module({
       providers: [ServiceA],
     }) {}
@@ -48,7 +48,7 @@ describe("Module", () => {
     expect(NoImports._imports).toEqual([]);
   });
 
-  it("accepts imports from other modules", () => {
+  it('accepts imports from other modules', () => {
     class SharedModule extends Module({
       providers: [ServiceA],
       exports: [ServiceA],
@@ -64,7 +64,7 @@ describe("Module", () => {
     expect(AppModule._providers).toEqual([ServiceA, ServiceB]);
   });
 
-  it("creates an empty module with no providers", () => {
+  it('creates an empty module with no providers', () => {
     class EmptyModule extends Module({
       providers: [],
     }) {}
@@ -74,7 +74,7 @@ describe("Module", () => {
     expect(EmptyModule._imports).toEqual([]);
   });
 
-  it("creates an empty module when called with no arguments", () => {
+  it('creates an empty module when called with no arguments', () => {
     class NoArgsModule extends Module() {}
 
     expect(NoArgsModule._providers).toEqual([]);
@@ -82,7 +82,7 @@ describe("Module", () => {
     expect(NoArgsModule._imports).toEqual([]);
   });
 
-  it("module metadata is accessible on extending class", () => {
+  it('module metadata is accessible on extending class', () => {
     class AppModule extends Module({
       providers: [ServiceA, ServiceB, ServiceC],
       exports: [ServiceA, ServiceB],
@@ -97,7 +97,7 @@ describe("Module", () => {
     expect(exports[1]).toBe(ServiceB);
   });
 
-  it("can be instantiated with new", () => {
+  it('can be instantiated with new', () => {
     class AppModule extends Module({
       providers: [ServiceA],
     }) {}
@@ -106,7 +106,7 @@ describe("Module", () => {
     expect(instance).toBeInstanceOf(AppModule);
   });
 
-  it("child class inherits module metadata", () => {
+  it('child class inherits module metadata', () => {
     class BaseModule extends Module({
       providers: [ServiceA],
       exports: [ServiceA],
@@ -118,7 +118,7 @@ describe("Module", () => {
     expect(ChildModule._exports).toEqual([ServiceA]);
   });
 
-  it("satisfies ModuleClass type", () => {
+  it('satisfies ModuleClass type', () => {
     class AppModule extends Module({
       providers: [ServiceA, ServiceB],
       exports: [ServiceA],
@@ -129,7 +129,7 @@ describe("Module", () => {
     expect(mod._exports).toHaveLength(1);
   });
 
-  it("multiple modules are independent", () => {
+  it('multiple modules are independent', () => {
     class ModuleA extends Module({
       providers: [ServiceA],
       exports: [ServiceA],
@@ -146,39 +146,46 @@ describe("Module", () => {
     expect(ModuleB._providers).toEqual([ServiceB]);
   });
 
-  it("freezes _providers, _exports, and _imports at runtime", () => {
+  it('freezes _providers, _exports, and _imports at runtime', () => {
     class FrozenModule extends Module({
       providers: [ServiceA],
       exports: [ServiceA],
     }) {}
 
-    expect(() => (FrozenModule._providers as InjectableClass[]).push(ServiceB)).toThrow(TypeError);
-    expect(() => (FrozenModule._exports as InjectableClass[]).push(ServiceB)).toThrow(TypeError);
-    expect(() => (FrozenModule._imports as ModuleClass[]).push(FrozenModule)).toThrow(TypeError);
+    expect(() => (FrozenModule._providers as unknown as InjectableClass[]).push(ServiceB)).toThrow(
+      TypeError,
+    );
+    expect(() => (FrozenModule._exports as unknown as InjectableClass[]).push(ServiceB)).toThrow(
+      TypeError,
+    );
+    expect(() => (FrozenModule._imports as unknown as ModuleClass[]).push(FrozenModule)).toThrow(
+      TypeError,
+    );
   });
 
-  it("throws EXPORT_NOT_IN_PROVIDERS when export is not in providers", () => {
+  it('throws EXPORT_NOT_IN_PROVIDERS when export is not in providers', () => {
     class ServiceX extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     expect(() => {
-      class BadModule extends Module({
+      class _BadModule extends Module({
         providers: [ServiceA],
+        // @ts-expect-error — ServiceX is not in providers
         exports: [ServiceX],
       }) {}
     }).toThrowDIError(DI_ERROR_CODE.EXPORT_NOT_IN_PROVIDERS, /Export ServiceX is not in providers/);
   });
 
-  it("throws DUPLICATE_PROVIDER when same class appears twice in providers", () => {
+  it('throws DUPLICATE_PROVIDER when same class appears twice in providers', () => {
     class SharedService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     expect(() => {
-      class BadModule extends Module({
+      class _BadModule extends Module({
         providers: [SharedService, SharedService],
       }) {}
     }).toThrowDIError(DI_ERROR_CODE.DUPLICATE_PROVIDER, /SharedService/);
   });
 
-  it("resolves _providers to include imported module exports", () => {
+  it('resolves _providers to include imported module exports', () => {
     class DeepService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     class DeepModule extends Module({
@@ -195,7 +202,7 @@ describe("Module", () => {
     expect(MidModule._providers).toEqual([DeepService, ServiceA]);
   });
 
-  it("preserves ModuleClass entries in _exports instead of flattening", () => {
+  it('preserves ModuleClass entries in _exports instead of flattening', () => {
     class DeepService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     class DeepModule extends Module({
@@ -212,7 +219,7 @@ describe("Module", () => {
     expect(MidModule._exports).toEqual([DeepModule, ServiceA]);
   });
 
-  it("preserves mixed ModuleClass and InjectableClass in _exports", () => {
+  it('preserves mixed ModuleClass and InjectableClass in _exports', () => {
     class ServiceX extends Injectable({ scope: SCOPE.SINGLETON }) {}
     class ServiceY extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
@@ -230,7 +237,7 @@ describe("Module", () => {
     expect(ParentModule._exports).toEqual([SubModule, ServiceY]);
   });
 
-  it("throws DUPLICATE_PROVIDER when two imported modules export the same provider", () => {
+  it('throws DUPLICATE_PROVIDER when two imported modules export the same provider', () => {
     class SharedService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     class ModuleA extends Module({
@@ -244,14 +251,14 @@ describe("Module", () => {
     }) {}
 
     expect(() => {
-      class AppModule extends Module({
+      class _AppModule extends Module({
         providers: [],
         imports: [ModuleA, ModuleB],
       }) {}
     }).toThrowDIError(DI_ERROR_CODE.DUPLICATE_PROVIDER, /SharedService/);
   });
 
-  it("throws EXPORT_NOT_IN_PROVIDERS when re-exported module is not imported", () => {
+  it('throws EXPORT_NOT_IN_PROVIDERS when re-exported module is not imported', () => {
     class OrphanService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     class OrphanModule extends Module({
@@ -260,26 +267,27 @@ describe("Module", () => {
     }) {}
 
     expect(() => {
-      class BadModule extends Module({
+      class _BadModule extends Module({
         providers: [ServiceA],
+        // @ts-expect-error — OrphanModule is not in imports
         exports: [OrphanModule],
       }) {}
     }).toThrowDIError(DI_ERROR_CODE.EXPORT_NOT_IN_PROVIDERS, /OrphanService is not in providers/);
   });
 });
 
-describe("resolveExports", () => {
-  it("returns empty array for empty input", () => {
+describe('resolveExports', () => {
+  it('returns empty array for empty input', () => {
     expect(resolveExports([])).toEqual([]);
   });
 
-  it("flattens injectable classes", () => {
+  it('flattens injectable classes', () => {
     class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     expect(resolveExports([MyService])).toEqual([MyService]);
   });
 
-  it("recursively flattens module re-exports", () => {
+  it('recursively flattens module re-exports', () => {
     class DeepService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     class DeepModule extends Module({
@@ -296,7 +304,7 @@ describe("resolveExports", () => {
     expect(resolveExports(MidModule._exports)).toEqual([DeepService, ServiceA]);
   });
 
-  it("flattens 3+ levels of nested module re-exports", () => {
+  it('flattens 3+ levels of nested module re-exports', () => {
     class LeafService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     class LeafModule extends Module({

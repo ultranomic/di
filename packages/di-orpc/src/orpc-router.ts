@@ -1,6 +1,6 @@
-import { Injectable, SCOPE, type InjectableClass } from "@ultranomic/di";
-import { os, type Context } from "@orpc/server";
-import type { OrpcRouterConfig } from "./types.ts";
+import { Injectable, SCOPE, type InjectableClass } from '@ultranomic/di';
+import { os, type Context } from '@orpc/server';
+import type { OrpcRouterConfig } from './types.ts';
 
 export const OrpcRouter = <
   TContext extends Context = Context,

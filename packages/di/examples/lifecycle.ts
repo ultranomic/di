@@ -6,56 +6,56 @@
  * Run: node packages/di/examples/lifecycle.ts
  */
 
-import { Container, Injectable, Module, SCOPE } from "../src/index.ts";
+import { Container, Injectable, Module, SCOPE } from '../src/index.ts';
 
 // ---------------------------------------------------------------------------
 // Services with lifecycle hooks
 // ---------------------------------------------------------------------------
 class ConfigService extends Injectable({ scope: SCOPE.SINGLETON }) {
-  public readonly env = "production";
+  public readonly env = 'production';
 
-  public async onStart(container: Container): Promise<void> {
-    console.log("[lifecycle] ConfigService.onStart — loading configuration...");
+  public async onStart(_container: Container): Promise<void> {
+    console.log('[lifecycle] ConfigService.onStart — loading configuration...');
     await Promise.resolve();
-    console.log("[lifecycle] ConfigService.onStart — configuration loaded");
+    console.log('[lifecycle] ConfigService.onStart — configuration loaded');
   }
 
-  public onStop(container: Container) {
-    console.log("[lifecycle] ConfigService.onStop — configuration flushed");
+  public onStop(_container: Container) {
+    console.log('[lifecycle] ConfigService.onStop — configuration flushed');
   }
 }
 
 class DatabaseService extends Injectable({
   scope: SCOPE.SINGLETON,
-  inject: [["config", ConfigService]],
+  inject: [['config', ConfigService]],
 }) {
-  public async onStart(container: Container): Promise<void> {
+  public async onStart(_container: Container): Promise<void> {
     console.log(
       `[lifecycle] DatabaseService.onStart — connecting (env=${this.inject.config.env})...`,
     );
     await Promise.resolve();
-    console.log("[lifecycle] DatabaseService.onStart — database connected");
+    console.log('[lifecycle] DatabaseService.onStart — database connected');
   }
 
-  public onStop(container: Container) {
-    console.log("[lifecycle] DatabaseService.onStop — closing connections");
+  public onStop(_container: Container) {
+    console.log('[lifecycle] DatabaseService.onStop — closing connections');
   }
 }
 
 class CacheService extends Injectable({
   scope: SCOPE.SINGLETON,
-  inject: [["config", ConfigService]],
+  inject: [['config', ConfigService]],
 }) {
-  public async onStart(container: Container): Promise<void> {
+  public async onStart(_container: Container): Promise<void> {
     console.log(
       `[lifecycle] CacheService.onStart — warming cache (env=${this.inject.config.env})...`,
     );
     await Promise.resolve();
-    console.log("[lifecycle] CacheService.onStart — cache ready");
+    console.log('[lifecycle] CacheService.onStart — cache ready');
   }
 
-  public onStop(container: Container) {
-    console.log("[lifecycle] CacheService.onStop — cache invalidated");
+  public onStop(_container: Container) {
+    console.log('[lifecycle] CacheService.onStop — cache invalidated');
   }
 }
 
@@ -72,14 +72,14 @@ class AppModule extends Module({
 // ---------------------------------------------------------------------------
 // Run lifecycle
 // ---------------------------------------------------------------------------
-console.log("[lifecycle] === Starting container ===\n");
+console.log('[lifecycle] === Starting container ===\n');
 
 const container = new Container(AppModule);
 await container.start();
 
-console.log("\n[lifecycle] === Container started, all services ready ===\n");
+console.log('\n[lifecycle] === Container started, all services ready ===\n');
 
-console.log("[lifecycle] === Stopping container ===\n");
+console.log('[lifecycle] === Stopping container ===\n');
 await container.stop();
 
-console.log("\n[lifecycle] === Container stopped ===");
+console.log('\n[lifecycle] === Container stopped ===');

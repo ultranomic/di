@@ -1,17 +1,17 @@
-import { describe, expect, it } from "vite-plus/test";
-import { Container } from "./container.ts";
-import { DIError, DI_ERROR_CODE } from "./di-error.ts";
-import { Injectable } from "./injectable.ts";
-import { Module } from "./module.ts";
-import { SCOPE } from "./scope.ts";
-import "./test-utils.ts";
-import type { InjectableClass } from "./types.ts";
+import { describe, expect, it } from 'vite-plus/test';
+import { Container } from './container.ts';
+import { DIError, DI_ERROR_CODE } from './di-error.ts';
+import { Injectable } from './injectable.ts';
+import { Module } from './module.ts';
+import { SCOPE } from './scope.ts';
+import './test-utils.ts';
+import type { InjectableClass } from './types.ts';
 
 // ---------------------------------------------------------------------------
 // 1. Resolve singleton — same instance twice
 // ---------------------------------------------------------------------------
-describe("Container — singleton resolution", () => {
-  it("returns same instance when resolving a singleton twice", async () => {
+describe('Container — singleton resolution', () => {
+  it('returns same instance when resolving a singleton twice', async () => {
     class SingletonService extends Injectable({ scope: SCOPE.SINGLETON }) {
       public readonly id = Math.random();
     }
@@ -33,8 +33,8 @@ describe("Container — singleton resolution", () => {
 // ---------------------------------------------------------------------------
 // 2. Resolve transient — different instances
 // ---------------------------------------------------------------------------
-describe("Container — transient resolution", () => {
-  it("returns different instance each time for transient", async () => {
+describe('Container — transient resolution', () => {
+  it('returns different instance each time for transient', async () => {
     class TransientService extends Injectable({ scope: SCOPE.TRANSIENT }) {
       public readonly id = Math.random();
     }
@@ -57,12 +57,12 @@ describe("Container — transient resolution", () => {
 // ---------------------------------------------------------------------------
 // 3. Resolve with dependency chain
 // ---------------------------------------------------------------------------
-describe("Container — dependency chain", () => {
-  it("resolves A → B → C dependency chain", async () => {
+describe('Container — dependency chain', () => {
+  it('resolves A → B → C dependency chain', async () => {
     class ServiceC extends Injectable({ scope: SCOPE.SINGLETON }) {}
     class ServiceB extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceC", ServiceC]],
+      inject: [['serviceC', ServiceC]],
     }) {
       public get c() {
         return this.inject.serviceC;
@@ -70,7 +70,7 @@ describe("Container — dependency chain", () => {
     }
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceB", ServiceB]],
+      inject: [['serviceB', ServiceB]],
     }) {
       public get b() {
         return this.inject.serviceB;
@@ -97,21 +97,21 @@ describe("Container — dependency chain", () => {
 // ---------------------------------------------------------------------------
 // 4. Start calls onStart in dep order
 // ---------------------------------------------------------------------------
-describe("Container — start lifecycle", () => {
-  it("calls onStart in dependency order (deps first)", async () => {
+describe('Container — start lifecycle', () => {
+  it('calls onStart in dependency order (deps first)', async () => {
     const order: string[] = [];
 
     class ServiceB extends Injectable({ scope: SCOPE.SINGLETON }) {
       public onStart() {
-        order.push("B");
+        order.push('B');
       }
     }
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceB", ServiceB]],
+      inject: [['serviceB', ServiceB]],
     }) {
       public onStart() {
-        order.push("A");
+        order.push('A');
       }
     }
 
@@ -122,10 +122,10 @@ describe("Container — start lifecycle", () => {
     const container = new Container(AppModule);
     await container.start();
 
-    expect(order).toEqual(["B", "A"]);
+    expect(order).toEqual(['B', 'A']);
   });
 
-  it("calls onStart with the container instance", async () => {
+  it('calls onStart with the container instance', async () => {
     let receivedContainer: Container | undefined;
 
     class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {
@@ -144,7 +144,7 @@ describe("Container — start lifecycle", () => {
     expect(receivedContainer).toBe(container);
   });
 
-  it("calls onStop with the container instance", async () => {
+  it('calls onStop with the container instance', async () => {
     let receivedContainer: Container | undefined;
 
     class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {
@@ -164,22 +164,22 @@ describe("Container — start lifecycle", () => {
     expect(receivedContainer).toBe(container);
   });
 
-  it("handles async onStart", async () => {
+  it('handles async onStart', async () => {
     const order: string[] = [];
 
     class ServiceB extends Injectable({ scope: SCOPE.SINGLETON }) {
       public async onStart() {
         await Promise.resolve();
-        order.push("B");
+        order.push('B');
       }
     }
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceB", ServiceB]],
+      inject: [['serviceB', ServiceB]],
     }) {
       public async onStart() {
         await Promise.resolve();
-        order.push("A");
+        order.push('A');
       }
     }
 
@@ -190,28 +190,28 @@ describe("Container — start lifecycle", () => {
     const container = new Container(AppModule);
     await container.start();
 
-    expect(order).toEqual(["B", "A"]);
+    expect(order).toEqual(['B', 'A']);
   });
 });
 
 // ---------------------------------------------------------------------------
 // 5. Stop calls onStop in reverse dep order
 // ---------------------------------------------------------------------------
-describe("Container — stop lifecycle", () => {
-  it("calls onStop in reverse dependency order", async () => {
+describe('Container — stop lifecycle', () => {
+  it('calls onStop in reverse dependency order', async () => {
     const order: string[] = [];
 
     class ServiceB extends Injectable({ scope: SCOPE.SINGLETON }) {
       public onStop() {
-        order.push("B");
+        order.push('B');
       }
     }
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceB", ServiceB]],
+      inject: [['serviceB', ServiceB]],
     }) {
       public onStop() {
-        order.push("A");
+        order.push('A');
       }
     }
 
@@ -223,25 +223,25 @@ describe("Container — stop lifecycle", () => {
     await container.start();
     await container.stop();
 
-    expect(order).toEqual(["A", "B"]);
+    expect(order).toEqual(['A', 'B']);
   });
 
-  it("handles async onStop", async () => {
+  it('handles async onStop', async () => {
     const order: string[] = [];
 
     class ServiceB extends Injectable({ scope: SCOPE.SINGLETON }) {
       public async onStop() {
         await Promise.resolve();
-        order.push("B");
+        order.push('B');
       }
     }
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceB", ServiceB]],
+      inject: [['serviceB', ServiceB]],
     }) {
       public async onStop() {
         await Promise.resolve();
-        order.push("A");
+        order.push('A');
       }
     }
 
@@ -253,15 +253,15 @@ describe("Container — stop lifecycle", () => {
     await container.start();
     await container.stop();
 
-    expect(order).toEqual(["A", "B"]);
+    expect(order).toEqual(['A', 'B']);
   });
 });
 
 // ---------------------------------------------------------------------------
 // 6. onStart failure: aborts and cleans up
 // ---------------------------------------------------------------------------
-describe("Container — onStart failure", () => {
-  it("aborts and calls onStop on already-started services", async () => {
+describe('Container — onStart failure', () => {
+  it('aborts and calls onStop on already-started services', async () => {
     const stopped: string[] = [];
 
     class ServiceB extends Injectable({ scope: SCOPE.SINGLETON }) {
@@ -269,18 +269,18 @@ describe("Container — onStart failure", () => {
         /* ok */
       }
       public onStop() {
-        stopped.push("B");
+        stopped.push('B');
       }
     }
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceB", ServiceB]],
+      inject: [['serviceB', ServiceB]],
     }) {
       public onStart() {
-        throw new Error("start failed");
+        throw new Error('start failed');
       }
       public onStop() {
-        stopped.push("A");
+        stopped.push('A');
       }
     }
 
@@ -290,12 +290,12 @@ describe("Container — onStart failure", () => {
 
     const container = new Container(AppModule);
 
-    await expect(container.start()).rejects.toThrow("start failed");
+    await expect(container.start()).rejects.toThrow('start failed');
     // B started first (dep order), then A failed → both A and B rolled back
-    expect(stopped).toEqual(["A", "B"]);
+    expect(stopped).toEqual(['A', 'B']);
   });
 
-  it("rolls back already-started providers when a later provider constructor throws", async () => {
+  it('rolls back already-started providers when a later provider constructor throws', async () => {
     const stopped: string[] = [];
 
     class ServiceA extends Injectable({ scope: SCOPE.SINGLETON }) {
@@ -303,12 +303,13 @@ describe("Container — onStart failure", () => {
         /* ok */
       }
       public onStop() {
-        stopped.push("A");
+        stopped.push('A');
       }
     }
     class ServiceB extends Injectable({ scope: SCOPE.SINGLETON }) {
       public constructor() {
-        throw new Error("constructor failed");
+        super();
+        throw new Error('constructor failed');
       }
     }
 
@@ -317,11 +318,11 @@ describe("Container — onStart failure", () => {
     }) {}
 
     const container = new Container(AppModule);
-    await expect(container.start()).rejects.toThrow("constructor failed");
-    expect(stopped).toEqual(["A"]);
+    await expect(container.start()).rejects.toThrow('constructor failed');
+    expect(stopped).toEqual(['A']);
   });
 
-  it("CF4: rolls back already-started request providers when a later constructor throws", async () => {
+  it('CF4: rolls back already-started request providers when a later constructor throws', async () => {
     const stopped: string[] = [];
 
     class ReqA extends Injectable({ scope: SCOPE.REQUEST }) {
@@ -329,12 +330,13 @@ describe("Container — onStart failure", () => {
         /* ok */
       }
       public onStop() {
-        stopped.push("A");
+        stopped.push('A');
       }
     }
     class ReqB extends Injectable({ scope: SCOPE.REQUEST }) {
       public constructor() {
-        throw new Error("constructor failed");
+        super();
+        throw new Error('constructor failed');
       }
     }
 
@@ -345,8 +347,8 @@ describe("Container — onStart failure", () => {
     const container = new Container(AppModule);
     await container.start();
 
-    await expect(container.withRequestScope(() => {})).rejects.toThrow("constructor failed");
-    expect(stopped).toEqual(["A"]);
+    await expect(container.withRequestScope(() => {})).rejects.toThrow('constructor failed');
+    expect(stopped).toEqual(['A']);
 
     await container.stop();
   });
@@ -355,19 +357,19 @@ describe("Container — onStart failure", () => {
 // ---------------------------------------------------------------------------
 // 7. onStop failure: continues, collects errors
 // ---------------------------------------------------------------------------
-describe("Container — onStop failure", () => {
-  it("continues stopping and throws aggregate error", async () => {
+describe('Container — onStop failure', () => {
+  it('continues stopping and throws aggregate error', async () => {
     class ServiceB extends Injectable({ scope: SCOPE.SINGLETON }) {
       public onStop() {
-        throw new Error("stop B failed");
+        throw new Error('stop B failed');
       }
     }
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceB", ServiceB]],
+      inject: [['serviceB', ServiceB]],
     }) {
       public onStop() {
-        throw new Error("stop A failed");
+        throw new Error('stop A failed');
       }
     }
 
@@ -383,21 +385,21 @@ describe("Container — onStop failure", () => {
     expect(err).toBeInstanceOf(AggregateError);
     expect(err.message).toMatch(/^Stop failed:/);
     expect(err.errors).toHaveLength(2);
-    expect(err.errors.map((e: Error) => e.message)).toEqual(["stop A failed", "stop B failed"]);
+    expect(err.errors.map((e: Error) => e.message)).toEqual(['stop A failed', 'stop B failed']);
   });
 });
 
 // ---------------------------------------------------------------------------
 // 8. Resolve with imported module exports
 // ---------------------------------------------------------------------------
-describe("Container — imported module exports", () => {
-  it("resolves services from imported modules", async () => {
+describe('Container — imported module exports', () => {
+  it('resolves services from imported modules', async () => {
     class ConfigService extends Injectable({ scope: SCOPE.SINGLETON }) {
-      public readonly value = "config";
+      public readonly value = 'config';
     }
     class DbService extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["configService", ConfigService]],
+      inject: [['configService', ConfigService]],
     }) {
       public get config() {
         return this.inject.configService;
@@ -420,15 +422,15 @@ describe("Container — imported module exports", () => {
 
     expect(db).toBeInstanceOf(DbService);
     expect(db.inject.configService).toBeInstanceOf(ConfigService);
-    expect(db.inject.configService.value).toBe("config");
+    expect(db.inject.configService.value).toBe('config');
   });
 });
 
 // ---------------------------------------------------------------------------
 // 9. Private (non-exported) provider not accessible from parent
 // ---------------------------------------------------------------------------
-describe("Container — private providers", () => {
-  it("private provider from imported module is not resolvable", async () => {
+describe('Container — private providers', () => {
+  it('private provider from imported module is not resolvable', async () => {
     class PublicService extends Injectable({ scope: SCOPE.SINGLETON }) {}
     class PrivateService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
@@ -458,8 +460,8 @@ describe("Container — private providers", () => {
 // ---------------------------------------------------------------------------
 // 10. Multiple containers from same module are isolated
 // ---------------------------------------------------------------------------
-describe("Container — isolation", () => {
-  it("two containers from same module have separate singleton instances", async () => {
+describe('Container — isolation', () => {
+  it('two containers from same module have separate singleton instances', async () => {
     class SingletonService extends Injectable({ scope: SCOPE.SINGLETON }) {
       public readonly id = Math.random();
     }
@@ -484,8 +486,8 @@ describe("Container — isolation", () => {
 // ---------------------------------------------------------------------------
 // 11. Request scope: same instance within one withRequestScope call
 // ---------------------------------------------------------------------------
-describe("Container — request scope (same request)", () => {
-  it("returns same instance within one withRequestScope call", async () => {
+describe('Container — request scope (same request)', () => {
+  it('returns same instance within one withRequestScope call', async () => {
     class RequestService extends Injectable({ scope: SCOPE.REQUEST }) {
       public readonly id = Math.random();
     }
@@ -508,8 +510,8 @@ describe("Container — request scope (same request)", () => {
 // ---------------------------------------------------------------------------
 // 12. Request scope: different instances across separate withRequestScope calls
 // ---------------------------------------------------------------------------
-describe("Container — request scope (different requests)", () => {
-  it("returns different instances across separate withRequestScope calls", async () => {
+describe('Container — request scope (different requests)', () => {
+  it('returns different instances across separate withRequestScope calls', async () => {
     class RequestService extends Injectable({ scope: SCOPE.REQUEST }) {
       public readonly id = Math.random();
     }
@@ -538,8 +540,8 @@ describe("Container — request scope (different requests)", () => {
 // ---------------------------------------------------------------------------
 // 12b. Request scope: concurrent withRequestScope calls have isolated stores
 // ---------------------------------------------------------------------------
-describe("Container — request scope (concurrent)", () => {
-  it("concurrent withRequestScope calls have isolated request instances", async () => {
+describe('Container — request scope (concurrent)', () => {
+  it('concurrent withRequestScope calls have isolated request instances', async () => {
     class RequestService extends Injectable({ scope: SCOPE.REQUEST }) {
       public readonly id = Math.random();
     }
@@ -567,8 +569,8 @@ describe("Container — request scope (concurrent)", () => {
 // ---------------------------------------------------------------------------
 // 13. Request scope outside context: throws NOT_IN_REQUEST_SCOPE
 // ---------------------------------------------------------------------------
-describe("Container — request scope outside context", () => {
-  it("throws NOT_IN_REQUEST_SCOPE when resolving request-scoped outside withRequestScope", async () => {
+describe('Container — request scope outside context', () => {
+  it('throws NOT_IN_REQUEST_SCOPE when resolving request-scoped outside withRequestScope', async () => {
     class RequestService extends Injectable({ scope: SCOPE.REQUEST }) {}
 
     class AppModule extends Module({
@@ -588,12 +590,12 @@ describe("Container — request scope outside context", () => {
 // ---------------------------------------------------------------------------
 // 14. Scope violation: Singleton dep on Request — validated at graph build
 // ---------------------------------------------------------------------------
-describe("Container — scope violation at construction", () => {
-  it("throws SCOPE_VIOLATION when Singleton depends on Request (at construction)", () => {
+describe('Container — scope violation at construction', () => {
+  it('throws SCOPE_VIOLATION when Singleton depends on Request (at construction)', () => {
     class RequestService extends Injectable({ scope: SCOPE.REQUEST }) {}
     class SingletonService extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["requestService", RequestService]],
+      inject: [['requestService', RequestService]],
     }) {}
 
     class AppModule extends Module({
@@ -610,8 +612,8 @@ describe("Container — scope violation at construction", () => {
 // ---------------------------------------------------------------------------
 // 15. Mixed: Singleton resolves normally, Request resolves from ALS
 // ---------------------------------------------------------------------------
-describe("Container — mixed scopes", () => {
-  it("singleton and request-scoped coexist in same container", async () => {
+describe('Container — mixed scopes', () => {
+  it('singleton and request-scoped coexist in same container', async () => {
     class SingletonService extends Injectable({ scope: SCOPE.SINGLETON }) {
       public readonly id = Math.random();
     }
@@ -644,7 +646,7 @@ describe("Container — mixed scopes", () => {
     });
   });
 
-  it("start() skips request-scoped providers without error", async () => {
+  it('start() skips request-scoped providers without error', async () => {
     let started = false;
     class SingletonService extends Injectable({ scope: SCOPE.SINGLETON }) {
       public onStart() {
@@ -669,8 +671,8 @@ describe("Container — mixed scopes", () => {
 // ---------------------------------------------------------------------------
 // 16. Nested withRequestScope: inner scope isolated from outer
 // ---------------------------------------------------------------------------
-describe("Container — nested request scopes", () => {
-  it("inner withRequestScope has isolated request instances", async () => {
+describe('Container — nested request scopes', () => {
+  it('inner withRequestScope has isolated request instances', async () => {
     class RequestService extends Injectable({ scope: SCOPE.REQUEST }) {
       public readonly id = Math.random();
     }
@@ -701,8 +703,8 @@ describe("Container — nested request scopes", () => {
 // ---------------------------------------------------------------------------
 // 17. Resolve after stop: throws CONTAINER_STOPPED
 // ---------------------------------------------------------------------------
-describe("Container — resolve after stop", () => {
-  it("throws CONTAINER_STOPPED when resolving after stop", async () => {
+describe('Container — resolve after stop', () => {
+  it('throws CONTAINER_STOPPED when resolving after stop', async () => {
     class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     class AppModule extends Module({
@@ -723,14 +725,14 @@ describe("Container — resolve after stop", () => {
 // ---------------------------------------------------------------------------
 // 18. Singleton depending on Transient: allowed (pinned instance)
 // ---------------------------------------------------------------------------
-describe("Container — singleton depending on transient", () => {
-  it("singleton gets one pinned transient instance", async () => {
+describe('Container — singleton depending on transient', () => {
+  it('singleton gets one pinned transient instance', async () => {
     class TransientService extends Injectable({ scope: SCOPE.TRANSIENT }) {
       public readonly id = Math.random();
     }
     class SingletonService extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["transientService", TransientService]],
+      inject: [['transientService', TransientService]],
     }) {
       public get transient() {
         return this.inject.transientService;
@@ -748,18 +750,18 @@ describe("Container — singleton depending on transient", () => {
     // Singleton always same instance
     expect(container.resolve(SingletonService)).toBe(singleton);
     // The transient dependency is pinned — always the same
-    expect(singleton.inject.transient).toBe(singleton.inject.transient);
+    expect(singleton.transient).toBe(singleton.transient);
     // But resolving TransientService directly gives a NEW instance
     const directTransient = container.resolve(TransientService);
-    expect(directTransient).not.toBe(singleton.inject.transient);
+    expect(directTransient).not.toBe(singleton.transient);
   });
 });
 
 // ---------------------------------------------------------------------------
 // 19. Start without lifecycle hooks: no error
 // ---------------------------------------------------------------------------
-describe("Container — no lifecycle hooks", () => {
-  it("start/stop succeeds when services have no hooks", async () => {
+describe('Container — no lifecycle hooks', () => {
+  it('start/stop succeeds when services have no hooks', async () => {
     class ServiceA extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     class AppModule extends Module({
@@ -777,12 +779,12 @@ describe("Container — no lifecycle hooks", () => {
 // ---------------------------------------------------------------------------
 // 20. Transient with dependencies gets fresh deps
 // ---------------------------------------------------------------------------
-describe("Container — transient with deps", () => {
-  it("each transient resolution gets its own singleton dep reference", async () => {
+describe('Container — transient with deps', () => {
+  it('each transient resolution gets its own singleton dep reference', async () => {
     class SingletonDep extends Injectable({ scope: SCOPE.SINGLETON }) {}
     class TransientService extends Injectable({
       scope: SCOPE.TRANSIENT,
-      inject: [["singletonDep", SingletonDep]],
+      inject: [['singletonDep', SingletonDep]],
     }) {
       public get dep() {
         return this.inject.singletonDep;
@@ -801,18 +803,18 @@ describe("Container — transient with deps", () => {
     // Different transient instances
     expect(a).not.toBe(b);
     // But same singleton dep
-    expect(a.inject.dep).toBe(b.inject.dep);
+    expect(a.dep).toBe(b.dep);
   });
 });
 
 // ---------------------------------------------------------------------------
 // 21. Unknown scope: hits default branch
 // ---------------------------------------------------------------------------
-describe("Container — unknown scope", () => {
-  it("throws DIError for unknown scope value", () => {
+describe('Container — unknown scope', () => {
+  it('throws DIError for unknown scope value', () => {
     class BadScopeService extends Injectable({ scope: SCOPE.SINGLETON }) {}
     // Override scope to invalid value after class creation
-    (BadScopeService as any)._scope = "invalid";
+    (BadScopeService as any)._scope = 'invalid';
 
     class AppModule extends Module({
       providers: [BadScopeService],
@@ -825,8 +827,8 @@ describe("Container — unknown scope", () => {
 // ---------------------------------------------------------------------------
 // 22. onStart failure with no-stop service: cleanup skips non-hook services
 // ---------------------------------------------------------------------------
-describe("Container — onStart failure with no onStop hook", () => {
-  it("skips cleanup for services without onStop during failed start", async () => {
+describe('Container — onStart failure with no onStop hook', () => {
+  it('skips cleanup for services without onStop during failed start', async () => {
     const stopped: string[] = [];
 
     class ServiceC extends Injectable({ scope: SCOPE.SINGLETON }) {
@@ -839,21 +841,21 @@ describe("Container — onStart failure with no onStop hook", () => {
         /* ok */
       }
       public onStop() {
-        stopped.push("B");
+        stopped.push('B');
       }
     }
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
       inject: [
-        ["serviceB", ServiceB],
-        ["serviceC", ServiceC],
+        ['serviceB', ServiceB],
+        ['serviceC', ServiceC],
       ],
     }) {
       public onStart() {
-        throw new Error("start failed");
+        throw new Error('start failed');
       }
       public onStop() {
-        stopped.push("A");
+        stopped.push('A');
       }
     }
 
@@ -862,17 +864,17 @@ describe("Container — onStart failure with no onStop hook", () => {
     }) {}
 
     const container = new Container(AppModule);
-    await expect(container.start()).rejects.toThrow("start failed");
+    await expect(container.start()).rejects.toThrow('start failed');
     // A has onStart that threw, A also has onStop → cleaned up. B has onStop → cleaned up. C has no onStop → skipped.
-    expect(stopped).toEqual(["A", "B"]);
+    expect(stopped).toEqual(['A', 'B']);
   });
 });
 
 // ---------------------------------------------------------------------------
 // 23. Stop with transient provider: skips unresolved singletons
 // ---------------------------------------------------------------------------
-describe("Container — stop with transient providers", () => {
-  it("transient providers are not stopped (not in singletons map)", async () => {
+describe('Container — stop with transient providers', () => {
+  it('transient providers are not stopped (not in singletons map)', async () => {
     class SingletonService extends Injectable({ scope: SCOPE.SINGLETON }) {
       public onStop() {}
     }
@@ -892,11 +894,11 @@ describe("Container — stop with transient providers", () => {
 // ---------------------------------------------------------------------------
 // 24. onStop throws non-Error: wrapped in Error
 // ---------------------------------------------------------------------------
-describe("Container — onStop throws Error", () => {
-  it("wraps Error thrown from onStop", async () => {
+describe('Container — onStop throws Error', () => {
+  it('wraps Error thrown from onStop', async () => {
     class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {
       public onStop() {
-        throw new Error("string error");
+        throw new Error('string error');
       }
     }
 
@@ -910,15 +912,15 @@ describe("Container — onStop throws Error", () => {
     const err = await container.stop().catch((e: any) => e);
     expect(err).toBeInstanceOf(AggregateError);
     expect(err.errors[0]).toBeInstanceOf(Error);
-    expect(err.errors[0].message).toBe("string error");
+    expect(err.errors[0].message).toBe('string error');
   });
 });
 
 // ---------------------------------------------------------------------------
 // 25. State machine guards
 // ---------------------------------------------------------------------------
-describe("Container — state machine guards", () => {
-  it("throws when start() called twice", async () => {
+describe('Container — state machine guards', () => {
+  it('throws when start() called twice', async () => {
     class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     class AppModule extends Module({
@@ -935,7 +937,7 @@ describe("Container — state machine guards", () => {
     await container.stop();
   });
 
-  it("stop() is a no-op when called twice", async () => {
+  it('stop() is a no-op when called twice', async () => {
     let stopCount = 0;
     class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {
       public onStop() {
@@ -956,7 +958,7 @@ describe("Container — state machine guards", () => {
     expect(stopCount).toBe(1);
   });
 
-  it("throws when start() called after stop()", async () => {
+  it('throws when start() called after stop()', async () => {
     class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     class AppModule extends Module({
@@ -972,7 +974,7 @@ describe("Container — state machine guards", () => {
     expect(err.code).toBe(DI_ERROR_CODE.CONTAINER_STOPPED);
   });
 
-  it("D2: stop() without start() throws CONTAINER_NOT_STARTED", async () => {
+  it('D2: stop() without start() throws CONTAINER_NOT_STARTED', async () => {
     class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     class AppModule extends Module({
@@ -989,8 +991,8 @@ describe("Container — state machine guards", () => {
 // ---------------------------------------------------------------------------
 // 26. Bug fix regression tests
 // ---------------------------------------------------------------------------
-describe("Container — bug fix regressions", () => {
-  it("start() failure clears singletons and allows retry", async () => {
+describe('Container — bug fix regressions', () => {
+  it('start() failure clears singletons and allows retry', async () => {
     let startCount = 0;
 
     class ServiceB extends Injectable({ scope: SCOPE.SINGLETON }) {
@@ -1000,11 +1002,11 @@ describe("Container — bug fix regressions", () => {
     }
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceB", ServiceB]],
+      inject: [['serviceB', ServiceB]],
     }) {
       public onStart() {
         startCount++;
-        if (startCount === 1) throw new Error("first start failed");
+        if (startCount === 1) throw new Error('first start failed');
       }
     }
 
@@ -1015,7 +1017,7 @@ describe("Container — bug fix regressions", () => {
     const container = new Container(AppModule);
 
     // First start fails
-    await expect(container.start()).rejects.toThrow("first start failed");
+    await expect(container.start()).rejects.toThrow('first start failed');
 
     // Retry succeeds — singletons were cleared, fresh instances created
     await container.start();
@@ -1025,10 +1027,10 @@ describe("Container — bug fix regressions", () => {
     expect(a).toBeInstanceOf(ServiceA);
   });
 
-  it("stop() clears singletons even when onStop throws", async () => {
+  it('stop() clears singletons even when onStop throws', async () => {
     class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {
       public onStop() {
-        throw new Error("stop failed");
+        throw new Error('stop failed');
       }
     }
 
@@ -1049,7 +1051,7 @@ describe("Container — bug fix regressions", () => {
     expect(() => container.resolve(MyService)).toThrowDIError(DI_ERROR_CODE.CONTAINER_STOPPED);
   });
 
-  it("concurrent start() calls are prevented", async () => {
+  it('concurrent start() calls are prevented', async () => {
     let resolveStart: () => void = () => {};
     class SlowService extends Injectable({ scope: SCOPE.SINGLETON }) {
       public async onStart() {
@@ -1078,14 +1080,14 @@ describe("Container — bug fix regressions", () => {
     await firstStart;
   });
 
-  it("resolve() is blocked during stop()", async () => {
+  it('resolve() is blocked during stop()', async () => {
     let resolveCode: string | null = null;
 
     class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {
       public onStop() {
         try {
           (globalThis as any).__test_container.resolve(MyService);
-          resolveCode = "resolved";
+          resolveCode = 'resolved';
         } catch (e: any) {
           resolveCode = e.code;
         }
@@ -1112,8 +1114,8 @@ describe("Container — bug fix regressions", () => {
 // ---------------------------------------------------------------------------
 // 27. Design issue regressions
 // ---------------------------------------------------------------------------
-describe("Container — design issue regressions", () => {
-  it("D1: resolve() throws CONTAINER_NOT_STARTED before start()", () => {
+describe('Container — design issue regressions', () => {
+  it('D1: resolve() throws CONTAINER_NOT_STARTED before start()', () => {
     class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     class AppModule extends Module({
@@ -1127,7 +1129,7 @@ describe("Container — design issue regressions", () => {
     );
   });
 
-  it("D1: resolve() works after start()", async () => {
+  it('D1: resolve() works after start()', async () => {
     class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     class AppModule extends Module({
@@ -1141,7 +1143,7 @@ describe("Container — design issue regressions", () => {
     await container.stop();
   });
 
-  it("D2: withRequestScope calls onStop on request-scoped instances", async () => {
+  it('D2: withRequestScope calls onStop on request-scoped instances', async () => {
     let stopCalled = false;
 
     class ReqService extends Injectable({ scope: SCOPE.REQUEST }) {
@@ -1165,18 +1167,18 @@ describe("Container — design issue regressions", () => {
     await container.stop();
   });
 
-  it("D2: withRequestScope calls onStop in reverse order", async () => {
+  it('D2: withRequestScope calls onStop in reverse order', async () => {
     const order: string[] = [];
 
     class ReqA extends Injectable({ scope: SCOPE.REQUEST }) {
       public onStop() {
-        order.push("A");
+        order.push('A');
       }
     }
 
-    class ReqB extends Injectable({ scope: SCOPE.REQUEST, inject: [["reqA", ReqA]] }) {
+    class ReqB extends Injectable({ scope: SCOPE.REQUEST, inject: [['reqA', ReqA]] }) {
       public onStop() {
-        order.push("B");
+        order.push('B');
       }
     }
 
@@ -1191,11 +1193,11 @@ describe("Container — design issue regressions", () => {
       container.resolve(ReqB);
     });
 
-    expect(order).toEqual(["B", "A"]);
+    expect(order).toEqual(['B', 'A']);
     await container.stop();
   });
 
-  it("D2: withRequestScope propagates callback return value even with cleanup", async () => {
+  it('D2: withRequestScope propagates callback return value even with cleanup', async () => {
     class ReqService extends Injectable({ scope: SCOPE.REQUEST }) {}
 
     class AppModule extends Module({
@@ -1214,10 +1216,10 @@ describe("Container — design issue regressions", () => {
     await container.stop();
   });
 
-  it("D2: withRequestScope collects onStop errors into AggregateError", async () => {
+  it('D2: withRequestScope collects onStop errors into AggregateError', async () => {
     class ReqService extends Injectable({ scope: SCOPE.REQUEST }) {
       public onStop() {
-        throw new Error("cleanup failed");
+        throw new Error('cleanup failed');
       }
     }
 
@@ -1235,12 +1237,12 @@ describe("Container — design issue regressions", () => {
       .catch((e: any) => e);
 
     expect(err).toBeInstanceOf(AggregateError);
-    expect(err.errors[0].message).toBe("cleanup failed");
+    expect(err.errors[0].message).toBe('cleanup failed');
     expect(err.message).toMatch(/^Request scope cleanup failed:/);
     await container.stop();
   });
 
-  it("CF3: callback error propagates when cleanup succeeds", async () => {
+  it('CF3: callback error propagates when cleanup succeeds', async () => {
     class ReqService extends Injectable({ scope: SCOPE.REQUEST }) {
       public onStop() {
         /* succeeds */
@@ -1256,14 +1258,14 @@ describe("Container — design issue regressions", () => {
 
     await expect(
       container.withRequestScope(() => {
-        throw new Error("callback failed");
+        throw new Error('callback failed');
       }),
-    ).rejects.toThrow("callback failed");
+    ).rejects.toThrow('callback failed');
 
     await container.stop();
   });
 
-  it("D3: start() called twice throws ALREADY_STARTED", async () => {
+  it('D3: start() called twice throws ALREADY_STARTED', async () => {
     class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     class AppModule extends Module({
@@ -1281,7 +1283,7 @@ describe("Container — design issue regressions", () => {
     await container.stop();
   });
 
-  it("D3: start() after stop() throws CONTAINER_STOPPED", async () => {
+  it('D3: start() after stop() throws CONTAINER_STOPPED', async () => {
     class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     class AppModule extends Module({
@@ -1297,7 +1299,7 @@ describe("Container — design issue regressions", () => {
     expect(err.code).toBe(DI_ERROR_CODE.CONTAINER_STOPPED);
   });
 
-  it("D1: resolve() is blocked during starting state", async () => {
+  it('D1: resolve() is blocked during starting state', async () => {
     let resolveStart: () => void = () => {};
 
     class SlowService extends Injectable({ scope: SCOPE.SINGLETON }) {
@@ -1329,7 +1331,7 @@ describe("Container — design issue regressions", () => {
     await container.stop();
   });
 
-  it("resolve() called from onStart during starting state throws CONTAINER_NOT_STARTED", async () => {
+  it('resolve() called from onStart during starting state throws CONTAINER_NOT_STARTED', async () => {
     let resolveError: DIError | undefined;
 
     class ServiceA extends Injectable({ scope: SCOPE.SINGLETON }) {
@@ -1352,7 +1354,7 @@ describe("Container — design issue regressions", () => {
     await container.stop();
   });
 
-  it("CF7: withRequestScope from onStart during starting state throws CONTAINER_NOT_STARTED", async () => {
+  it('CF7: withRequestScope from onStart during starting state throws CONTAINER_NOT_STARTED', async () => {
     let requestScopeError: DIError | undefined;
 
     class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {
@@ -1375,7 +1377,7 @@ describe("Container — design issue regressions", () => {
     await container.stop();
   });
 
-  it("D1: withRequestScope before start() — resolve inside throws CONTAINER_NOT_STARTED", async () => {
+  it('D1: withRequestScope before start() — resolve inside throws CONTAINER_NOT_STARTED', async () => {
     class ReqService extends Injectable({ scope: SCOPE.REQUEST }) {}
 
     class AppModule extends Module({
@@ -1394,10 +1396,10 @@ describe("Container — design issue regressions", () => {
     expect(err.code).toBe(DI_ERROR_CODE.CONTAINER_NOT_STARTED);
   });
 
-  it("B1: withRequestScope preserves callback error alongside cleanup error", async () => {
+  it('B1: withRequestScope preserves callback error alongside cleanup error', async () => {
     class ReqService extends Injectable({ scope: SCOPE.REQUEST }) {
       public onStop() {
-        throw new Error("cleanup error");
+        throw new Error('cleanup error');
       }
     }
 
@@ -1411,20 +1413,20 @@ describe("Container — design issue regressions", () => {
     const err = await container
       .withRequestScope(() => {
         container.resolve(ReqService);
-        throw new Error("callback error");
+        throw new Error('callback error');
       })
       .catch((e: any) => e);
 
     expect(err).toBeInstanceOf(AggregateError);
     expect(err.errors).toHaveLength(2);
-    expect(err.errors[0].message).toBe("callback error");
-    expect(err.errors[1].message).toBe("cleanup error");
+    expect(err.errors[0].message).toBe('callback error');
+    expect(err.errors[1].message).toBe('cleanup error');
     expect(err.message).toMatch(/^Request scope failed:/);
 
     await container.stop();
   });
 
-  it("D2: stop() during starting throws CONTAINER_NOT_STARTED", async () => {
+  it('D2: stop() during starting throws CONTAINER_NOT_STARTED', async () => {
     let resolveStart: () => void = () => {};
 
     class SlowService extends Injectable({ scope: SCOPE.SINGLETON }) {
@@ -1453,7 +1455,7 @@ describe("Container — design issue regressions", () => {
     await container.stop();
   });
 
-  it("D3: withRequestScope calls onStart on request-scoped providers", async () => {
+  it('D3: withRequestScope calls onStart on request-scoped providers', async () => {
     let startCalled = false;
 
     class ReqService extends Injectable({ scope: SCOPE.REQUEST }) {
@@ -1476,18 +1478,18 @@ describe("Container — design issue regressions", () => {
     await container.stop();
   });
 
-  it("D3: withRequestScope calls onStart in dependency order", async () => {
+  it('D3: withRequestScope calls onStart in dependency order', async () => {
     const order: string[] = [];
 
     class ReqA extends Injectable({ scope: SCOPE.REQUEST }) {
       public onStart() {
-        order.push("A");
+        order.push('A');
       }
     }
 
-    class ReqB extends Injectable({ scope: SCOPE.REQUEST, inject: [["reqA", ReqA]] }) {
+    class ReqB extends Injectable({ scope: SCOPE.REQUEST, inject: [['reqA', ReqA]] }) {
       public onStart() {
-        order.push("B");
+        order.push('B');
       }
     }
 
@@ -1499,13 +1501,13 @@ describe("Container — design issue regressions", () => {
     await container.start();
 
     await container.withRequestScope(() => {
-      expect(order).toEqual(["A", "B"]);
+      expect(order).toEqual(['A', 'B']);
     });
 
     await container.stop();
   });
 
-  it("CF5: resolve() from request-scoped onStart during withRequestScope works", async () => {
+  it('CF5: resolve() from request-scoped onStart during withRequestScope works', async () => {
     class ReqB extends Injectable({ scope: SCOPE.REQUEST }) {}
     let resolvedFromHook: unknown;
 
@@ -1523,7 +1525,7 @@ describe("Container — design issue regressions", () => {
     await container.start();
 
     await container.withRequestScope(async () => {
-      const a = container.resolve(ReqA);
+      const _a = container.resolve(ReqA);
       const b = container.resolve(ReqB);
       expect(resolvedFromHook).toBe(b);
     });
@@ -1531,7 +1533,7 @@ describe("Container — design issue regressions", () => {
     await container.stop();
   });
 
-  it("D3: withRequestScope rolls back onStart on failure", async () => {
+  it('D3: withRequestScope rolls back onStart on failure', async () => {
     const stopped: string[] = [];
 
     class ReqA extends Injectable({ scope: SCOPE.REQUEST }) {
@@ -1539,13 +1541,13 @@ describe("Container — design issue regressions", () => {
         /* ok */
       }
       public onStop() {
-        stopped.push("A");
+        stopped.push('A');
       }
     }
 
-    class ReqB extends Injectable({ scope: SCOPE.REQUEST, inject: [["reqA", ReqA]] }) {
+    class ReqB extends Injectable({ scope: SCOPE.REQUEST, inject: [['reqA', ReqA]] }) {
       public onStart() {
-        throw new Error("onStart failed");
+        throw new Error('onStart failed');
       }
     }
 
@@ -1556,14 +1558,14 @@ describe("Container — design issue regressions", () => {
     const container = new Container(AppModule);
     await container.start();
 
-    await expect(container.withRequestScope(() => {})).rejects.toThrow("onStart failed");
+    await expect(container.withRequestScope(() => {})).rejects.toThrow('onStart failed');
 
-    expect(stopped).toEqual(["A"]);
+    expect(stopped).toEqual(['A']);
 
     await container.stop();
   });
 
-  it("D8: withRequestScope after stop() throws CONTAINER_STOPPED", async () => {
+  it('D8: withRequestScope after stop() throws CONTAINER_STOPPED', async () => {
     class ReqService extends Injectable({ scope: SCOPE.REQUEST }) {}
 
     class AppModule extends Module({
@@ -1579,10 +1581,10 @@ describe("Container — design issue regressions", () => {
     expect(err.code).toBe(DI_ERROR_CODE.CONTAINER_STOPPED);
   });
 
-  it("CF6: withRequestScope after failed start() throws CONTAINER_NOT_STARTED", async () => {
+  it('CF6: withRequestScope after failed start() throws CONTAINER_NOT_STARTED', async () => {
     class BadService extends Injectable({ scope: SCOPE.SINGLETON }) {
       public onStart() {
-        throw new Error("fail");
+        throw new Error('fail');
       }
     }
     class ReqService extends Injectable({ scope: SCOPE.REQUEST }) {}
@@ -1590,13 +1592,13 @@ describe("Container — design issue regressions", () => {
     class AppModule extends Module({ providers: [BadService, ReqService] as const }) {}
     const container = new Container(AppModule);
 
-    await expect(container.start()).rejects.toThrow("fail");
+    await expect(container.start()).rejects.toThrow('fail');
     const err = await container.withRequestScope(() => {}).catch((e: any) => e);
     expect(err).toBeInstanceOf(DIError);
     expect(err.code).toBe(DI_ERROR_CODE.CONTAINER_NOT_STARTED);
   });
 
-  it("D1: withRequestScope rollback skips services without onStop", async () => {
+  it('D1: withRequestScope rollback skips services without onStop', async () => {
     const stopped: string[] = [];
 
     class ReqNoStop extends Injectable({ scope: SCOPE.REQUEST }) {
@@ -1607,22 +1609,22 @@ describe("Container — design issue regressions", () => {
 
     class ReqWithStop extends Injectable({
       scope: SCOPE.REQUEST,
-      inject: [["reqNoStop", ReqNoStop]],
+      inject: [['reqNoStop', ReqNoStop]],
     }) {
       public onStart() {
         /* ok */
       }
       public onStop() {
-        stopped.push("WithStop");
+        stopped.push('WithStop');
       }
     }
 
     class ReqFails extends Injectable({
       scope: SCOPE.REQUEST,
-      inject: [["reqWithStop", ReqWithStop]],
+      inject: [['reqWithStop', ReqWithStop]],
     }) {
       public onStart() {
-        throw new Error("start failed");
+        throw new Error('start failed');
       }
     }
 
@@ -1630,26 +1632,26 @@ describe("Container — design issue regressions", () => {
     const container = new Container(AppModule);
     await container.start();
 
-    await expect(container.withRequestScope(() => {})).rejects.toThrow("start failed");
+    await expect(container.withRequestScope(() => {})).rejects.toThrow('start failed');
     // ReqNoStop has no onStop → skipped during rollback
     // ReqWithStop has onStop → called during rollback
-    expect(stopped).toEqual(["WithStop"]);
+    expect(stopped).toEqual(['WithStop']);
 
     await container.stop();
   });
 
-  it("CF9: calls onStop on all request instances when onStart fails", async () => {
+  it('CF9: calls onStop on all request instances when onStart fails', async () => {
     const stopped: string[] = [];
 
     class ReqA extends Injectable({ scope: SCOPE.REQUEST }) {
       public onStop() {
-        stopped.push("A");
+        stopped.push('A');
       }
     }
 
     class ReqB extends Injectable({ scope: SCOPE.REQUEST }) {
       public onStart() {
-        throw new Error("onStart failed");
+        throw new Error('onStart failed');
       }
     }
 
@@ -1660,26 +1662,26 @@ describe("Container — design issue regressions", () => {
     const container = new Container(AppModule);
     await container.start();
 
-    await expect(container.withRequestScope(() => {})).rejects.toThrow("onStart failed");
+    await expect(container.withRequestScope(() => {})).rejects.toThrow('onStart failed');
     // ReqA has only onStop (no onStart) — must still be cleaned up
-    expect(stopped).toEqual(["A"]);
+    expect(stopped).toEqual(['A']);
 
     await container.stop();
   });
 
-  it("D4: withRequestScope onStart failure collects onStop errors into AggregateError", async () => {
+  it('D4: withRequestScope onStart failure collects onStop errors into AggregateError', async () => {
     class ReqA extends Injectable({ scope: SCOPE.REQUEST }) {
       public onStart() {
         /* ok */
       }
       public onStop() {
-        throw new Error("onStop A failed");
+        throw new Error('onStop A failed');
       }
     }
 
     class ReqB extends Injectable({ scope: SCOPE.REQUEST }) {
       public onStart() {
-        throw new Error("onStart B failed");
+        throw new Error('onStart B failed');
       }
     }
 
@@ -1693,13 +1695,13 @@ describe("Container — design issue regressions", () => {
     const err = await container.withRequestScope(() => {}).catch((e: any) => e);
     expect(err).toBeInstanceOf(AggregateError);
     expect(err.errors).toHaveLength(2);
-    expect(err.errors[0].message).toBe("onStart B failed");
-    expect(err.errors[1].message).toBe("onStop A failed");
+    expect(err.errors[0].message).toBe('onStart B failed');
+    expect(err.errors[1].message).toBe('onStop A failed');
 
     await container.stop();
   });
 
-  it("D5: withRequestScope callback throwing undefined propagates error", async () => {
+  it('D5: withRequestScope callback throwing undefined propagates error', async () => {
     class ReqService extends Injectable({ scope: SCOPE.REQUEST }) {}
 
     class AppModule extends Module({
@@ -1714,12 +1716,12 @@ describe("Container — design issue regressions", () => {
       container.withRequestScope(() => {
         throw undefined as unknown as Error;
       }),
-    ).rejects.toThrow("undefined");
+    ).rejects.toThrow('undefined');
 
     await container.stop();
   });
 
-  it("D1: withRequestScope rolls back 3+ providers in reverse order", async () => {
+  it('D1: withRequestScope rolls back 3+ providers in reverse order', async () => {
     const stopped: string[] = [];
 
     class ReqA extends Injectable({ scope: SCOPE.REQUEST }) {
@@ -1727,25 +1729,25 @@ describe("Container — design issue regressions", () => {
         /* ok */
       }
       public onStop() {
-        stopped.push("A");
+        stopped.push('A');
       }
     }
 
-    class ReqB extends Injectable({ scope: SCOPE.REQUEST, inject: [["reqA", ReqA]] }) {
+    class ReqB extends Injectable({ scope: SCOPE.REQUEST, inject: [['reqA', ReqA]] }) {
       public onStart() {
         /* ok */
       }
       public onStop() {
-        stopped.push("B");
+        stopped.push('B');
       }
     }
 
-    class ReqC extends Injectable({ scope: SCOPE.REQUEST, inject: [["reqB", ReqB]] }) {
+    class ReqC extends Injectable({ scope: SCOPE.REQUEST, inject: [['reqB', ReqB]] }) {
       public onStart() {
-        throw new Error("C failed");
+        throw new Error('C failed');
       }
       public onStop() {
-        stopped.push("C");
+        stopped.push('C');
       }
     }
 
@@ -1753,10 +1755,10 @@ describe("Container — design issue regressions", () => {
     const container = new Container(AppModule);
     await container.start();
 
-    await expect(container.withRequestScope(() => {})).rejects.toThrow("C failed");
+    await expect(container.withRequestScope(() => {})).rejects.toThrow('C failed');
     // A, B, C all created (in store). A and B started, C's onStart threw.
     // Cleanup: C, B, A (reverse store order — all instances with onStop).
-    expect(stopped).toEqual(["C", "B", "A"]);
+    expect(stopped).toEqual(['C', 'B', 'A']);
 
     await container.stop();
   });
@@ -1765,11 +1767,11 @@ describe("Container — design issue regressions", () => {
 // ---------------------------------------------------------------------------
 // T1: non-Error thrown from onStop in stop()
 // ---------------------------------------------------------------------------
-describe("Container — T1: stop() wraps non-Error onStop throw", () => {
-  it("wraps string throw in Error", async () => {
+describe('Container — T1: stop() wraps non-Error onStop throw', () => {
+  it('wraps string throw in Error', async () => {
     class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {
       public onStop() {
-        throw "non-error string";
+        throw 'non-error string';
       }
     }
 
@@ -1783,13 +1785,13 @@ describe("Container — T1: stop() wraps non-Error onStop throw", () => {
     const err = await container.stop().catch((e: any) => e);
     expect(err).toBeInstanceOf(AggregateError);
     expect(err.errors[0]).toBeInstanceOf(Error);
-    expect(err.errors[0].message).toBe("non-error string");
+    expect(err.errors[0].message).toBe('non-error string');
   });
 
-  it("CF8: onStart throwing non-Error propagates the raw value", async () => {
+  it('CF8: onStart throwing non-Error propagates the raw value', async () => {
     class BadService extends Injectable({ scope: SCOPE.SINGLETON }) {
       public onStart() {
-        throw "start-failed-string";
+        throw 'start-failed-string';
       }
     }
 
@@ -1799,18 +1801,18 @@ describe("Container — T1: stop() wraps non-Error onStop throw", () => {
 
     const container = new Container(AppModule);
     const err = await container.start().catch((e) => e);
-    expect(err).toBe("start-failed-string");
+    expect(err).toBe('start-failed-string');
   });
 });
 
 // ---------------------------------------------------------------------------
 // T2: non-Error thrown from onStop in withRequestScope
 // ---------------------------------------------------------------------------
-describe("Container — T2: withRequestScope wraps non-Error onStop throw", () => {
-  it("wraps string throw in Error", async () => {
+describe('Container — T2: withRequestScope wraps non-Error onStop throw', () => {
+  it('wraps string throw in Error', async () => {
     class ReqService extends Injectable({ scope: SCOPE.REQUEST }) {
       public onStop() {
-        throw "non-error cleanup";
+        throw 'non-error cleanup';
       }
     }
 
@@ -1829,7 +1831,7 @@ describe("Container — T2: withRequestScope wraps non-Error onStop throw", () =
 
     expect(err).toBeInstanceOf(AggregateError);
     expect(err.errors[0]).toBeInstanceOf(Error);
-    expect(err.errors[0].message).toBe("non-error cleanup");
+    expect(err.errors[0].message).toBe('non-error cleanup');
     await container.stop();
   });
 });
@@ -1837,8 +1839,8 @@ describe("Container — T2: withRequestScope wraps non-Error onStop throw", () =
 // ---------------------------------------------------------------------------
 // T3: empty module start/stop
 // ---------------------------------------------------------------------------
-describe("Container — T3: empty module", () => {
-  it("starts and stops without error", async () => {
+describe('Container — T3: empty module', () => {
+  it('starts and stops without error', async () => {
     class EmptyModule extends Module({
       providers: [],
     }) {}
@@ -1852,15 +1854,15 @@ describe("Container — T3: empty module", () => {
 // ---------------------------------------------------------------------------
 // T4: request-scoped depending on singleton
 // ---------------------------------------------------------------------------
-describe("Container — T4: request-scoped depending on singleton", () => {
-  it("resolves request-scoped with singleton dependency", async () => {
+describe('Container — T4: request-scoped depending on singleton', () => {
+  it('resolves request-scoped with singleton dependency', async () => {
     class SingletonService extends Injectable({ scope: SCOPE.SINGLETON }) {
-      public readonly value = "singleton-value";
+      public readonly value = 'singleton-value';
     }
 
     class ReqService extends Injectable({
       scope: SCOPE.REQUEST,
-      inject: [["singletonService", SingletonService]],
+      inject: [['singletonService', SingletonService]],
     }) {
       public getValue() {
         return this.inject.singletonService.value;
@@ -1879,7 +1881,7 @@ describe("Container — T4: request-scoped depending on singleton", () => {
       return req.getValue();
     });
 
-    expect(result).toBe("singleton-value");
+    expect(result).toBe('singleton-value');
     await container.stop();
   });
 });
@@ -1887,24 +1889,24 @@ describe("Container — T4: request-scoped depending on singleton", () => {
 // ---------------------------------------------------------------------------
 // T6: onStart failure swallows onStop errors
 // ---------------------------------------------------------------------------
-describe("Container — T6: onStart failure swallows onStop cleanup errors", () => {
-  it("onStop error during start failure is swallowed, onStart error propagates", async () => {
+describe('Container — T6: onStart failure swallows onStop cleanup errors', () => {
+  it('onStop error during start failure is swallowed, onStart error propagates', async () => {
     const onStopCalls: string[] = [];
 
     class GoodService extends Injectable({ scope: SCOPE.SINGLETON }) {
       public async onStart() {}
       public async onStop() {
-        onStopCalls.push("GoodService");
-        throw new Error("onStop failed");
+        onStopCalls.push('GoodService');
+        throw new Error('onStop failed');
       }
     }
 
     class BadService extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["goodService", GoodService]],
+      inject: [['goodService', GoodService]],
     }) {
       public async onStart() {
-        throw new Error("onStart failed");
+        throw new Error('onStart failed');
       }
     }
 
@@ -1916,16 +1918,16 @@ describe("Container — T6: onStart failure swallows onStop cleanup errors", () 
     const err = await container.start().catch((e: any) => e);
 
     expect(err).toBeInstanceOf(Error);
-    expect(err.message).toBe("onStart failed");
-    expect(onStopCalls).toEqual(["GoodService"]);
+    expect(err.message).toBe('onStart failed');
+    expect(onStopCalls).toEqual(['GoodService']);
   });
 });
 
 // ---------------------------------------------------------------------------
 // D1: Transient providers skip lifecycle hooks
 // ---------------------------------------------------------------------------
-describe("Container — D1: transient providers skip lifecycle hooks", () => {
-  it("transient onStart is NOT called during start()", async () => {
+describe('Container — D1: transient providers skip lifecycle hooks', () => {
+  it('transient onStart is NOT called during start()', async () => {
     let startCalled = false;
     class TransService extends Injectable({ scope: SCOPE.TRANSIENT }) {
       public onStart() {
@@ -1939,7 +1941,7 @@ describe("Container — D1: transient providers skip lifecycle hooks", () => {
     await container.stop();
   });
 
-  it("transient onStop is NOT called during stop()", async () => {
+  it('transient onStop is NOT called during stop()', async () => {
     let stopCalled = false;
     class TransService extends Injectable({ scope: SCOPE.TRANSIENT }) {
       public onStop() {
@@ -1954,8 +1956,8 @@ describe("Container — D1: transient providers skip lifecycle hooks", () => {
   });
 });
 
-describe("Container — module getter", () => {
-  it("returns the module class passed to constructor", async () => {
+describe('Container — module getter', () => {
+  it('returns the module class passed to constructor', async () => {
     class AppModule extends Module({ providers: [] }) {}
     const container = new Container(AppModule);
     expect(container.module).toBe(AppModule);
@@ -1965,11 +1967,11 @@ describe("Container — module getter", () => {
 // ---------------------------------------------------------------------------
 // F1: sorted getter
 // ---------------------------------------------------------------------------
-describe("Container — sorted getter", () => {
-  it("returns frozen providers in dependency order", async () => {
+describe('Container — sorted getter', () => {
+  it('returns frozen providers in dependency order', async () => {
     class ServiceA extends Injectable() {}
     class ServiceB extends Injectable({
-      inject: [["a", ServiceA]],
+      inject: [['a', ServiceA]],
     }) {}
 
     class AppModule extends Module({
@@ -1995,14 +1997,14 @@ describe("Container — sorted getter", () => {
 // ---------------------------------------------------------------------------
 // F3: transient→request inside withRequestScope
 // ---------------------------------------------------------------------------
-describe("Container — transient depending on request-scoped (inside withRequestScope)", () => {
-  it("resolves transient with request-scoped dependency inside withRequestScope", async () => {
+describe('Container — transient depending on request-scoped (inside withRequestScope)', () => {
+  it('resolves transient with request-scoped dependency inside withRequestScope', async () => {
     class RequestService extends Injectable({ scope: SCOPE.REQUEST }) {
       public readonly id = Math.random();
     }
     class TransientService extends Injectable({
       scope: SCOPE.TRANSIENT,
-      inject: [["req", RequestService]],
+      inject: [['req', RequestService]],
     }) {}
 
     class AppModule extends Module({
@@ -2022,7 +2024,7 @@ describe("Container — transient depending on request-scoped (inside withReques
       return t1.inject.req.id;
     });
 
-    expect(typeof result).toBe("number");
+    expect(typeof result).toBe('number');
     await container.stop();
   });
 });
@@ -2030,12 +2032,12 @@ describe("Container — transient depending on request-scoped (inside withReques
 // ---------------------------------------------------------------------------
 // F4: transient→request outside withRequestScope
 // ---------------------------------------------------------------------------
-describe("Container — transient depending on request-scoped (outside withRequestScope)", () => {
-  it("throws NOT_IN_REQUEST_SCOPE when resolving transient with request-scoped dep outside withRequestScope", async () => {
+describe('Container — transient depending on request-scoped (outside withRequestScope)', () => {
+  it('throws NOT_IN_REQUEST_SCOPE when resolving transient with request-scoped dep outside withRequestScope', async () => {
     class RequestService extends Injectable({ scope: SCOPE.REQUEST }) {}
     class TransientService extends Injectable({
       scope: SCOPE.TRANSIENT,
-      inject: [["req", RequestService]],
+      inject: [['req', RequestService]],
     }) {}
 
     class AppModule extends Module({
@@ -2060,28 +2062,28 @@ describe("Container — transient depending on request-scoped (outside withReque
 // Forward-reference placeholder for circular dep tests (never resolved)
 class _Fwd extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
-describe("Container — circular dependency resolution", () => {
-  it("resolves Singleton↔Singleton circular dependency via proxy", async () => {
+describe('Container — circular dependency resolution', () => {
+  it('resolves Singleton↔Singleton circular dependency via proxy', async () => {
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceB", _Fwd]],
+      inject: [['serviceB', _Fwd]],
     }) {
       public getBValue() {
         return (this.inject.serviceB as ServiceB).getValue();
       }
       public getValue() {
-        return "A";
+        return 'A';
       }
     }
     class ServiceB extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceA", ServiceA]],
+      inject: [['serviceA', ServiceA]],
     }) {
       public getAValue() {
         return this.inject.serviceA.getValue();
       }
       public getValue() {
-        return "B";
+        return 'B';
       }
     }
     (ServiceA as any)._inject = [ServiceB];
@@ -2097,8 +2099,8 @@ describe("Container — circular dependency resolution", () => {
 
     expect(a).toBeInstanceOf(ServiceA);
     expect(b).toBeInstanceOf(ServiceB);
-    expect(a.getBValue()).toBe("B");
-    expect(b.getAValue()).toBe("A");
+    expect(a.getBValue()).toBe('B');
+    expect(b.getAValue()).toBe('A');
     // Proxy delegates to real instance — behavioral check, not reference equality
     expect(a.inject.serviceB instanceof ServiceB).toBe(true);
     // Non-proxy side is the real instance
@@ -2107,27 +2109,27 @@ describe("Container — circular dependency resolution", () => {
     await container.stop();
   });
 
-  it("resolves Request↔Request circular dependency via proxy", async () => {
+  it('resolves Request↔Request circular dependency via proxy', async () => {
     class ReqA extends Injectable({
       scope: SCOPE.REQUEST,
-      inject: [["reqB", _Fwd]],
+      inject: [['reqB', _Fwd]],
     }) {
       public getBValue() {
         return (this.inject.reqB as ReqB).getValue();
       }
       public getValue() {
-        return "A";
+        return 'A';
       }
     }
     class ReqB extends Injectable({
       scope: SCOPE.REQUEST,
-      inject: [["reqA", ReqA]],
+      inject: [['reqA', ReqA]],
     }) {
       public getAValue() {
         return this.inject.reqA.getValue();
       }
       public getValue() {
-        return "B";
+        return 'B';
       }
     }
     (ReqA as any)._inject = [ReqB];
@@ -2142,8 +2144,8 @@ describe("Container — circular dependency resolution", () => {
     await container.withRequestScope(() => {
       const a = container.resolve(ReqA);
       const b = container.resolve(ReqB);
-      expect(a.getBValue()).toBe("B");
-      expect(b.getAValue()).toBe("A");
+      expect(a.getBValue()).toBe('B');
+      expect(b.getAValue()).toBe('A');
       // Proxy delegates to real instance — behavioral check, not reference equality
       expect(a.inject.reqB instanceof ReqB).toBe(true);
       // Non-proxy side is the real instance
@@ -2153,14 +2155,14 @@ describe("Container — circular dependency resolution", () => {
     await container.stop();
   });
 
-  it("throws CIRCULAR_DEPENDENCY for Transient↔Transient cycle", async () => {
+  it('throws CIRCULAR_DEPENDENCY for Transient↔Transient cycle', async () => {
     class TransA extends Injectable({
       scope: SCOPE.TRANSIENT,
-      inject: [["transB", _Fwd]],
+      inject: [['transB', _Fwd]],
     }) {}
     class TransB extends Injectable({
       scope: SCOPE.TRANSIENT,
-      inject: [["transA", TransA]],
+      inject: [['transA', TransA]],
     }) {}
     (TransA as any)._inject = [TransB];
 
@@ -2179,10 +2181,10 @@ describe("Container — circular dependency resolution", () => {
     await container.stop();
   });
 
-  it("resolves Singleton→Transient→Singleton circular dependency", async () => {
+  it('resolves Singleton→Transient→Singleton circular dependency', async () => {
     class SingletonService extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["transientService", _Fwd]],
+      inject: [['transientService', _Fwd]],
     }) {
       public getTransientValue() {
         return (this.inject.transientService as TransientService).getValue();
@@ -2190,10 +2192,10 @@ describe("Container — circular dependency resolution", () => {
     }
     class TransientService extends Injectable({
       scope: SCOPE.TRANSIENT,
-      inject: [["singletonService", SingletonService]],
+      inject: [['singletonService', SingletonService]],
     }) {
       public getValue() {
-        return "transient";
+        return 'transient';
       }
     }
     (SingletonService as any)._inject = [TransientService];
@@ -2207,15 +2209,15 @@ describe("Container — circular dependency resolution", () => {
 
     const singleton = container.resolve(SingletonService);
     expect(singleton).toBeInstanceOf(SingletonService);
-    expect(singleton.getTransientValue()).toBe("transient");
+    expect(singleton.getTransientValue()).toBe('transient');
 
     await container.stop();
   });
 
-  it("throws when accessing circular dep proxy during construction", async () => {
+  it('throws when accessing circular dep proxy during construction', async () => {
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceB", _Fwd]],
+      inject: [['serviceB', _Fwd]],
     }) {
       public readonly bValue: string;
       constructor(b: ServiceB) {
@@ -2223,15 +2225,15 @@ describe("Container — circular dependency resolution", () => {
         this.bValue = b.getValue();
       }
       public getValue() {
-        return "A";
+        return 'A';
       }
     }
     class ServiceB extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceA", ServiceA]],
+      inject: [['serviceA', ServiceA]],
     }) {
       public getValue() {
-        return "B";
+        return 'B';
       }
     }
     (ServiceA as any)._inject = [ServiceB];
@@ -2252,38 +2254,38 @@ describe("Container — circular dependency resolution", () => {
     }).toThrowDIError(DI_ERROR_CODE.CIRCULAR_DEPENDENCY, /accessed during.*construction/);
   });
 
-  it("resolves longer cycle A→B→C→A via proxy", async () => {
+  it('resolves longer cycle A→B→C→A via proxy', async () => {
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceC", _Fwd]],
+      inject: [['serviceC', _Fwd]],
     }) {
       public getCValue() {
         return (this.inject.serviceC as ServiceC).getValue();
       }
       public getValue() {
-        return "A";
+        return 'A';
       }
     }
     class ServiceB extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceA", ServiceA]],
+      inject: [['serviceA', ServiceA]],
     }) {
       public getAValue() {
         return this.inject.serviceA.getValue();
       }
       public getValue() {
-        return "B";
+        return 'B';
       }
     }
     class ServiceC extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceB", ServiceB]],
+      inject: [['serviceB', ServiceB]],
     }) {
       public getBValue() {
         return this.inject.serviceB.getValue();
       }
       public getValue() {
-        return "C";
+        return 'C';
       }
     }
     (ServiceA as any)._inject = [ServiceC];
@@ -2299,25 +2301,25 @@ describe("Container — circular dependency resolution", () => {
     const b = container.resolve(ServiceB);
     const c = container.resolve(ServiceC);
 
-    expect(a.getCValue()).toBe("C");
-    expect(b.getAValue()).toBe("A");
-    expect(c.getBValue()).toBe("B");
+    expect(a.getCValue()).toBe('C');
+    expect(b.getAValue()).toBe('A');
+    expect(c.getBValue()).toBe('B');
 
     await container.stop();
   });
 
-  it("proxy is not a thenable (await-safe)", async () => {
+  it('proxy is not a thenable (await-safe)', async () => {
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceB", _Fwd]],
+      inject: [['serviceB', _Fwd]],
     }) {
       public getValue() {
-        return "A";
+        return 'A';
       }
     }
     class ServiceB extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceA", ServiceA]],
+      inject: [['serviceA', ServiceA]],
     }) {
       public getAValue() {
         return this.inject.serviceA.getValue();
@@ -2335,15 +2337,15 @@ describe("Container — circular dependency resolution", () => {
     const a = container.resolve(ServiceA);
     const proxyB = a.inject.serviceB;
     const result = await Promise.resolve(proxyB);
-    expect((result as ServiceB).getAValue()).toBe("A");
+    expect((result as ServiceB).getAValue()).toBe('A');
 
     await container.stop();
   });
 
-  it("proxy supports property assignment", async () => {
+  it('proxy supports property assignment', async () => {
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceB", _Fwd]],
+      inject: [['serviceB', _Fwd]],
     }) {
       public setBValue(val: string) {
         (this.inject.serviceB as any).dynamicProp = val;
@@ -2354,7 +2356,7 @@ describe("Container — circular dependency resolution", () => {
     }
     class ServiceB extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceA", ServiceA]],
+      inject: [['serviceA', ServiceA]],
     }) {}
     (ServiceA as any)._inject = [ServiceB];
 
@@ -2366,8 +2368,8 @@ describe("Container — circular dependency resolution", () => {
     await container.start();
 
     const a = container.resolve(ServiceA);
-    a.setBValue("hello");
-    expect(a.getBValue()).toBe("hello");
+    a.setBValue('hello');
+    expect(a.getBValue()).toBe('hello');
 
     await container.stop();
   });
@@ -2375,17 +2377,17 @@ describe("Container — circular dependency resolution", () => {
   it('proxy supports "in" operator', async () => {
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceB", _Fwd]],
+      inject: [['serviceB', _Fwd]],
     }) {
       public hasBProp() {
-        return "existingProp" in (this.inject.serviceB as object);
+        return 'existingProp' in (this.inject.serviceB as object);
       }
     }
     class ServiceB extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceA", ServiceA]],
+      inject: [['serviceA', ServiceA]],
     }) {
-      public existingProp = "yes";
+      public existingProp = 'yes';
     }
     (ServiceA as any)._inject = [ServiceB];
 
@@ -2402,10 +2404,10 @@ describe("Container — circular dependency resolution", () => {
     await container.stop();
   });
 
-  it("proxy supports Object.keys()", async () => {
+  it('proxy supports Object.keys()', async () => {
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceB", _Fwd]],
+      inject: [['serviceB', _Fwd]],
     }) {
       public getBKeys() {
         return Object.keys(this.inject.serviceB as object);
@@ -2413,7 +2415,7 @@ describe("Container — circular dependency resolution", () => {
     }
     class ServiceB extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceA", ServiceA]],
+      inject: [['serviceA', ServiceA]],
     }) {
       public alpha = 1;
       public beta = 2;
@@ -2429,16 +2431,16 @@ describe("Container — circular dependency resolution", () => {
 
     const a = container.resolve(ServiceA);
     const keys = a.getBKeys();
-    expect(keys).toContain("alpha");
-    expect(keys).toContain("beta");
+    expect(keys).toContain('alpha');
+    expect(keys).toContain('beta');
 
     await container.stop();
   });
 
-  it("proxy supports instanceof check", async () => {
+  it('proxy supports instanceof check', async () => {
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceB", _Fwd]],
+      inject: [['serviceB', _Fwd]],
     }) {
       public isBInstance() {
         return this.inject.serviceB instanceof ServiceB;
@@ -2446,7 +2448,7 @@ describe("Container — circular dependency resolution", () => {
     }
     class ServiceB extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceA", ServiceA]],
+      inject: [['serviceA', ServiceA]],
     }) {}
     (ServiceA as any)._inject = [ServiceB];
 
@@ -2467,8 +2469,8 @@ describe("Container — circular dependency resolution", () => {
 // ---------------------------------------------------------------------------
 // withRequestScope with no request-scoped providers
 // ---------------------------------------------------------------------------
-describe("Container — withRequestScope with no request providers", () => {
-  it("returns callback result when module has only singleton providers", async () => {
+describe('Container — withRequestScope with no request providers', () => {
+  it('returns callback result when module has only singleton providers', async () => {
     class SingletonA extends Injectable({ scope: SCOPE.SINGLETON }) {}
     class SingletonB extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
@@ -2491,8 +2493,8 @@ describe("Container — withRequestScope with no request providers", () => {
 // ---------------------------------------------------------------------------
 // Re-entrant withRequestScope from request-scoped onStart
 // ---------------------------------------------------------------------------
-describe("Container — re-entrant withRequestScope from onStart", () => {
-  it("throws CIRCULAR_DEPENDENCY when withRequestScope is called from request-scoped onStart", async () => {
+describe('Container — re-entrant withRequestScope from onStart', () => {
+  it('throws CIRCULAR_DEPENDENCY when withRequestScope is called from request-scoped onStart', async () => {
     let caughtError: DIError | undefined;
 
     class ReqService extends Injectable({ scope: SCOPE.REQUEST }) {
@@ -2527,22 +2529,22 @@ describe("Container — re-entrant withRequestScope from onStart", () => {
 // ---------------------------------------------------------------------------
 // withRequestScope onStart non-Error throw with cleanup errors
 // ---------------------------------------------------------------------------
-describe("Container — withRequestScope onStart non-Error with cleanup failure", () => {
-  it("wraps non-Error onStart throw into Error when cleanup also fails", async () => {
+describe('Container — withRequestScope onStart non-Error with cleanup failure', () => {
+  it('wraps non-Error onStart throw into Error when cleanup also fails', async () => {
     class ReqA extends Injectable({ scope: SCOPE.REQUEST }) {
       public onStart() {
         /* ok */
       }
       public onStop() {
-        throw new Error("cleanup-failed");
+        throw new Error('cleanup-failed');
       }
     }
     class ReqB extends Injectable({
       scope: SCOPE.REQUEST,
-      inject: [["reqA", ReqA]],
+      inject: [['reqA', ReqA]],
     }) {
       public onStart() {
-        throw "string-from-onStart";
+        throw 'string-from-onStart';
       }
     }
 
@@ -2557,8 +2559,8 @@ describe("Container — withRequestScope onStart non-Error with cleanup failure"
 
     expect(err).toBeInstanceOf(AggregateError);
     expect(err.errors[0]).toBeInstanceOf(Error);
-    expect(err.errors[0].message).toBe("string-from-onStart");
-    expect(err.errors[1].message).toBe("cleanup-failed");
+    expect(err.errors[0].message).toBe('string-from-onStart');
+    expect(err.errors[1].message).toBe('cleanup-failed');
 
     await container.stop();
   });
@@ -2567,22 +2569,22 @@ describe("Container — withRequestScope onStart non-Error with cleanup failure"
 // ---------------------------------------------------------------------------
 // Proxy: Object.seal, Object.freeze, Object.defineProperty
 // ---------------------------------------------------------------------------
-describe("Container — proxy Object.defineProperty", () => {
-  it("supports Object.defineProperty on circular dep proxy", async () => {
+describe('Container — proxy Object.defineProperty', () => {
+  it('supports Object.defineProperty on circular dep proxy', async () => {
     class _Fwd extends Injectable({ scope: SCOPE.SINGLETON }) {}
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceB", _Fwd]],
+      inject: [['serviceB', _Fwd]],
     }) {
       public getValue() {
-        return "A";
+        return 'A';
       }
     }
     class ServiceB extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceA", ServiceA]],
+      inject: [['serviceA', ServiceA]],
     }) {
-      public existingProp = "yes";
+      public existingProp = 'yes';
     }
     (ServiceA as any)._inject = [ServiceB];
 
@@ -2596,7 +2598,7 @@ describe("Container — proxy Object.defineProperty", () => {
     const a = container.resolve(ServiceA);
     const proxyB = a.inject.serviceB;
 
-    Object.defineProperty(proxyB, "definedProp", {
+    Object.defineProperty(proxyB, 'definedProp', {
       value: 42,
       configurable: true,
       writable: true,

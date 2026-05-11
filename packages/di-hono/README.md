@@ -17,14 +17,14 @@ This is a workspace package, so it's already available in the monorepo.
 ## Quick Start
 
 ```typescript
-import { Container, Injectable, Module, SCOPE } from "@ultranomic/di";
-import { Controller, HonoModule } from "@ultranomic/di-hono";
-import { z } from "zod";
+import { Container, Injectable, Module, SCOPE } from '@ultranomic/di';
+import { Controller, HonoModule } from '@ultranomic/di-hono';
+import { z } from 'zod';
 
 // 1. Define a service
 class UserService extends Injectable({ scope: SCOPE.SINGLETON }) {
   async create(data: { name: string }) {
-    return { id: "1", ...data };
+    return { id: '1', ...data };
   }
   async list() {
     return [];
@@ -33,23 +33,23 @@ class UserService extends Injectable({ scope: SCOPE.SINGLETON }) {
 
 // 2. Define a controller with route fields
 class UserController extends Controller({
-  path: "/users",
-  inject: [["userService", UserService]],
+  path: '/users',
+  inject: [['userService', UserService]],
 }) {
   create = this.route({
-    method: "POST",
-    path: "/",
+    method: 'POST',
+    path: '/',
     validate: { json: z.object({ name: z.string() }) },
     handler: async (c) => {
-      const body = c.req.valid("json");
+      const body = c.req.valid('json');
       const user = await this.inject.userService.create(body);
       return c.json(user, 201);
     },
   });
 
   list = this.route({
-    method: "GET",
-    path: "/",
+    method: 'GET',
+    path: '/',
     handler: async (c) => {
       return c.json(await this.inject.userService.list());
     },
@@ -65,7 +65,7 @@ class UserModule extends Module({
 class HttpModule extends HonoModule({
   options: () => ({
     port: 3000,
-    host: "0.0.0.0",
+    host: '0.0.0.0',
   }),
 }) {}
 
@@ -97,8 +97,8 @@ Controllers are singleton-scoped by default. Dependencies are declared as named 
 
 ```typescript
 class UserController extends Controller({
-  path: "/users",
-  inject: [["userService", UserService]],
+  path: '/users',
+  inject: [['userService', UserService]],
 }) {
   // Dependencies available via this.inject
 }
@@ -121,8 +121,8 @@ class UserController extends Controller({
 
 ```typescript
 create = this.route({
-  method: "POST",
-  path: "/",
+  method: 'POST',
+  path: '/',
   handler: async (c) => {
     return c.json({ ok: true }, 201);
   },
@@ -151,18 +151,18 @@ Validation runs before the handler. If validation fails, the response is `400` w
 **Pattern with Zod v4 (native Standard Schema support):**
 
 ```typescript
-import { z } from "zod";
+import { z } from 'zod';
 
 create = this.route({
-  method: "POST",
-  path: "/",
+  method: 'POST',
+  path: '/',
   validate: {
     json: z.object({ name: z.string(), email: z.string().email() }),
-    query: z.object({ notify: z.enum(["true", "false"]).optional() }),
+    query: z.object({ notify: z.enum(['true', 'false']).optional() }),
   },
   handler: async (c) => {
     // c.req.valid('json') returns the validated data
-    const body = c.req.valid("json");
+    const body = c.req.valid('json');
     return c.json(body, 201);
   },
 });
@@ -173,18 +173,18 @@ create = this.route({
 If your validation library does not implement `~standard` natively, wrap it in a `StandardSchema` object:
 
 ```typescript
-import type { StandardSchema, StandardResult } from "@ultranomic/di-hono";
+import type { StandardSchema, StandardResult } from '@ultranomic/di-hono';
 
 function toStandard<T>(
   validate: (value: unknown) => { data: T } | { errors: string[] },
 ): StandardSchema<T> {
   return {
-    "~standard": {
+    '~standard': {
       version: 1 as const,
-      vendor: "custom" as const,
+      vendor: 'custom' as const,
       validate(value: unknown): StandardResult<T> {
         const result = validate(value);
-        return "data" in result
+        return 'data' in result
           ? { value: result.data }
           : { issues: result.errors.map((message) => ({ message })) };
       },
@@ -207,12 +207,12 @@ function toStandard<T>(
 | `options`   | `HonoModuleOptionsFactory`   | No       | Factory for server configuration.                                     |
 
 ```typescript
-import { HonoModule } from "@ultranomic/di-hono";
+import { HonoModule } from '@ultranomic/di-hono';
 
 class HttpModule extends HonoModule({
   options: () => ({
     port: 3000,
-    host: "0.0.0.0",
+    host: '0.0.0.0',
   }),
 }) {}
 
@@ -261,14 +261,14 @@ const app = honoService.hono;
 `RequestContext` provides access to the current Hono `Context` from anywhere in the request scope. It uses `AsyncLocalStorage` under the hood.
 
 ```typescript
-import { RequestContext } from "@ultranomic/di-hono";
+import { RequestContext } from '@ultranomic/di-hono';
 
 class AuditService extends Injectable({
   scope: SCOPE.REQUEST,
 }) {
   log(action: string) {
     const c = RequestContext.get();
-    const requestId = c?.req.header("x-request-id") ?? "unknown";
+    const requestId = c?.req.header('x-request-id') ?? 'unknown';
     console.log(`[${requestId}] ${action}`);
   }
 }

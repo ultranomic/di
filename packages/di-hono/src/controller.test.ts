@@ -1,9 +1,9 @@
-import { Container, Injectable, Module, SCOPE } from "@ultranomic/di";
-import { afterEach, describe, expect, it } from "vite-plus/test";
-import { z } from "zod";
-import { Controller } from "./controller.ts";
+import { Container, Injectable, Module, SCOPE } from '@ultranomic/di';
+import { afterEach, describe, expect, it } from 'vite-plus/test';
+import { z } from 'zod';
+import { Controller } from './controller.ts';
 
-import type { StandardResult, StandardSchema, ValidateTargets } from "./types.ts";
+import type { StandardResult, StandardSchema, ValidateTargets } from './types.ts';
 
 let container: Container;
 
@@ -11,36 +11,36 @@ afterEach(async () => {
   if (container) await container.stop();
 });
 
-describe("Controller mixin", () => {
+describe('Controller mixin', () => {
   it('returns class with _scope === "singleton"', () => {
-    const BaseController = Controller({ path: "/test" });
-    expect(BaseController._scope).toBe("SINGLETON");
+    const BaseController = Controller({ path: '/test' });
+    expect(BaseController._scope).toBe('SINGLETON');
   });
 
-  it("sets _path static from config", () => {
-    const BaseController = Controller({ path: "/users" });
-    expect(BaseController._path).toBe("/users");
+  it('sets _path static from config', () => {
+    const BaseController = Controller({ path: '/users' });
+    expect(BaseController._path).toBe('/users');
   });
 
-  it("defaults _inject to empty array", () => {
-    const BaseController = Controller({ path: "/test" });
+  it('defaults _inject to empty array', () => {
+    const BaseController = Controller({ path: '/test' });
     expect(BaseController._inject).toEqual([]);
   });
 
-  it("passes custom inject entries to Injectable", () => {
+  it('passes custom inject entries to Injectable', () => {
     class DepService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
-    const BaseController = Controller({ path: "/test", inject: [["dep", DepService]] });
+    const BaseController = Controller({ path: '/test', inject: [['dep', DepService]] });
     expect(BaseController._inject).toEqual([DepService]);
   });
 
-  describe("route() method", () => {
-    it("returns object with _isRoute: true", () => {
-      class TestController extends Controller({ path: "/test" }) {
+  describe('route() method', () => {
+    it('returns object with _isRoute: true', () => {
+      class TestController extends Controller({ path: '/test' }) {
         getIndex = this.route({
-          method: "GET",
-          path: "/",
-          handler: () => new Response("ok"),
+          method: 'GET',
+          path: '/',
+          handler: () => new Response('ok'),
         });
       }
 
@@ -48,50 +48,50 @@ describe("Controller mixin", () => {
       expect(instance.getIndex._isRoute).toBe(true);
     });
 
-    it("preserves method and path", () => {
-      class TestController extends Controller({ path: "/test" }) {
+    it('preserves method and path', () => {
+      class TestController extends Controller({ path: '/test' }) {
         getUsers = this.route({
-          method: "GET",
-          path: "/users",
-          handler: () => new Response("ok"),
+          method: 'GET',
+          path: '/users',
+          handler: () => new Response('ok'),
         });
 
         createUser = this.route({
-          method: "POST",
-          path: "/users",
-          handler: () => new Response("created"),
+          method: 'POST',
+          path: '/users',
+          handler: () => new Response('created'),
         });
       }
 
       const instance = new TestController();
-      expect(instance.getUsers.method).toBe("GET");
-      expect(instance.getUsers.path).toBe("/users");
-      expect(instance.createUser.method).toBe("POST");
-      expect(instance.createUser.path).toBe("/users");
+      expect(instance.getUsers.method).toBe('GET');
+      expect(instance.getUsers.path).toBe('/users');
+      expect(instance.createUser.method).toBe('POST');
+      expect(instance.createUser.path).toBe('/users');
     });
 
-    it("preserves validate field when provided", () => {
+    it('preserves validate field when provided', () => {
       const bodySchema: StandardSchema<string> = {
-        "~standard": {
+        '~standard': {
           version: 1 as const,
-          vendor: "test" as const,
+          vendor: 'test' as const,
           validate(value: unknown): StandardResult<string> {
-            if (typeof value === "string") {
+            if (typeof value === 'string') {
               return { value };
             }
-            return { issues: [{ message: "Expected string" }] };
+            return { issues: [{ message: 'Expected string' }] };
           },
         },
       };
 
       const validate: ValidateTargets = { json: bodySchema };
 
-      class TestController extends Controller({ path: "/test" }) {
+      class TestController extends Controller({ path: '/test' }) {
         createUser = this.route({
-          method: "POST",
-          path: "/users",
+          method: 'POST',
+          path: '/users',
           validate,
-          handler: () => new Response("created"),
+          handler: () => new Response('created'),
         });
       }
 
@@ -100,12 +100,12 @@ describe("Controller mixin", () => {
       expect(instance.createUser.validate?.json).toBe(bodySchema);
     });
 
-    it("works without validate (no validate on result)", () => {
-      class TestController extends Controller({ path: "/test" }) {
+    it('works without validate (no validate on result)', () => {
+      class TestController extends Controller({ path: '/test' }) {
         getIndex = this.route({
-          method: "GET",
-          path: "/",
-          handler: () => new Response("ok"),
+          method: 'GET',
+          path: '/',
+          handler: () => new Response('ok'),
         });
       }
 
@@ -113,13 +113,13 @@ describe("Controller mixin", () => {
       expect(instance.getIndex.validate).toBeUndefined();
     });
 
-    it("preserves handler function", () => {
-      const handler = () => new Response("ok");
+    it('preserves handler function', () => {
+      const handler = () => new Response('ok');
 
-      class TestController extends Controller({ path: "/test" }) {
+      class TestController extends Controller({ path: '/test' }) {
         getIndex = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           handler,
         });
       }
@@ -129,9 +129,9 @@ describe("Controller mixin", () => {
     });
   });
 
-  describe("integration with Container", () => {
-    it("resolves controller instance via Container", async () => {
-      class TestController extends Controller({ path: "/test" }) {}
+  describe('integration with Container', () => {
+    it('resolves controller instance via Container', async () => {
+      class TestController extends Controller({ path: '/test' }) {}
 
       class TestModule extends Module({
         providers: [TestController],
@@ -144,7 +144,7 @@ describe("Controller mixin", () => {
       expect(ctrl).toBeInstanceOf(TestController);
     });
 
-    it("resolves controller with injected deps", async () => {
+    it('resolves controller with injected deps', async () => {
       class DepService extends Injectable({ scope: SCOPE.SINGLETON }) {
         getValue() {
           return 42;
@@ -152,8 +152,8 @@ describe("Controller mixin", () => {
       }
 
       class TestController extends Controller({
-        path: "/test",
-        inject: [["dep", DepService]],
+        path: '/test',
+        inject: [['dep', DepService]],
       }) {
         getDepValue() {
           return this.inject.dep.getValue();
@@ -171,18 +171,18 @@ describe("Controller mixin", () => {
       expect(ctrl.getDepValue()).toBe(42);
     });
 
-    it("instance route fields have _isRoute tag", async () => {
-      class TestController extends Controller({ path: "/test" }) {
+    it('instance route fields have _isRoute tag', async () => {
+      class TestController extends Controller({ path: '/test' }) {
         getUsers = this.route({
-          method: "GET",
-          path: "/",
-          handler: () => new Response("ok"),
+          method: 'GET',
+          path: '/',
+          handler: () => new Response('ok'),
         });
 
         createUser = this.route({
-          method: "POST",
-          path: "/",
-          handler: () => new Response("created"),
+          method: 'POST',
+          path: '/',
+          handler: () => new Response('created'),
         });
       }
 
@@ -196,26 +196,26 @@ describe("Controller mixin", () => {
       const ctrl = container.resolve(TestController);
       expect(ctrl.getUsers._isRoute).toBe(true);
       expect(ctrl.createUser._isRoute).toBe(true);
-      expect(ctrl.getUsers.method).toBe("GET");
-      expect(ctrl.createUser.method).toBe("POST");
+      expect(ctrl.getUsers.method).toBe('GET');
+      expect(ctrl.createUser.method).toBe('POST');
     });
   });
 
-  describe("multiple inject dependencies", () => {
-    it("receives both deps in constructor in correct order", async () => {
+  describe('multiple inject dependencies', () => {
+    it('receives both deps in constructor in correct order', async () => {
       class DepA extends Injectable({ scope: SCOPE.SINGLETON }) {
-        readonly tag = "A";
+        readonly tag = 'A';
       }
 
       class DepB extends Injectable({ scope: SCOPE.SINGLETON }) {
-        readonly tag = "B";
+        readonly tag = 'B';
       }
 
       class TestController extends Controller({
-        path: "/test",
+        path: '/test',
         inject: [
-          ["depA", DepA],
-          ["depB", DepB],
+          ['depA', DepA],
+          ['depB', DepB],
         ],
       }) {
         getTags() {
@@ -231,35 +231,35 @@ describe("Controller mixin", () => {
       container = new Container(TestModule);
       await container.start();
       const ctrl = container.resolve(TestController);
-      expect(ctrl.getTags()).toEqual(["A", "B"]);
+      expect(ctrl.getTags()).toEqual(['A', 'B']);
     });
   });
 
-  describe("zod schema validation", () => {
-    it("route with zod-based validate schema", async () => {
+  describe('zod schema validation', () => {
+    it('route with zod-based validate schema', async () => {
       const userSchema = z.object({ name: z.string() });
       const validate: ValidateTargets = { json: userSchema };
 
-      class TestController extends Controller({ path: "/users" }) {
+      class TestController extends Controller({ path: '/users' }) {
         createUser = this.route({
-          method: "POST",
-          path: "/",
+          method: 'POST',
+          path: '/',
           validate,
-          handler: () => new Response("created"),
+          handler: () => new Response('created'),
         });
       }
 
       const instance = new TestController();
       expect(instance.createUser.validate?.json).toBe(userSchema);
 
-      const validResult = await userSchema["~standard"].validate({ name: "Alice" });
+      const validResult = await userSchema['~standard'].validate({ name: 'Alice' });
       if (validResult.issues) {
-        expect.unreachable("Should not have issues for valid input");
+        expect.unreachable('Should not have issues for valid input');
       } else {
-        expect(validResult.value).toEqual({ name: "Alice" });
+        expect(validResult.value).toEqual({ name: 'Alice' });
       }
 
-      const invalidResult = await userSchema["~standard"].validate({ name: 123 });
+      const invalidResult = await userSchema['~standard'].validate({ name: 123 });
       expect(invalidResult.issues).toBeDefined();
       expect(invalidResult.issues!.length).toBeGreaterThan(0);
     });

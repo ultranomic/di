@@ -1,13 +1,13 @@
-import { AsyncLocalStorage } from "node:async_hooks";
-import { DI_ERROR_CODE, DIError } from "./di-error.ts";
-import { buildGraph } from "./graph.ts";
-import { SCOPE } from "./scope.ts";
-import type { InjectableClass, ModuleClass } from "./types.ts";
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { DI_ERROR_CODE, DIError } from './di-error.ts';
+import { buildGraph } from './graph.ts';
+import { SCOPE } from './scope.ts';
+import type { InjectableClass, ModuleClass } from './types.ts';
 
 type RequestStore = Map<InjectableClass | typeof IN_REQUEST_START, unknown>;
 
-const PENDING: unique symbol = Symbol("pending");
-const IN_REQUEST_START: unique symbol = Symbol("inRequestStart");
+const PENDING: unique symbol = Symbol('pending');
+const IN_REQUEST_START: unique symbol = Symbol('inRequestStart');
 
 const createLazyProxy = <T>(
   cls: InjectableClass<T>,
@@ -32,10 +32,10 @@ const createLazyProxy = <T>(
 
   return new Proxy({} as object, {
     get(_target, prop, _receiver) {
-      if (prop === "then") return undefined;
+      if (prop === 'then') return undefined;
       const target = lazyTarget() as object;
       const value = Reflect.get(target, prop, target);
-      if (typeof value === "function") {
+      if (typeof value === 'function') {
         return value.bind(target);
       }
       return value;
@@ -67,20 +67,20 @@ const hasLifecycleHook = <THook extends string>(
   obj: unknown,
   hook: THook,
 ): obj is Record<THook, (...args: unknown[]) => unknown> =>
-  typeof obj === "object" &&
+  typeof obj === 'object' &&
   obj !== null &&
   hook in obj &&
-  typeof (obj as Record<string, unknown>)[hook] === "function";
+  typeof (obj as Record<string, unknown>)[hook] === 'function';
 
 const toError = (err: unknown): Error => (err instanceof Error ? err : new Error(String(err)));
 
 const throwAggregate = (errors: Error[], prefix: string): void => {
-  const message = errors.map((e) => e.message).join("; ");
+  const message = errors.map((e) => e.message).join('; ');
   throw new AggregateError(errors, `${prefix}: ${message}`);
 };
 
-const MSG_NOT_STARTED = "Container has not been started. Call start() first.";
-const MSG_NOT_IN_STARTED_STATE = "Container is not in a started state.";
+const MSG_NOT_STARTED = 'Container has not been started. Call start() first.';
+const MSG_NOT_IN_STARTED_STATE = 'Container is not in a started state.';
 
 /** Dependency injection container that resolves providers, manages lifecycles, and handles scoping. */
 export class Container {
@@ -93,7 +93,7 @@ export class Container {
   readonly #singletons = new Map<InjectableClass, unknown>();
   readonly #als = new AsyncLocalStorage<RequestStore>();
   readonly #resolutionStack = new Set<InjectableClass>();
-  #state: "idle" | "starting" | "started" | "stopping" | "stopped" = "idle";
+  #state: 'idle' | 'starting' | 'started' | 'stopping' | 'stopped' = 'idle';
 
   /**
    * Create a new container for the given root module.
@@ -143,13 +143,13 @@ export class Container {
    */
   public resolve<T>(cls: InjectableClass<T>): T {
     this.#throwIfStopped();
-    if (this.#state === "idle") {
+    if (this.#state === 'idle') {
       throw new DIError(DI_ERROR_CODE.CONTAINER_NOT_STARTED, MSG_NOT_STARTED);
     }
-    if (this.#state === "starting") {
+    if (this.#state === 'starting') {
       throw new DIError(
         DI_ERROR_CODE.CONTAINER_NOT_STARTED,
-        "Container is still starting. resolve() is not available during startup.",
+        'Container is still starting. resolve() is not available during startup.',
       );
     }
 
@@ -212,14 +212,14 @@ export class Container {
    * ```
    */
   public async start(): Promise<void> {
-    if (this.#state === "started" || this.#state === "starting") {
+    if (this.#state === 'started' || this.#state === 'starting') {
       throw new DIError(
         DI_ERROR_CODE.ALREADY_STARTED,
-        "Container has already been started or is starting",
+        'Container has already been started or is starting',
       );
     }
     this.#throwIfStopped();
-    this.#state = "starting";
+    this.#state = 'starting';
 
     const providers = this.#singletonProviders;
     try {
@@ -227,11 +227,11 @@ export class Container {
     } catch (err) {
       this.#singletons.clear();
       this.#resolutionStack.clear();
-      this.#state = "idle";
+      this.#state = 'idle';
       throw err;
     }
 
-    this.#state = "started";
+    this.#state = 'started';
   }
 
   /**
@@ -241,11 +241,11 @@ export class Container {
    * @throws {AggregateError} When one or more `onStop` hooks fail.
    */
   public async stop(): Promise<void> {
-    if (this.#state === "idle" || this.#state === "starting") {
+    if (this.#state === 'idle' || this.#state === 'starting') {
       throw new DIError(DI_ERROR_CODE.CONTAINER_NOT_STARTED, MSG_NOT_IN_STARTED_STATE);
     }
-    if (this.#state !== "started") return;
-    this.#state = "stopping";
+    if (this.#state !== 'started') return;
+    this.#state = 'stopping';
 
     try {
       const singletonProviders = this.#reversedSingletonProviders;
@@ -256,11 +256,11 @@ export class Container {
       );
 
       if (errors.length > 0) {
-        throwAggregate(errors, "Stop failed");
+        throwAggregate(errors, 'Stop failed');
       }
     } finally {
       this.#singletons.clear();
-      this.#state = "stopped";
+      this.#state = 'stopped';
     }
   }
 
@@ -275,14 +275,14 @@ export class Container {
    */
   public async withRequestScope<T>(fn: () => Promise<T> | T): Promise<T> {
     this.#throwIfStopped();
-    if (this.#state !== "started") {
+    if (this.#state !== 'started') {
       throw new DIError(DI_ERROR_CODE.CONTAINER_NOT_STARTED, MSG_NOT_STARTED);
     }
     const currentStore = this.#als.getStore();
     if (currentStore?.has(IN_REQUEST_START)) {
       throw new DIError(
         DI_ERROR_CODE.CIRCULAR_DEPENDENCY,
-        "Cannot call withRequestScope() from within a request-scoped onStart hook — this would cause infinite recursion.",
+        'Cannot call withRequestScope() from within a request-scoped onStart hook — this would cause infinite recursion.',
       );
     }
 
@@ -296,7 +296,7 @@ export class Container {
         store.delete(IN_REQUEST_START);
         const cleanupErrors = await this.#stopInstances([...store.values()].toReversed());
         if (cleanupErrors.length > 0) {
-          throwAggregate([toError(startErr), ...cleanupErrors], "Request scope startup failed");
+          throwAggregate([toError(startErr), ...cleanupErrors], 'Request scope startup failed');
         } else {
           throw toError(startErr);
         }
@@ -318,7 +318,7 @@ export class Container {
 
       if (cleanupErrors.length > 0) {
         const all = hasError ? [toError(callbackError), ...cleanupErrors] : cleanupErrors;
-        throwAggregate(all, hasError ? "Request scope failed" : "Request scope cleanup failed");
+        throwAggregate(all, hasError ? 'Request scope failed' : 'Request scope cleanup failed');
       }
 
       if (hasError) {
@@ -341,7 +341,7 @@ export class Container {
         if (rollback) {
           startedInstances.push(instance);
         }
-        if (hasLifecycleHook(instance, "onStart")) {
+        if (hasLifecycleHook(instance, 'onStart')) {
           await Promise.try(() => instance.onStart(this));
         }
       } catch (err) {
@@ -356,7 +356,7 @@ export class Container {
   async #rollbackStarted(instances: unknown[]): Promise<void> {
     for (let i = instances.length - 1; i >= 0; i--) {
       const instance = instances[i];
-      if (!hasLifecycleHook(instance, "onStop")) continue;
+      if (!hasLifecycleHook(instance, 'onStop')) continue;
       try {
         await Promise.try(() => instance.onStop(this));
       } catch {
@@ -369,7 +369,7 @@ export class Container {
     const errors: Error[] = [];
 
     for (const instance of instances) {
-      if (!hasLifecycleHook(instance, "onStop")) continue;
+      if (!hasLifecycleHook(instance, 'onStop')) continue;
       try {
         await Promise.try(() => instance.onStop(this));
       } catch (err) {
@@ -409,9 +409,9 @@ export class Container {
   }
 
   #throwIfStopped(): void {
-    if (this.#state === "stopped" || this.#state === "stopping") {
+    if (this.#state === 'stopped' || this.#state === 'stopping') {
       const message =
-        this.#state === "stopping" ? "Container is shutting down" : "Container has been stopped";
+        this.#state === 'stopping' ? 'Container is shutting down' : 'Container has been stopped';
       throw new DIError(DI_ERROR_CODE.CONTAINER_STOPPED, message);
     }
   }

@@ -37,7 +37,7 @@ class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 // With dependencies - available via this.inject
 class DbService extends Injectable({
   scope: SCOPE.SINGLETON,
-  inject: [["config", ConfigService]],
+  inject: [['config', ConfigService]],
 }) {
   connect() {
     console.log(this.inject.config.getDbUrl()); // ✅ Via inject object

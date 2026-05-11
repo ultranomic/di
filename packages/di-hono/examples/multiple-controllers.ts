@@ -6,8 +6,8 @@
  * Run: node libs/di-hono/examples/multiple-controllers.ts
  */
 
-import { Container, Injectable, Module, SCOPE } from "@ultranomic/di";
-import { Controller, HonoModule, HonoService } from "../src/index.ts";
+import { Container, Injectable, Module, SCOPE } from '@ultranomic/di';
+import { Controller, HonoModule, HonoService } from '../src/index.ts';
 
 // ---------------------------------------------------------------------------
 // 1. Shared service
@@ -17,8 +17,8 @@ class AuthService extends Injectable({ scope: SCOPE.SINGLETON }) {
 
   public constructor() {
     super();
-    this.#tokens.set("tok-admin", { userId: "u1", role: "admin" });
-    this.#tokens.set("tok-user", { userId: "u2", role: "user" });
+    this.#tokens.set('tok-admin', { userId: 'u1', role: 'admin' });
+    this.#tokens.set('tok-user', { userId: 'u2', role: 'user' });
   }
 
   public validate(token: string): { userId: string; role: string } | null {
@@ -30,16 +30,16 @@ class AuthService extends Injectable({ scope: SCOPE.SINGLETON }) {
 // 2. UserController at /users
 // ---------------------------------------------------------------------------
 class UserController extends Controller({
-  path: "/users",
-  inject: [["auth", AuthService]],
+  path: '/users',
+  inject: [['auth', AuthService]],
 }) {
   public profile = this.route({
-    method: "GET",
-    path: "/profile",
+    method: 'GET',
+    path: '/profile',
     handler: (c) => {
-      const token = c.req.header("authorization")?.replace("Bearer ", "") ?? "";
+      const token = c.req.header('authorization')?.replace('Bearer ', '') ?? '';
       const user = this.inject.auth.validate(token);
-      if (!user) return c.json({ error: "Unauthorized" }, 401);
+      if (!user) return c.json({ error: 'Unauthorized' }, 401);
       return c.json({ userId: user.userId, role: user.role });
     },
   });
@@ -49,14 +49,14 @@ class UserController extends Controller({
 // 3. AuthController at /auth
 // ---------------------------------------------------------------------------
 class AuthController extends Controller({
-  path: "/auth",
-  inject: [["auth", AuthService]],
+  path: '/auth',
+  inject: [['auth', AuthService]],
 }) {
   public check = this.route({
-    method: "GET",
-    path: "/check",
+    method: 'GET',
+    path: '/check',
     handler: (c) => {
-      const token = c.req.query("token") ?? "";
+      const token = c.req.query('token') ?? '';
       const result = this.inject.auth.validate(token);
       if (!result) return c.json({ valid: false }, 401);
       return c.json({ valid: true, ...result });
@@ -85,30 +85,30 @@ const main = async (): Promise<void> => {
   const app = container.resolve(HonoService).hono;
 
   // UserController: GET /users/profile with valid token
-  console.log("--- GET /users/profile (valid token) ---");
+  console.log('--- GET /users/profile (valid token) ---');
   const res1 = await app.fetch(
-    new Request("http://localhost/users/profile", {
-      headers: { authorization: "Bearer tok-admin" },
+    new Request('http://localhost/users/profile', {
+      headers: { authorization: 'Bearer tok-admin' },
     }),
   );
-  console.log("Status:", res1.status, "Body:", await res1.json());
+  console.log('Status:', res1.status, 'Body:', await res1.json());
 
   // UserController: GET /users/profile with invalid token
-  console.log("--- GET /users/profile (invalid token) ---");
+  console.log('--- GET /users/profile (invalid token) ---');
   const res2 = await app.fetch(
-    new Request("http://localhost/users/profile", {
-      headers: { authorization: "Bearer bad-token" },
+    new Request('http://localhost/users/profile', {
+      headers: { authorization: 'Bearer bad-token' },
     }),
   );
-  console.log("Status:", res2.status, "Body:", await res2.json());
+  console.log('Status:', res2.status, 'Body:', await res2.json());
 
   // AuthController: GET /auth/check
-  console.log("--- GET /auth/check?token=tok-user ---");
-  const res3 = await app.fetch(new Request("http://localhost/auth/check?token=tok-user"));
-  console.log("Status:", res3.status, "Body:", await res3.json());
+  console.log('--- GET /auth/check?token=tok-user ---');
+  const res3 = await app.fetch(new Request('http://localhost/auth/check?token=tok-user'));
+  console.log('Status:', res3.status, 'Body:', await res3.json());
 
   await container.stop();
-  console.log("[multiple-controllers] Done.");
+  console.log('[multiple-controllers] Done.');
 };
 
 await main();

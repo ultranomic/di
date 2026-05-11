@@ -25,17 +25,17 @@ node libs/di-hono/examples/dynamic-options.ts
 ## Key Patterns
 
 ```typescript
-import { Controller, HonoModule, HonoService } from "../src/index.ts";
-import { Injectable, Module, SCOPE, Container } from "@ultranomic/di";
+import { Controller, HonoModule, HonoService } from '../src/index.ts';
+import { Injectable, Module, SCOPE, Container } from '@ultranomic/di';
 
 // Define a controller - dependencies via this.inject
 class MyController extends Controller({
-  path: "/my",
-  inject: [["service", MyService]],
+  path: '/my',
+  inject: [['service', MyService]],
 }) {
   list = this.route({
-    method: "GET",
-    path: "/",
+    method: 'GET',
+    path: '/',
     handler: async (c) => c.json({ items: [] }),
   });
 }
@@ -58,6 +58,6 @@ class AppModule extends Module({
 const container = new Container(AppModule);
 await container.start();
 const app = container.resolve(HonoService).hono;
-const res = await app.fetch(new Request("http://localhost/my"));
+const res = await app.fetch(new Request('http://localhost/my'));
 await container.stop();
 ```

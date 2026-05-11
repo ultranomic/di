@@ -1,7 +1,7 @@
-import type { InjectableClass, InjectEntry, ModuleClass } from "@ultranomic/di";
-import type { Context, MiddlewareHandler } from "hono";
+import type { InjectableClass, InjectEntry, ModuleClass } from '@ultranomic/di';
+import type { Context, MiddlewareHandler } from 'hono';
 
-export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS";
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
 
 export type StandardPathSegment = {
   readonly key: PropertyKey;
@@ -17,7 +17,7 @@ export type StandardResult<T> =
   | { readonly issues: readonly StandardIssue[] };
 
 export type StandardSchema<Input = unknown, Output = Input> = {
-  readonly "~standard": {
+  readonly '~standard': {
     readonly version: 1;
     readonly vendor: string;
     readonly validate: (
@@ -28,7 +28,7 @@ export type StandardSchema<Input = unknown, Output = Input> = {
   };
 };
 
-export const VALIDATE_TARGETS = ["json", "query", "param", "header", "form", "cookie"] as const;
+export const VALIDATE_TARGETS = ['json', 'query', 'param', 'header', 'form', 'cookie'] as const;
 
 export type ValidateTargets = Readonly<
   Partial<Record<(typeof VALIDATE_TARGETS)[number], StandardSchema>>

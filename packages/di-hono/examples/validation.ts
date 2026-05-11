@@ -7,16 +7,16 @@
  * Run: node libs/di-hono/examples/validation.ts
  */
 
-import { Container, Injectable, Module, SCOPE } from "@ultranomic/di";
-import { z } from "zod";
-import { Controller, HonoModule, HonoService } from "../src/index.ts";
+import { Container, Injectable, Module, SCOPE } from '@ultranomic/di';
+import { z } from 'zod';
+import { Controller, HonoModule, HonoService } from '../src/index.ts';
 
 // ---------------------------------------------------------------------------
 // 1. Schemas
 // ---------------------------------------------------------------------------
 const CreateUserSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email"),
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email'),
 });
 
 const PaginationSchema = z.object({
@@ -25,7 +25,7 @@ const PaginationSchema = z.object({
 });
 
 const IdParamSchema = z.object({
-  id: z.string().uuid("Must be a valid UUID"),
+  id: z.string().uuid('Must be a valid UUID'),
 });
 
 // ---------------------------------------------------------------------------
@@ -52,16 +52,16 @@ class UserService extends Injectable({ scope: SCOPE.SINGLETON }) {
 // 3. Controller with validation
 // ---------------------------------------------------------------------------
 class UserController extends Controller({
-  path: "/users",
-  inject: [["userService", UserService]],
+  path: '/users',
+  inject: [['userService', UserService]],
 }) {
   // POST /users — validated JSON body
   public create = this.route({
-    method: "POST",
-    path: "/",
+    method: 'POST',
+    path: '/',
     validate: { json: CreateUserSchema },
     handler: (c) => {
-      const body = c.req.valid("json");
+      const body = c.req.valid('json');
       const user = this.inject.userService.create(body.name, body.email);
       return c.json({ user }, 201);
     },
@@ -69,24 +69,24 @@ class UserController extends Controller({
 
   // GET /users — validated query params
   public list = this.route({
-    method: "GET",
-    path: "/",
+    method: 'GET',
+    path: '/',
     validate: { query: PaginationSchema },
     handler: (c) => {
-      const query = c.req.valid("query");
+      const query = c.req.valid('query');
       return c.json({ page: query.page, limit: query.limit });
     },
   });
 
   // GET /users/:id — validated path param
   public getById = this.route({
-    method: "GET",
-    path: "/:id",
+    method: 'GET',
+    path: '/:id',
     validate: { param: IdParamSchema },
     handler: (c) => {
-      const params = c.req.valid("param");
+      const params = c.req.valid('param');
       const user = this.inject.userService.getById(params.id);
-      if (!user) return c.json({ error: "Not found" }, 404);
+      if (!user) return c.json({ error: 'Not found' }, 404);
       return c.json({ user });
     },
   });
@@ -113,44 +113,44 @@ const main = async (): Promise<void> => {
   const app = container.resolve(HonoService).hono;
 
   // Valid POST
-  console.log("--- Valid POST /users ---");
+  console.log('--- Valid POST /users ---');
   const res1 = await app.fetch(
-    new Request("http://localhost/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Alice", email: "alice@example.com" }),
+    new Request('http://localhost/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Alice', email: 'alice@example.com' }),
     }),
   );
-  console.log("Status:", res1.status, "Body:", await res1.json());
+  console.log('Status:', res1.status, 'Body:', await res1.json());
 
   // Invalid POST (missing name)
-  console.log("--- Invalid POST /users (missing name) ---");
+  console.log('--- Invalid POST /users (missing name) ---');
   const res2 = await app.fetch(
-    new Request("http://localhost/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: "not-valid" }),
+    new Request('http://localhost/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'not-valid' }),
     }),
   );
-  console.log("Status:", res2.status, "Body:", await res2.json());
+  console.log('Status:', res2.status, 'Body:', await res2.json());
 
   // Valid GET with query
-  console.log("--- Valid GET /users?page=2&limit=10 ---");
-  const res3 = await app.fetch(new Request("http://localhost/users?page=2&limit=10"));
-  console.log("Status:", res3.status, "Body:", await res3.json());
+  console.log('--- Valid GET /users?page=2&limit=10 ---');
+  const res3 = await app.fetch(new Request('http://localhost/users?page=2&limit=10'));
+  console.log('Status:', res3.status, 'Body:', await res3.json());
 
   // Invalid GET with bad query
-  console.log("--- Invalid GET /users?page=-1 ---");
-  const res4 = await app.fetch(new Request("http://localhost/users?page=-1"));
-  console.log("Status:", res4.status, "Body:", await res4.json());
+  console.log('--- Invalid GET /users?page=-1 ---');
+  const res4 = await app.fetch(new Request('http://localhost/users?page=-1'));
+  console.log('Status:', res4.status, 'Body:', await res4.json());
 
   // Invalid UUID param
-  console.log("--- Invalid GET /users/not-a-uuid ---");
-  const res5 = await app.fetch(new Request("http://localhost/users/not-a-uuid"));
-  console.log("Status:", res5.status, "Body:", await res5.json());
+  console.log('--- Invalid GET /users/not-a-uuid ---');
+  const res5 = await app.fetch(new Request('http://localhost/users/not-a-uuid'));
+  console.log('Status:', res5.status, 'Body:', await res5.json());
 
   await container.stop();
-  console.log("[validation] Done.");
+  console.log('[validation] Done.');
 };
 
 await main();

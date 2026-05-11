@@ -1,15 +1,15 @@
-import { describe, expect, it } from "vite-plus/test";
-import { SCOPE, type Scope } from "./scope.ts";
+import { describe, expect, it } from 'vite-plus/test';
+import { SCOPE, type Scope } from './scope.ts';
 import type {
   Constructor,
   GraphResult,
   InjectableClass,
   LifecycleHooks,
   ModuleClass,
-} from "./types.ts";
+} from './types.ts';
 
-describe("types (compile-time + Runtime checks)", () => {
-  it("Constructor works as a generic factory type", () => {
+describe('types (compile-time + Runtime checks)', () => {
+  it('Constructor works as a generic factory type', () => {
     class Foo {
       public value;
       public constructor(value: number) {
@@ -22,7 +22,7 @@ describe("types (compile-time + Runtime checks)", () => {
     expect(instance.value).toBe(42);
   });
 
-  it("InjectableClass shape is assignable", () => {
+  it('InjectableClass shape is assignable', () => {
     class MyService {
       public static _scope: Scope = SCOPE.SINGLETON;
       public static _inject: readonly InjectableClass[] = [];
@@ -32,7 +32,7 @@ describe("types (compile-time + Runtime checks)", () => {
     expect(svc._inject).toHaveLength(0);
   });
 
-  it("ModuleClass shape is assignable", () => {
+  it('ModuleClass shape is assignable', () => {
     class Provider {
       public static _scope: Scope = SCOPE.TRANSIENT;
       public static _inject: readonly InjectableClass[] = [];
@@ -50,18 +50,18 @@ describe("types (compile-time + Runtime checks)", () => {
     expect(mod._exports).toHaveLength(1);
   });
 
-  it("LifecycleHooks both hooks can be implemented", async () => {
+  it('LifecycleHooks both hooks can be implemented', async () => {
     const hooks: LifecycleHooks = {
       async onStart() {},
       onStop() {},
     };
-    expect(hooks.onStart).toBeDefined();
-    expect(hooks.onStop).toBeDefined();
+    expect(typeof hooks.onStart).toBe('function');
+    expect(typeof hooks.onStop).toBe('function');
     await hooks.onStart?.({});
-    hooks.onStop?.({});
+    await hooks.onStop?.({});
   });
 
-  it("GraphResult holds sorted injectables", () => {
+  it('GraphResult holds sorted injectables', () => {
     class A {
       public static _scope: Scope = SCOPE.SINGLETON;
       public static _inject: readonly InjectableClass[] = [];

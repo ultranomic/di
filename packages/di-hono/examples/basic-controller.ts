@@ -6,8 +6,8 @@
  * Run: node libs/di-hono/examples/basic-controller.ts
  */
 
-import { Container, Injectable, Module, SCOPE } from "@ultranomic/di";
-import { Controller, HonoModule, HonoService } from "../src/index.ts";
+import { Container, Injectable, Module, SCOPE } from '@ultranomic/di';
+import { Controller, HonoModule, HonoService } from '../src/index.ts';
 
 // ---------------------------------------------------------------------------
 // 1. Define a service (Singleton, no deps)
@@ -16,8 +16,8 @@ type User = { id: number; name: string; email: string };
 
 class UserService extends Injectable({ scope: SCOPE.SINGLETON }) {
   #users: User[] = [
-    { id: 1, name: "Alice", email: "alice@example.com" },
-    { id: 2, name: "Bob", email: "bob@example.com" },
+    { id: 1, name: 'Alice', email: 'alice@example.com' },
+    { id: 2, name: 'Bob', email: 'bob@example.com' },
   ];
   #nextId = 3;
 
@@ -36,13 +36,13 @@ class UserService extends Injectable({ scope: SCOPE.SINGLETON }) {
 // 2. Define a controller with constructor DI
 // ---------------------------------------------------------------------------
 class UserController extends Controller({
-  path: "/users",
-  inject: [["userService", UserService]],
+  path: '/users',
+  inject: [['userService', UserService]],
 }) {
   // GET /users — list all users
   public list = this.route({
-    method: "GET",
-    path: "/",
+    method: 'GET',
+    path: '/',
     handler: (c) => {
       const users = this.inject.userService.list();
       return c.json({ users });
@@ -51,8 +51,8 @@ class UserController extends Controller({
 
   // POST /users — create a user
   public create = this.route({
-    method: "POST",
-    path: "/",
+    method: 'POST',
+    path: '/',
     handler: async (c) => {
       const body = await c.req.json<{ name: string; email: string }>();
       const user = this.inject.userService.create(body.name, body.email);
@@ -86,28 +86,28 @@ const main = async (): Promise<void> => {
   const app = honoService.hono;
 
   // GET /users
-  const listRes = await app.fetch(new Request("http://localhost/users"));
+  const listRes = await app.fetch(new Request('http://localhost/users'));
   const listBody = await listRes.json();
-  console.log("GET /users →", listBody);
+  console.log('GET /users →', listBody);
 
   // POST /users
   const createRes = await app.fetch(
-    new Request("http://localhost/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Charlie", email: "charlie@example.com" }),
+    new Request('http://localhost/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Charlie', email: 'charlie@example.com' }),
     }),
   );
   const createBody = await createRes.json();
-  console.log("POST /users →", createBody);
+  console.log('POST /users →', createBody);
 
   // GET /users again (should include new user)
-  const listRes2 = await app.fetch(new Request("http://localhost/users"));
+  const listRes2 = await app.fetch(new Request('http://localhost/users'));
   const listBody2 = await listRes2.json();
-  console.log("GET /users (after create) →", listBody2);
+  console.log('GET /users (after create) →', listBody2);
 
   await container.stop();
-  console.log("[basic-controller] Done.");
+  console.log('[basic-controller] Done.');
 };
 
 await main();
