@@ -33,7 +33,7 @@ describe('OrpcRouter types', () => {
   });
 
   test('static _inject is correct type', () => {
-    assertType<readonly [typeof UserService]>(UserRouter._inject);
+    assertType<readonly [readonly ['userService', typeof UserService]]>(UserRouter._inject);
     assertType<readonly never[]>(EmptyRouter._inject);
   });
 

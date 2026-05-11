@@ -1,3 +1,4 @@
+import type { ValidInjectEntries } from '@ultranomic/di';
 import { Injectable, SCOPE, type InjectableClass } from '@ultranomic/di';
 import { os, type Context } from '@orpc/server';
 import type { OrpcRouterConfig } from './types.ts';
@@ -9,7 +10,10 @@ export const OrpcRouter = <
 >(
   config: OrpcRouterConfig<TPath, TInject>,
 ) => {
-  const Base = Injectable({ scope: SCOPE.SINGLETON, inject: config.inject });
+  const Base = Injectable<typeof SCOPE.SINGLETON, TInject>({
+    scope: SCOPE.SINGLETON,
+    inject: config.inject as ValidInjectEntries<TInject> | undefined,
+  });
 
   return class extends Base {
     public static readonly _isOrpcRouter = true as const;

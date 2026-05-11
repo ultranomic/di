@@ -13,7 +13,7 @@ describe('DIError', () => {
   });
 
   it('sets name to DIError', () => {
-    const error = new DIError(DI_ERROR_CODE.DUPLICATE_PROVIDER, 'dup');
+    const error = new DIError(DI_ERROR_CODE.EXPORT_NOT_IN_IMPORTS, 'dup');
     expect(error.name).toBe('DIError');
   });
 
