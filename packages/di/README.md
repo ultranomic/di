@@ -17,7 +17,7 @@ This is a workspace package, so it's already available in the monorepo.
 ## Quick Start
 
 ```typescript
-import { Injectable, Module, Container } from "@ultranomic/di";
+import { Injectable, Module, Container } from '@ultranomic/di';
 
 // 1. Define a simple singleton provider
 class LoggerService extends Injectable() {
@@ -28,11 +28,11 @@ class LoggerService extends Injectable() {
 
 // 2. Define a provider with dependencies
 class UserService extends Injectable({
-  inject: [["logger", LoggerService]],
+  inject: [['logger', LoggerService]],
 }) {
   getUser(id: string) {
     this.inject.logger.log(`Fetching user ${id}`);
-    return { id, name: "Alice" };
+    return { id, name: 'Alice' };
   }
 }
 
@@ -69,8 +69,8 @@ await container.stop();
 class MyService extends Injectable({
   scope: SCOPE.SINGLETON,
   inject: [
-    ["depA", DepA],
-    ["depB", DepB],
+    ['depA', DepA],
+    ['depB', DepB],
   ],
 }) {
   someMethod() {
@@ -96,7 +96,7 @@ Providers can define optional lifecycle hooks that the container calls during st
 ```typescript
 class DatabaseService extends Injectable({
   scope: SCOPE.SINGLETON,
-  inject: [["config", ConfigService]],
+  inject: [['config', ConfigService]],
 }) {
   async onStart(container: Container): Promise<void> {
     // Called during container.start(), in dependency order
@@ -247,7 +247,7 @@ Attempting to resolve a `SCOPE.REQUEST` provider outside of `withRequestScope()`
 Errors thrown during graph construction and state validation are `DIError` instances with a `code` property for programmatic handling. Lifecycle methods may throw other error types: `start()` propagates errors from `onStart` hooks as-is; `stop()` and `withRequestScope()` cleanup failures throw `AggregateError`.
 
 ```typescript
-import { DI_ERROR_CODE, DIError } from "@ultranomic/di";
+import { DI_ERROR_CODE, DIError } from '@ultranomic/di';
 
 await container.start();
 try {

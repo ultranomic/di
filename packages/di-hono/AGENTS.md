@@ -63,16 +63,16 @@ Tests use vitest. Write tests first (TDD).
 ### Adding a controller
 
 ```typescript
-import { Controller } from "@ultranomic/di-hono";
-import type { RouteDefinition } from "@ultranomic/di-hono";
+import { Controller } from '@ultranomic/di-hono';
+import type { RouteDefinition } from '@ultranomic/di-hono';
 
 export class UserController extends Controller({
-  path: "/users",
-  inject: [["userService", UserService]],
+  path: '/users',
+  inject: [['userService', UserService]],
 }) {
   list = this.route({
-    method: "GET",
-    path: "/",
+    method: 'GET',
+    path: '/',
     handler: async (c) => {
       const users = await this.inject.userService.findAll();
       return c.json(users);
@@ -90,7 +90,7 @@ Key points:
 ### Adding a route with validation
 
 ```typescript
-import { z } from "zod";
+import { z } from 'zod';
 
 const createUserSchema = z.object({
   name: z.string(),
@@ -98,11 +98,11 @@ const createUserSchema = z.object({
 });
 
 create = this.route({
-  method: "POST",
-  path: "/",
+  method: 'POST',
+  path: '/',
   validate: { json: createUserSchema },
   handler: async (c) => {
-    const body = c.req.valid("json");
+    const body = c.req.valid('json');
     const user = await this.inject.userService.create(body);
     return c.json(user, 201);
   },
@@ -114,7 +114,7 @@ Any Standard Schema compliant library works natively (Zod v4, Valibot, ArkType).
 ### Using request context
 
 ```typescript
-import { RequestContext } from "@ultranomic/di-hono";
+import { RequestContext } from '@ultranomic/di-hono';
 
 // Inside any service resolved during a request:
 const honoContext = RequestContext.get();
@@ -135,14 +135,14 @@ Routes are discovered by enumerating instance properties. If a route doesn't app
 ### Using the options factory
 
 ```typescript
-import { HonoModule } from "@ultranomic/di-hono";
-import { Module } from "@ultranomic/di";
+import { HonoModule } from '@ultranomic/di-hono';
+import { Module } from '@ultranomic/di';
 
 class HttpModule extends HonoModule({
   options: (resolve) => ({
     middlewares: [cors(), logger()],
     port: 3000,
-    host: "0.0.0.0",
+    host: '0.0.0.0',
   }),
 }) {}
 

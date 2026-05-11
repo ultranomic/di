@@ -4,31 +4,31 @@ import {
   type ModuleClass,
   Injectable,
   SCOPE,
-} from "@ultranomic/di";
-import { type Context, type MiddlewareHandler, Hono } from "hono";
-import { validator } from "hono/validator";
-import { errorHandler } from "./error-handler.ts";
-import { RequestContext } from "./request-context.ts";
+} from '@ultranomic/di';
+import { type Context, type MiddlewareHandler, Hono } from 'hono';
+import { validator } from 'hono/validator';
+import { errorHandler } from './error-handler.ts';
+import { RequestContext } from './request-context.ts';
 import {
   type ControllerClass,
   type HonoModuleClass,
   type RouteDefinition,
   type StandardSchema,
   VALIDATE_TARGETS,
-} from "./types.ts";
+} from './types.ts';
 
-export const VALIDATION_ERROR_MESSAGE = "Validation failed" as const;
+export const VALIDATION_ERROR_MESSAGE = 'Validation failed' as const;
 
 type ValidateTarget = (typeof VALIDATE_TARGETS)[number];
 
 const isControllerClass = (cls: InjectableClass): cls is ControllerClass =>
-  "_path" in cls && typeof cls._path === "string";
+  '_path' in cls && typeof cls._path === 'string';
 
 const isRouteDefinition = (value: unknown): value is RouteDefinition =>
-  typeof value === "object" && value !== null && "_isRoute" in value && value._isRoute === true;
+  typeof value === 'object' && value !== null && '_isRoute' in value && value._isRoute === true;
 
 const isHonoModuleClass = (moduleClass: ModuleClass): moduleClass is HonoModuleClass =>
-  "_isHonoModule" in moduleClass && moduleClass._isHonoModule === true;
+  '_isHonoModule' in moduleClass && moduleClass._isHonoModule === true;
 
 const getRouteProperties = (instance: object): RouteDefinition[] => {
   const routes: RouteDefinition[] = [];
@@ -43,7 +43,7 @@ const getRouteProperties = (instance: object): RouteDefinition[] => {
 
 const createValidationMiddleware = (target: ValidateTarget, schema: StandardSchema) => {
   return validator(target, async (value, c) => {
-    const result = await schema["~standard"].validate(value);
+    const result = await schema['~standard'].validate(value);
     if (result.issues) {
       return c.json({ error: VALIDATION_ERROR_MESSAGE, issues: result.issues }, 400);
     }

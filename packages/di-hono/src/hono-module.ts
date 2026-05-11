@@ -1,6 +1,6 @@
-import { type InjectableClass, type ModuleClass, Module } from "@ultranomic/di";
-import { HonoService } from "./hono-service.ts";
-import type { HonoModuleOptionsFactory } from "./types.ts";
+import { type InjectableClass, type ModuleClass, Module } from '@ultranomic/di';
+import { HonoService } from './hono-service.ts';
+import type { HonoModuleOptionsFactory } from './types.ts';
 
 type HonoExportEntry<
   TProviders extends readonly InjectableClass[],
@@ -24,7 +24,7 @@ export type HonoModuleConfig<
 const flattenExports = (exports: readonly (InjectableClass | ModuleClass)[]): InjectableClass[] => {
   const result: InjectableClass[] = [];
   for (const entry of exports) {
-    if ("_isModule" in entry && entry._isModule === true) {
+    if ('_isModule' in entry && entry._isModule === true) {
       result.push(...flattenExports(entry._exports));
     } else {
       result.push(entry as InjectableClass);

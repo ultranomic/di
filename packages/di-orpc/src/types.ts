@@ -1,6 +1,6 @@
-import type { InjectableClass, InjectEntry, ModuleClass } from "@ultranomic/di";
-import type { StandardHandlerPlugin } from "@orpc/server/standard";
-import type { ORPCError, Procedure } from "@orpc/server";
+import type { InjectableClass, InjectEntry, ModuleClass } from '@ultranomic/di';
+import type { StandardHandlerPlugin } from '@orpc/server/standard';
+import type { ORPCError, Procedure } from '@orpc/server';
 
 export type OrpcRouterClass<TPath extends string = string> = InjectableClass & {
   readonly _isOrpcRouter: true;
@@ -65,8 +65,8 @@ type BuildRouterTree<T extends readonly OrpcRouterClass[]> = T extends readonly 
   infer First extends OrpcRouterClass,
   ...infer Rest extends OrpcRouterClass[],
 ]
-  ? (First["_orpcPath"] extends string
-      ? { readonly [K in First["_orpcPath"]]: ProcedureProperties<InstanceType<First>> }
+  ? (First['_orpcPath'] extends string
+      ? { readonly [K in First['_orpcPath']]: ProcedureProperties<InstanceType<First>> }
       : {}) &
       BuildRouterTree<Rest>
   : {};
@@ -91,5 +91,5 @@ type BuildRouterTree<T extends readonly OrpcRouterClass[]> = T extends readonly 
  * ```
  */
 export type InferOrpcRouterTree<TModule extends ModuleClass> = BuildRouterTree<
-  FilterRouters<TModule["_providers"]>
+  FilterRouters<TModule['_providers']>
 >;

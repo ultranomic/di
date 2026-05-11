@@ -6,7 +6,7 @@
  * Run: node packages/di/examples/transient-scope.ts
  */
 
-import { Container, Injectable, Module, SCOPE } from "../src/index.ts";
+import { Container, Injectable, Module, SCOPE } from '../src/index.ts';
 
 // ---------------------------------------------------------------------------
 // Services
@@ -24,7 +24,7 @@ class CounterService extends Injectable({ scope: SCOPE.SINGLETON }) {
 // Transient — fresh instance on every resolve()
 class TaskRunner extends Injectable({
   scope: SCOPE.TRANSIENT,
-  inject: [["counter", CounterService]],
+  inject: [['counter', CounterService]],
 }) {
   readonly #taskId: number;
 
@@ -53,18 +53,18 @@ const task1 = container.resolve(TaskRunner);
 const task2 = container.resolve(TaskRunner);
 const task3 = container.resolve(TaskRunner);
 
-console.log("[transient-scope] task1.taskId:", task1.taskId); // 1
-console.log("[transient-scope] task2.taskId:", task2.taskId); // 2
-console.log("[transient-scope] task3.taskId:", task3.taskId); // 3
+console.log('[transient-scope] task1.taskId:', task1.taskId); // 1
+console.log('[transient-scope] task2.taskId:', task2.taskId); // 2
+console.log('[transient-scope] task3.taskId:', task3.taskId); // 3
 
-console.log("[transient-scope] Fresh instance each resolve? task1 !== task2:", task1 !== task2); // true
-console.log("[transient-scope] Fresh instance each resolve? task2 !== task3:", task2 !== task3); // true
+console.log('[transient-scope] Fresh instance each resolve? task1 !== task2:', task1 !== task2); // true
+console.log('[transient-scope] Fresh instance each resolve? task2 !== task3:', task2 !== task3); // true
 
 // Singleton is always the same instance
 const counter1 = container.resolve(CounterService);
 const counter2 = container.resolve(CounterService);
 console.log(
-  "[transient-scope] Singleton always same? counter1 === counter2:",
+  '[transient-scope] Singleton always same? counter1 === counter2:',
   counter1 === counter2,
 ); // true
 

@@ -1,4 +1,52 @@
-import type { Scope } from "./scope.ts";
+import type { Scope } from './scope.ts';
+
+type Digit = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9';
+
+type LowercaseLetter =
+  | 'a'
+  | 'b'
+  | 'c'
+  | 'd'
+  | 'e'
+  | 'f'
+  | 'g'
+  | 'h'
+  | 'i'
+  | 'j'
+  | 'k'
+  | 'l'
+  | 'm'
+  | 'n'
+  | 'o'
+  | 'p'
+  | 'q'
+  | 'r'
+  | 's'
+  | 't'
+  | 'u'
+  | 'v'
+  | 'w'
+  | 'x'
+  | 'y'
+  | 'z';
+
+type Letter = LowercaseLetter | Uppercase<LowercaseLetter>;
+
+type AlphaNumeric = Letter | Digit;
+
+type IsAlphanumeric<T extends string> = T extends ''
+  ? true // An empty string at the end of recursion is valid
+  : T extends `${AlphaNumeric}${infer Rest}`
+    ? IsAlphanumeric<Rest> // If it matches an alphanumeric char, check the rest
+    : false; // If it doesn't match, it's invalid
+
+export type ValidIdentifier<T extends string> = T extends `${infer Head}${infer Rest}`
+  ? Head extends Letter
+    ? IsAlphanumeric<Rest> extends true
+      ? T
+      : '🚨 ERROR: Contains non-alphanumeric characters 🚨'
+    : '🚨 ERROR: First character must be a letter 🚨'
+  : '🚨 ERROR: String cannot be empty 🚨';
 
 /** Generic class constructor type. */
 // oxlint-disable-next-line typescript/no-explicit-any
@@ -14,13 +62,21 @@ export type InjectableClassBase = Constructor<unknown> & {
 /** Tuple of `[name, InjectableClassBase]` for declaring injectable dependencies. The name becomes a property on `this.inject`. */
 export type InjectEntry = readonly [string, InjectableClassBase];
 
+export type ValidInjectEntries<T extends readonly InjectEntry[]> = {
+  readonly [K in keyof T]: T[K] extends readonly [infer S extends string, ...any[]]
+    ? ValidIdentifier<S> extends S
+      ? T[K]
+      : readonly [ValidIdentifier<S>, T[K][1]]
+    : T[K];
+};
+
 /** A `Constructor` with `_scope` and `_inject` static metadata attached by `Injectable()`. */
 export type InjectableClass<
   T = unknown,
   TInject extends readonly InjectableClassBase[] = readonly InjectableClassBase[],
   TScope extends Scope = Scope,
 > = Constructor<T> &
-  Omit<InjectableClassBase, "_scope" | "_inject"> & {
+  Omit<InjectableClassBase, '_scope' | '_inject'> & {
     readonly _scope: TScope;
     readonly _inject: TInject;
   };

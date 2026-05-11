@@ -1,20 +1,20 @@
-import { Container, DIError, Injectable, Module, SCOPE } from "@ultranomic/di";
-import { type Context, type MiddlewareHandler, Hono } from "hono";
-import { HTTPException } from "hono/http-exception";
-import { afterEach, describe, expect, it } from "vite-plus/test";
-import { z } from "zod";
-import { Controller } from "./controller.ts";
-import { HonoModule } from "./hono-module.ts";
-import { HonoService, VALIDATION_ERROR_MESSAGE } from "./hono-service.ts";
-import { RequestContext } from "./request-context.ts";
-import { expectValidationFailed, setupModule } from "./test-helpers.ts";
+import { Container, DIError, Injectable, Module, SCOPE } from '@ultranomic/di';
+import { type Context, type MiddlewareHandler, Hono } from 'hono';
+import { HTTPException } from 'hono/http-exception';
+import { afterEach, describe, expect, it } from 'vite-plus/test';
+import { z } from 'zod';
+import { Controller } from './controller.ts';
+import { HonoModule } from './hono-module.ts';
+import { HonoService, VALIDATION_ERROR_MESSAGE } from './hono-service.ts';
+import { RequestContext } from './request-context.ts';
+import { expectValidationFailed, setupModule } from './test-helpers.ts';
 import type {
   HonoModuleOptionsFactory,
   HttpMethod,
   StandardPathSegment,
   StandardResult,
   StandardSchema,
-} from "./types.ts";
+} from './types.ts';
 
 let container: Container;
 
@@ -22,13 +22,13 @@ afterEach(async () => {
   if (container) await container.stop();
 });
 
-describe("HonoService", () => {
-  describe("basics", () => {
+describe('HonoService', () => {
+  describe('basics', () => {
     it('has _scope === "singleton"', () => {
-      expect(HonoService._scope).toBe("SINGLETON");
+      expect(HonoService._scope).toBe('SINGLETON');
     });
 
-    it("resolves via Container", async () => {
+    it('resolves via Container', async () => {
       class TestModule extends HonoModule({ providers: [] }) {}
 
       container = new Container(TestModule);
@@ -38,23 +38,23 @@ describe("HonoService", () => {
       expect(service.hono).toBeInstanceOf(Hono);
     });
 
-    it("empty module (no controllers) — onStart() works, .hono returns empty app", async () => {
+    it('empty module (no controllers) — onStart() works, .hono returns empty app', async () => {
       class TestModule extends HonoModule({ providers: [] }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
-      const res = await result.app.fetch(new Request("http://localhost/"));
+      const res = await result.app.fetch(new Request('http://localhost/'));
       expect(res.status).toBe(404);
     });
 
-    it(".hono getter returns app even before container is set", async () => {
+    it('.hono getter returns app even before container is set', async () => {
       const service = new HonoService();
       expect(service.hono).toBeInstanceOf(Hono);
-      const res = await service.hono.fetch(new Request("http://localhost/any"));
+      const res = await service.hono.fetch(new Request('http://localhost/any'));
       expect(res.status).toBe(404);
     });
 
-    it(".hono getter is idempotent — same instance on repeated access", async () => {
+    it('.hono getter is idempotent — same instance on repeated access', async () => {
       class TestModule extends HonoModule({ providers: [] }) {}
       container = new Container(TestModule);
       await container.start();
@@ -64,25 +64,25 @@ describe("HonoService", () => {
       expect(app1).toBe(app2);
     });
 
-    it("onStart returns void (not Promise)", async () => {
+    it('onStart returns void (not Promise)', async () => {
       const service = new HonoService();
       const result = service.onStart({} as Container);
       expect(result).toBeUndefined();
     });
 
-    it("onStop returns void (not Promise)", async () => {
+    it('onStop returns void (not Promise)', async () => {
       const service = new HonoService();
       const result = service.onStop({} as Container);
       expect(result).toBeUndefined();
     });
   });
 
-  describe("route registration", () => {
-    it("single controller with one GET route — responds correctly", async () => {
-      class UserController extends Controller({ path: "/users" }) {
+  describe('route registration', () => {
+    it('single controller with one GET route — responds correctly', async () => {
+      class UserController extends Controller({ path: '/users' }) {
         list = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           handler: async () => Response.json([{ id: 1 }]),
         });
       }
@@ -91,23 +91,23 @@ describe("HonoService", () => {
 
       const result = await setupModule(TestModule);
       container = result.container;
-      const res = await result.app.fetch(new Request("http://localhost/users"));
+      const res = await result.app.fetch(new Request('http://localhost/users'));
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body).toEqual([{ id: 1 }]);
     });
 
-    it("controller with multiple routes", async () => {
-      class UserController extends Controller({ path: "/users" }) {
+    it('controller with multiple routes', async () => {
+      class UserController extends Controller({ path: '/users' }) {
         list = this.route({
-          method: "GET",
-          path: "/",
-          handler: async () => Response.json(["list"]),
+          method: 'GET',
+          path: '/',
+          handler: async () => Response.json(['list']),
         });
 
         create = this.route({
-          method: "POST",
-          path: "/",
+          method: 'POST',
+          path: '/',
           handler: async () => Response.json({ created: true }),
         });
       }
@@ -117,54 +117,54 @@ describe("HonoService", () => {
       const result = await setupModule(TestModule);
       container = result.container;
 
-      const listRes = await result.app.fetch(new Request("http://localhost/users"));
+      const listRes = await result.app.fetch(new Request('http://localhost/users'));
       expect(listRes.status).toBe(200);
 
       const postRes = await result.app.fetch(
-        new Request("http://localhost/users", { method: "POST" }),
+        new Request('http://localhost/users', { method: 'POST' }),
       );
       expect(postRes.status).toBe(200);
       const body = await postRes.json();
       expect(body).toEqual({ created: true });
     });
 
-    it("registers routes for all HTTP methods", async () => {
-      const methods: HttpMethod[] = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
-      class MethodController extends Controller({ path: "/api" }) {
+    it('registers routes for all HTTP methods', async () => {
+      const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
+      class MethodController extends Controller({ path: '/api' }) {
         get = this.route({
-          method: "GET",
-          path: "/",
-          handler: () => Response.json({ method: "GET" }),
+          method: 'GET',
+          path: '/',
+          handler: () => Response.json({ method: 'GET' }),
         });
         post = this.route({
-          method: "POST",
-          path: "/",
-          handler: () => Response.json({ method: "POST" }),
+          method: 'POST',
+          path: '/',
+          handler: () => Response.json({ method: 'POST' }),
         });
         put = this.route({
-          method: "PUT",
-          path: "/",
-          handler: () => Response.json({ method: "PUT" }),
+          method: 'PUT',
+          path: '/',
+          handler: () => Response.json({ method: 'PUT' }),
         });
         del = this.route({
-          method: "DELETE",
-          path: "/",
-          handler: () => Response.json({ method: "DELETE" }),
+          method: 'DELETE',
+          path: '/',
+          handler: () => Response.json({ method: 'DELETE' }),
         });
         patch = this.route({
-          method: "PATCH",
-          path: "/",
-          handler: () => Response.json({ method: "PATCH" }),
+          method: 'PATCH',
+          path: '/',
+          handler: () => Response.json({ method: 'PATCH' }),
         });
         head = this.route({
-          method: "HEAD",
-          path: "/",
+          method: 'HEAD',
+          path: '/',
           handler: () => new Response(null, { status: 200 }),
         });
         options = this.route({
-          method: "OPTIONS",
-          path: "/",
-          handler: () => Response.json({ method: "OPTIONS" }),
+          method: 'OPTIONS',
+          path: '/',
+          handler: () => Response.json({ method: 'OPTIONS' }),
         });
       }
       class TestModule extends HonoModule({ providers: [MethodController] }) {}
@@ -172,22 +172,22 @@ describe("HonoService", () => {
       await container.start();
       const service = container.resolve(HonoService);
       for (const method of methods) {
-        const res = await service.hono.fetch(new Request("http://localhost/api", { method }));
+        const res = await service.hono.fetch(new Request('http://localhost/api', { method }));
         expect(res.status).toBe(200);
-        if (method !== "HEAD") {
+        if (method !== 'HEAD') {
           const body = await res.json();
           expect(body).toEqual({ method });
         }
       }
     });
 
-    it("controller with path params (/:id)", async () => {
-      class UserController extends Controller({ path: "/users" }) {
+    it('controller with path params (/:id)', async () => {
+      class UserController extends Controller({ path: '/users' }) {
         getById = this.route({
-          method: "GET",
-          path: "/:id",
+          method: 'GET',
+          path: '/:id',
           handler: async (c) => {
-            const id = c.req.param("id");
+            const id = c.req.param('id');
             return Response.json({ id });
           },
         });
@@ -197,26 +197,26 @@ describe("HonoService", () => {
 
       const result = await setupModule(TestModule);
       container = result.container;
-      const res = await result.app.fetch(new Request("http://localhost/users/42"));
+      const res = await result.app.fetch(new Request('http://localhost/users/42'));
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body).toEqual({ id: "42" });
+      expect(body).toEqual({ id: '42' });
     });
 
-    it("multiple controllers — all routes registered", async () => {
-      class UserController extends Controller({ path: "/users" }) {
+    it('multiple controllers — all routes registered', async () => {
+      class UserController extends Controller({ path: '/users' }) {
         list = this.route({
-          method: "GET",
-          path: "/",
-          handler: async () => new Response("users", { status: 200 }),
+          method: 'GET',
+          path: '/',
+          handler: async () => new Response('users', { status: 200 }),
         });
       }
 
-      class ProductController extends Controller({ path: "/products" }) {
+      class ProductController extends Controller({ path: '/products' }) {
         list = this.route({
-          method: "GET",
-          path: "/",
-          handler: async () => new Response("products", { status: 200 }),
+          method: 'GET',
+          path: '/',
+          handler: async () => new Response('products', { status: 200 }),
         });
       }
 
@@ -225,33 +225,33 @@ describe("HonoService", () => {
       const result = await setupModule(TestModule);
       container = result.container;
 
-      const usersRes = await result.app.fetch(new Request("http://localhost/users"));
+      const usersRes = await result.app.fetch(new Request('http://localhost/users'));
       expect(usersRes.status).toBe(200);
 
-      const productsRes = await result.app.fetch(new Request("http://localhost/products"));
+      const productsRes = await result.app.fetch(new Request('http://localhost/products'));
       expect(productsRes.status).toBe(200);
     });
 
-    it("controller with no routes — skipped gracefully", async () => {
-      class EmptyController extends Controller({ path: "/empty" }) {}
+    it('controller with no routes — skipped gracefully', async () => {
+      class EmptyController extends Controller({ path: '/empty' }) {}
 
       class TestModule extends HonoModule({ providers: [EmptyController] }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
-      const res = await result.app.fetch(new Request("http://localhost/empty"));
+      const res = await result.app.fetch(new Request('http://localhost/empty'));
       expect(res.status).toBe(404);
     });
   });
 
-  describe("request scope & context", () => {
-    it("request scope middleware — different instances per request", async () => {
+  describe('request scope & context', () => {
+    it('request scope middleware — different instances per request', async () => {
       class RequestCounter extends Injectable({ scope: SCOPE.REQUEST }) {
         static #counter = 0;
         readonly id = ++RequestCounter.#counter;
       }
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         #container: Container | undefined;
 
         setContainer(c: Container) {
@@ -259,8 +259,8 @@ describe("HonoService", () => {
         }
 
         get = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           handler: async () => {
             const counter = this.#container!.resolve(RequestCounter);
             return Response.json({ id: counter.id });
@@ -276,8 +276,8 @@ describe("HonoService", () => {
       controller.setContainer(container);
 
       const [res1, res2] = await Promise.all([
-        result.app.fetch(new Request("http://localhost/users")),
-        result.app.fetch(new Request("http://localhost/users")),
+        result.app.fetch(new Request('http://localhost/users')),
+        result.app.fetch(new Request('http://localhost/users')),
       ]);
 
       expect(res1.status).toBe(200);
@@ -288,14 +288,14 @@ describe("HonoService", () => {
       expect(body1.id).not.toBe(body2.id);
     });
 
-    it("RequestContext available inside handler", async () => {
-      class UserController extends Controller({ path: "/users" }) {
+    it('RequestContext available inside handler', async () => {
+      class UserController extends Controller({ path: '/users' }) {
         get = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           handler: async () => {
             const ctx = RequestContext.get();
-            const url = ctx?.req.url ?? "no-ctx";
+            const url = ctx?.req.url ?? 'no-ctx';
             return Response.json({ url });
           },
         });
@@ -305,13 +305,13 @@ describe("HonoService", () => {
 
       const result = await setupModule(TestModule);
       container = result.container;
-      const res = await result.app.fetch(new Request("http://localhost/users"));
+      const res = await result.app.fetch(new Request('http://localhost/users'));
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.url).toBe("http://localhost/users");
+      expect(body.url).toBe('http://localhost/users');
     });
 
-    it("RequestContext available in request-scoped provider onStart hook", async () => {
+    it('RequestContext available in request-scoped provider onStart hook', async () => {
       let capturedContext: Context | undefined;
 
       class RequestScopedWithOnStart extends Injectable({ scope: SCOPE.REQUEST }) {
@@ -320,7 +320,7 @@ describe("HonoService", () => {
         };
       }
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         #container: Container | undefined;
 
         setContainer(c: Container) {
@@ -328,8 +328,8 @@ describe("HonoService", () => {
         }
 
         get = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           handler: async () => {
             this.#container!.resolve(RequestScopedWithOnStart);
             return Response.json({ ok: true });
@@ -346,20 +346,20 @@ describe("HonoService", () => {
       const controller = container.resolve(UserController);
       controller.setContainer(container);
 
-      const res = await result.app.fetch(new Request("http://localhost/users"));
+      const res = await result.app.fetch(new Request('http://localhost/users'));
       expect(res.status).toBe(200);
       expect(capturedContext).toBeDefined();
-      expect(capturedContext?.req.url).toBe("http://localhost/users");
+      expect(capturedContext?.req.url).toBe('http://localhost/users');
     });
 
-    it("request scope cleanup when handler throws", async () => {
+    it('request scope cleanup when handler throws', async () => {
       let instanceCount = 0;
 
       class RequestScoped extends Injectable({ scope: SCOPE.REQUEST }) {
         readonly id = ++instanceCount;
       }
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         #container: Container | undefined;
 
         setContainer(c: Container) {
@@ -367,20 +367,20 @@ describe("HonoService", () => {
         }
 
         fail = this.route({
-          method: "GET",
-          path: "/fail",
+          method: 'GET',
+          path: '/fail',
           handler: async () => {
-            const svc = this.#container!.resolve(RequestScoped);
-            throw new Error("handler failed");
+            const _svc = this.#container!.resolve(RequestScoped);
+            throw new Error('handler failed');
           },
         });
 
         get = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           handler: async () => {
-            const svc = this.#container!.resolve(RequestScoped);
-            return Response.json({ id: svc.id });
+            const _svc = this.#container!.resolve(RequestScoped);
+            return Response.json({ id: _svc.id });
           },
         });
       }
@@ -394,28 +394,28 @@ describe("HonoService", () => {
 
       // First request: handler throws after resolving the request-scoped service
       try {
-        await result.app.fetch(new Request("http://localhost/users/fail"));
+        await result.app.fetch(new Request('http://localhost/users/fail'));
         expect.unreachable();
       } catch (e) {
-        expect((e as Error).message).toBe("handler failed");
+        expect((e as Error).message).toBe('handler failed');
       }
 
       // Second request: should get a new instance (scope was cleaned up)
-      const res = await result.app.fetch(new Request("http://localhost/users"));
+      const res = await result.app.fetch(new Request('http://localhost/users'));
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.id).toBe(2);
     });
   });
 
-  describe("error handling", () => {
-    it("error in handler — re-thrown by errorHandler (plain Error)", async () => {
-      class UserController extends Controller({ path: "/users" }) {
+  describe('error handling', () => {
+    it('error in handler — re-thrown by errorHandler (plain Error)', async () => {
+      class UserController extends Controller({ path: '/users' }) {
         fail = this.route({
-          method: "GET",
-          path: "/fail",
+          method: 'GET',
+          path: '/fail',
           handler: async () => {
-            throw new Error("something broke");
+            throw new Error('something broke');
           },
         });
       }
@@ -425,20 +425,20 @@ describe("HonoService", () => {
       const result = await setupModule(TestModule);
       container = result.container;
       try {
-        await result.app.fetch(new Request("http://localhost/users/fail"));
+        await result.app.fetch(new Request('http://localhost/users/fail'));
         expect.unreachable();
       } catch (e) {
-        expect((e as Error).message).toBe("something broke");
+        expect((e as Error).message).toBe('something broke');
       }
     });
 
-    it("DIError in handler — caught by errorHandler → 500 JSON", async () => {
-      class UserController extends Controller({ path: "/users" }) {
+    it('DIError in handler — caught by errorHandler → 500 JSON', async () => {
+      class UserController extends Controller({ path: '/users' }) {
         fail = this.route({
-          method: "GET",
-          path: "/di-fail",
+          method: 'GET',
+          path: '/di-fail',
           handler: async () => {
-            throw new DIError("MISSING_PROVIDER", "Service not found");
+            throw new DIError('MISSING_PROVIDER', 'Service not found');
           },
         });
       }
@@ -447,19 +447,19 @@ describe("HonoService", () => {
 
       const result = await setupModule(TestModule);
       container = result.container;
-      const res = await result.app.fetch(new Request("http://localhost/users/di-fail"));
+      const res = await result.app.fetch(new Request('http://localhost/users/di-fail'));
       expect(res.status).toBe(500);
       const body = await res.json();
-      expect(body.error.code).toBe("MISSING_PROVIDER");
+      expect(body.error.code).toBe('MISSING_PROVIDER');
     });
 
-    it("handles HTTPException from route handler", async () => {
-      class ErrorController extends Controller({ path: "/error" }) {
+    it('handles HTTPException from route handler', async () => {
+      class ErrorController extends Controller({ path: '/error' }) {
         get = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           handler: () => {
-            throw new HTTPException(403, { message: "Forbidden" });
+            throw new HTTPException(403, { message: 'Forbidden' });
           },
         });
       }
@@ -467,17 +467,17 @@ describe("HonoService", () => {
       container = new Container(TestModule);
       await container.start();
       const service = container.resolve(HonoService);
-      const res = await service.hono.fetch(new Request("http://localhost/error"));
+      const res = await service.hono.fetch(new Request('http://localhost/error'));
       expect(res.status).toBe(403);
     });
 
-    it("handles HTTPException with 5xx status", async () => {
-      class ErrorController extends Controller({ path: "/error" }) {
+    it('handles HTTPException with 5xx status', async () => {
+      class ErrorController extends Controller({ path: '/error' }) {
         get = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           handler: () => {
-            throw new HTTPException(503, { message: "Service Unavailable" });
+            throw new HTTPException(503, { message: 'Service Unavailable' });
           },
         });
       }
@@ -485,18 +485,18 @@ describe("HonoService", () => {
       container = new Container(TestModule);
       await container.start();
       const service = container.resolve(HonoService);
-      const res = await service.hono.fetch(new Request("http://localhost/error"));
+      const res = await service.hono.fetch(new Request('http://localhost/error'));
       expect(res.status).toBe(503);
     });
 
-    it("middleware that throws — error handler catches it", async () => {
+    it('middleware that throws — error handler catches it', async () => {
       const throwingMiddleware: MiddlewareHandler = async () => {
-        throw new HTTPException(500, { message: "middleware crashed" });
+        throw new HTTPException(500, { message: 'middleware crashed' });
       };
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         list = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           handler: async () => Response.json({ users: [] }),
         });
       }
@@ -507,21 +507,21 @@ describe("HonoService", () => {
       container = new Container(TestModule);
       await container.start();
       const service = container.resolve(HonoService);
-      const res = await service.hono.fetch(new Request("http://localhost/users"));
+      const res = await service.hono.fetch(new Request('http://localhost/users'));
       expect(res.status).toBe(500);
     });
   });
 
-  describe("dependency injection", () => {
-    it("controller with injected deps receives them", async () => {
+  describe('dependency injection', () => {
+    it('controller with injected deps receives them', async () => {
       class DbService extends Injectable({ scope: SCOPE.SINGLETON }) {
-        readonly name = "test-db";
+        readonly name = 'test-db';
       }
 
-      class UserController extends Controller({ path: "/users", inject: [["db", DbService]] }) {
+      class UserController extends Controller({ path: '/users', inject: [['db', DbService]] }) {
         get = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           handler: async () => Response.json({ db: this.inject.db.name }),
         });
       }
@@ -530,21 +530,21 @@ describe("HonoService", () => {
 
       const result = await setupModule(TestModule);
       container = result.container;
-      const res = await result.app.fetch(new Request("http://localhost/users"));
+      const res = await result.app.fetch(new Request('http://localhost/users'));
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.db).toBe("test-db");
+      expect(body.db).toBe('test-db');
     });
 
-    it("imported module with controller deps — buildGraph walks imports", async () => {
+    it('imported module with controller deps — buildGraph walks imports', async () => {
       class DbService extends Injectable({ scope: SCOPE.SINGLETON }) {
-        readonly name = "imported-db";
+        readonly name = 'imported-db';
       }
 
-      class UserController extends Controller({ path: "/users", inject: [["db", DbService]] }) {
+      class UserController extends Controller({ path: '/users', inject: [['db', DbService]] }) {
         get = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           handler: async () => Response.json({ db: this.inject.db.name }),
         });
       }
@@ -561,24 +561,24 @@ describe("HonoService", () => {
 
       const result = await setupModule(TestModule);
       container = result.container;
-      const res = await result.app.fetch(new Request("http://localhost/users"));
+      const res = await result.app.fetch(new Request('http://localhost/users'));
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.db).toBe("imported-db");
+      expect(body.db).toBe('imported-db');
     });
 
-    it("imported module with exported controller having deps in imported module providers", async () => {
+    it('imported module with exported controller having deps in imported module providers', async () => {
       class LoggerService extends Injectable({ scope: SCOPE.SINGLETON }) {
-        readonly tag = "imported-logger";
+        readonly tag = 'imported-logger';
       }
 
       class HealthController extends Controller({
-        path: "/health",
-        inject: [["logger", LoggerService]],
+        path: '/health',
+        inject: [['logger', LoggerService]],
       }) {
         check = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           handler: async () => Response.json({ tag: this.inject.logger.tag }),
         });
       }
@@ -592,21 +592,21 @@ describe("HonoService", () => {
 
       const result = await setupModule(TestModule);
       container = result.container;
-      const res = await result.app.fetch(new Request("http://localhost/health"));
+      const res = await result.app.fetch(new Request('http://localhost/health'));
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.tag).toBe("imported-logger");
+      expect(body.tag).toBe('imported-logger');
     });
 
-    it("buildGraph handles provider with inject dep not in imported module", async () => {
+    it('buildGraph handles provider with inject dep not in imported module', async () => {
       class ExternalDep extends Injectable({ scope: SCOPE.SINGLETON }) {
-        readonly name = "external";
+        readonly name = 'external';
       }
 
-      class UserController extends Controller({ path: "/users", inject: [["dep", ExternalDep]] }) {
+      class UserController extends Controller({ path: '/users', inject: [['dep', ExternalDep]] }) {
         get = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           handler: async () => Response.json({ name: this.inject.dep.name }),
         });
       }
@@ -620,21 +620,21 @@ describe("HonoService", () => {
 
       const result = await setupModule(TestModule);
       container = result.container;
-      const res = await result.app.fetch(new Request("http://localhost/users"));
+      const res = await result.app.fetch(new Request('http://localhost/users'));
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.name).toBe("external");
+      expect(body.name).toBe('external');
     });
 
-    it("deeply nested module imports (3 levels)", async () => {
+    it('deeply nested module imports (3 levels)', async () => {
       class DeepService extends Injectable({ scope: SCOPE.SINGLETON }) {
-        readonly value = "deep";
+        readonly value = 'deep';
       }
 
-      class DeepController extends Controller({ path: "/deep", inject: [["svc", DeepService]] }) {
+      class DeepController extends Controller({ path: '/deep', inject: [['svc', DeepService]] }) {
         get = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           handler: async () => Response.json({ value: this.inject.svc.value }),
         });
       }
@@ -653,24 +653,24 @@ describe("HonoService", () => {
 
       const result = await setupModule(RootModule);
       container = result.container;
-      const res = await result.app.fetch(new Request("http://localhost/deep"));
+      const res = await result.app.fetch(new Request('http://localhost/deep'));
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body).toEqual({ value: "deep" });
+      expect(body).toEqual({ value: 'deep' });
     });
   });
 
-  describe("validation", () => {
-    it("validate.json — valid body passes", async () => {
+  describe('validation', () => {
+    it('validate.json — valid body passes', async () => {
       const bodySchema = z.object({ name: z.string() });
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         create = this.route({
-          method: "POST",
-          path: "/",
+          method: 'POST',
+          path: '/',
           validate: { json: bodySchema },
           handler: async (c) => {
-            const data = c.req.valid("json");
+            const data = c.req.valid('json');
             return Response.json(data);
           },
         });
@@ -681,27 +681,27 @@ describe("HonoService", () => {
       const result = await setupModule(TestModule);
       container = result.container;
       const res = await result.app.fetch(
-        new Request("http://localhost/users", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ name: "Alice" }),
+        new Request('http://localhost/users', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ name: 'Alice' }),
         }),
       );
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body).toEqual({ name: "Alice" });
+      expect(body).toEqual({ name: 'Alice' });
     });
 
-    it("validate.json — invalid body → 400", async () => {
+    it('validate.json — invalid body → 400', async () => {
       const bodySchema = z.object({ name: z.string() });
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         create = this.route({
-          method: "POST",
-          path: "/",
+          method: 'POST',
+          path: '/',
           validate: { json: bodySchema },
           handler: async (c) => {
-            const data = c.req.valid("json");
+            const data = c.req.valid('json');
             return Response.json(data);
           },
         });
@@ -712,9 +712,9 @@ describe("HonoService", () => {
       const result = await setupModule(TestModule);
       container = result.container;
       const res = await result.app.fetch(
-        new Request("http://localhost/users", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
+        new Request('http://localhost/users', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ name: 123 }),
         }),
       );
@@ -723,16 +723,16 @@ describe("HonoService", () => {
       expectValidationFailed(body);
     });
 
-    it("validate.query — valid passes", async () => {
+    it('validate.query — valid passes', async () => {
       const querySchema = z.object({ page: z.coerce.number() });
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         list = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           validate: { query: querySchema },
           handler: async (c) => {
-            const data = c.req.valid("query");
+            const data = c.req.valid('query');
             return Response.json(data);
           },
         });
@@ -742,22 +742,22 @@ describe("HonoService", () => {
 
       const result = await setupModule(TestModule);
       container = result.container;
-      const res = await result.app.fetch(new Request("http://localhost/users?page=2"));
+      const res = await result.app.fetch(new Request('http://localhost/users?page=2'));
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body).toEqual({ page: 2 });
     });
 
-    it("validate.query — invalid → 400", async () => {
+    it('validate.query — invalid → 400', async () => {
       const querySchema = z.object({ page: z.coerce.number().min(1) });
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         list = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           validate: { query: querySchema },
           handler: async (c) => {
-            const data = c.req.valid("query");
+            const data = c.req.valid('query');
             return Response.json(data);
           },
         });
@@ -767,22 +767,22 @@ describe("HonoService", () => {
 
       const result = await setupModule(TestModule);
       container = result.container;
-      const res = await result.app.fetch(new Request("http://localhost/users?page=abc"));
+      const res = await result.app.fetch(new Request('http://localhost/users?page=abc'));
       expect(res.status).toBe(400);
       const body = await res.json();
       expectValidationFailed(body);
     });
 
-    it("validate.param — valid passes", async () => {
+    it('validate.param — valid passes', async () => {
       const paramSchema = z.object({ id: z.string().uuid() });
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         get = this.route({
-          method: "GET",
-          path: "/:id",
+          method: 'GET',
+          path: '/:id',
           validate: { param: paramSchema },
           handler: async (c) => {
-            const data = c.req.valid("param");
+            const data = c.req.valid('param');
             return Response.json(data);
           },
         });
@@ -793,23 +793,23 @@ describe("HonoService", () => {
       const result = await setupModule(TestModule);
       container = result.container;
       const res = await result.app.fetch(
-        new Request("http://localhost/users/550e8400-e29b-41d4-a716-446655440000"),
+        new Request('http://localhost/users/550e8400-e29b-41d4-a716-446655440000'),
       );
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.id).toBe("550e8400-e29b-41d4-a716-446655440000");
+      expect(body.id).toBe('550e8400-e29b-41d4-a716-446655440000');
     });
 
-    it("validate.param — invalid → 400", async () => {
+    it('validate.param — invalid → 400', async () => {
       const paramSchema = z.object({ id: z.string().uuid() });
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         get = this.route({
-          method: "GET",
-          path: "/:id",
+          method: 'GET',
+          path: '/:id',
           validate: { param: paramSchema },
           handler: async (c) => {
-            const data = c.req.valid("param");
+            const data = c.req.valid('param');
             return Response.json(data);
           },
         });
@@ -819,22 +819,22 @@ describe("HonoService", () => {
 
       const result = await setupModule(TestModule);
       container = result.container;
-      const res = await result.app.fetch(new Request("http://localhost/users/not-a-uuid"));
+      const res = await result.app.fetch(new Request('http://localhost/users/not-a-uuid'));
       expect(res.status).toBe(400);
       const body = await res.json();
       expectValidationFailed(body);
     });
 
-    it("validate.header — valid headers pass", async () => {
-      const headerSchema = z.object({ "x-custom": z.string() });
+    it('validate.header — valid headers pass', async () => {
+      const headerSchema = z.object({ 'x-custom': z.string() });
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         get = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           validate: { header: headerSchema },
           handler: async (c) => {
-            const data = c.req.valid("header");
+            const data = c.req.valid('header');
             return Response.json(data);
           },
         });
@@ -845,25 +845,25 @@ describe("HonoService", () => {
       const result = await setupModule(TestModule);
       container = result.container;
       const res = await result.app.fetch(
-        new Request("http://localhost/users", {
-          headers: { "x-custom": "hello" },
+        new Request('http://localhost/users', {
+          headers: { 'x-custom': 'hello' },
         }),
       );
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body["x-custom"]).toBe("hello");
+      expect(body['x-custom']).toBe('hello');
     });
 
-    it("validate.header — invalid headers → 400", async () => {
-      const headerSchema = z.object({ "x-custom": z.string() });
+    it('validate.header — invalid headers → 400', async () => {
+      const headerSchema = z.object({ 'x-custom': z.string() });
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         get = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           validate: { header: headerSchema },
           handler: async (c) => {
-            const data = c.req.valid("header");
+            const data = c.req.valid('header');
             return Response.json(data);
           },
         });
@@ -873,22 +873,22 @@ describe("HonoService", () => {
 
       const result = await setupModule(TestModule);
       container = result.container;
-      const res = await result.app.fetch(new Request("http://localhost/users"));
+      const res = await result.app.fetch(new Request('http://localhost/users'));
       expect(res.status).toBe(400);
       const body = await res.json();
       expectValidationFailed(body);
     });
 
-    it("validate.form — valid form data passes", async () => {
+    it('validate.form — valid form data passes', async () => {
       const formSchema = z.object({ name: z.string() });
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         create = this.route({
-          method: "POST",
-          path: "/",
+          method: 'POST',
+          path: '/',
           validate: { form: formSchema },
           handler: async (c) => {
-            const data = c.req.valid("form");
+            const data = c.req.valid('form');
             return Response.json(data);
           },
         });
@@ -899,27 +899,27 @@ describe("HonoService", () => {
       const result = await setupModule(TestModule);
       container = result.container;
       const res = await result.app.fetch(
-        new Request("http://localhost/users", {
-          method: "POST",
-          headers: { "content-type": "application/x-www-form-urlencoded" },
-          body: "name=Alice",
+        new Request('http://localhost/users', {
+          method: 'POST',
+          headers: { 'content-type': 'application/x-www-form-urlencoded' },
+          body: 'name=Alice',
         }),
       );
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body).toEqual({ name: "Alice" });
+      expect(body).toEqual({ name: 'Alice' });
     });
 
-    it("validate.form — invalid form data → 400", async () => {
+    it('validate.form — invalid form data → 400', async () => {
       const formSchema = z.object({ name: z.string() });
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         create = this.route({
-          method: "POST",
-          path: "/",
+          method: 'POST',
+          path: '/',
           validate: { form: formSchema },
           handler: async (c) => {
-            const data = c.req.valid("form");
+            const data = c.req.valid('form');
             return Response.json(data);
           },
         });
@@ -930,10 +930,10 @@ describe("HonoService", () => {
       const result = await setupModule(TestModule);
       container = result.container;
       const res = await result.app.fetch(
-        new Request("http://localhost/users", {
-          method: "POST",
-          headers: { "content-type": "application/x-www-form-urlencoded" },
-          body: "age=30",
+        new Request('http://localhost/users', {
+          method: 'POST',
+          headers: { 'content-type': 'application/x-www-form-urlencoded' },
+          body: 'age=30',
         }),
       );
       expect(res.status).toBe(400);
@@ -941,16 +941,16 @@ describe("HonoService", () => {
       expectValidationFailed(body);
     });
 
-    it("validate.cookie — valid cookies pass", async () => {
+    it('validate.cookie — valid cookies pass', async () => {
       const cookieSchema = z.object({ session: z.string() });
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         get = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           validate: { cookie: cookieSchema },
           handler: async (c) => {
-            const data = c.req.valid("cookie");
+            const data = c.req.valid('cookie');
             return Response.json(data);
           },
         });
@@ -961,25 +961,25 @@ describe("HonoService", () => {
       const result = await setupModule(TestModule);
       container = result.container;
       const res = await result.app.fetch(
-        new Request("http://localhost/users", {
-          headers: { Cookie: "session=abc123" },
+        new Request('http://localhost/users', {
+          headers: { Cookie: 'session=abc123' },
         }),
       );
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.session).toBe("abc123");
+      expect(body.session).toBe('abc123');
     });
 
-    it("validate.cookie — invalid cookies → 400", async () => {
+    it('validate.cookie — invalid cookies → 400', async () => {
       const cookieSchema = z.object({ session: z.string() });
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         get = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           validate: { cookie: cookieSchema },
           handler: async (c) => {
-            const data = c.req.valid("cookie");
+            const data = c.req.valid('cookie');
             return Response.json(data);
           },
         });
@@ -989,43 +989,43 @@ describe("HonoService", () => {
 
       const result = await setupModule(TestModule);
       container = result.container;
-      const res = await result.app.fetch(new Request("http://localhost/users"));
+      const res = await result.app.fetch(new Request('http://localhost/users'));
       expect(res.status).toBe(400);
       const body = await res.json();
       expectValidationFailed(body);
     });
 
-    it("supports async validate returning Promise", async () => {
+    it('supports async validate returning Promise', async () => {
       const asyncSchema: StandardSchema<{ name: string }> = {
-        "~standard": {
+        '~standard': {
           version: 1 as const,
-          vendor: "test" as const,
+          vendor: 'test' as const,
           validate: async (value: unknown) => {
             await new Promise((resolve) => setTimeout(resolve, 10));
             if (
-              typeof value === "object" &&
+              typeof value === 'object' &&
               value !== null &&
-              "name" in value &&
-              typeof (value as Record<string, unknown>).name === "string"
+              'name' in value &&
+              typeof (value as Record<string, unknown>).name === 'string'
             ) {
               return { value: value as { name: string }, issues: undefined };
             }
             return {
               issues: [
-                { message: "Invalid", path: [] as readonly (PropertyKey | StandardPathSegment)[] },
+                { message: 'Invalid', path: [] as readonly (PropertyKey | StandardPathSegment)[] },
               ],
             };
           },
         },
       };
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         create = this.route({
-          method: "POST",
-          path: "/",
+          method: 'POST',
+          path: '/',
           validate: { json: asyncSchema },
           handler: async (c) => {
-            const data = c.req.valid("json");
+            const data = c.req.valid('json');
             return Response.json(data);
           },
         });
@@ -1037,20 +1037,20 @@ describe("HonoService", () => {
       container = result.container;
 
       const validRes = await result.app.fetch(
-        new Request("http://localhost/users", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ name: "Alice" }),
+        new Request('http://localhost/users', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ name: 'Alice' }),
         }),
       );
       expect(validRes.status).toBe(200);
       const validBody = await validRes.json();
-      expect(validBody).toEqual({ name: "Alice" });
+      expect(validBody).toEqual({ name: 'Alice' });
 
       const invalidRes = await result.app.fetch(
-        new Request("http://localhost/users", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
+        new Request('http://localhost/users', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ age: 30 }),
         }),
       );
@@ -1059,18 +1059,18 @@ describe("HonoService", () => {
       expectValidationFailed(invalidBody);
     });
 
-    it("validates multiple targets on same route", async () => {
+    it('validates multiple targets on same route', async () => {
       const jsonSchema = z.object({ name: z.string() });
       const querySchema = z.object({ page: z.coerce.number() });
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         create = this.route({
-          method: "POST",
-          path: "/",
+          method: 'POST',
+          path: '/',
           validate: { json: jsonSchema, query: querySchema },
           handler: async (c) => {
-            const data = c.req.valid("json");
-            const query = c.req.valid("query");
+            const data = c.req.valid('json');
+            const query = c.req.valid('query');
             return Response.json({ data, query });
           },
         });
@@ -1082,19 +1082,19 @@ describe("HonoService", () => {
       container = result.container;
 
       const validRes = await result.app.fetch(
-        new Request("http://localhost/users?page=2", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ name: "Alice" }),
+        new Request('http://localhost/users?page=2', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ name: 'Alice' }),
         }),
       );
       expect(validRes.status).toBe(200);
 
       const invalidQueryRes = await result.app.fetch(
-        new Request("http://localhost/users?page=abc", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ name: "Alice" }),
+        new Request('http://localhost/users?page=abc', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ name: 'Alice' }),
         }),
       );
       expect(invalidQueryRes.status).toBe(400);
@@ -1102,9 +1102,9 @@ describe("HonoService", () => {
       expectValidationFailed(invalidQueryBody);
 
       const invalidJsonRes = await result.app.fetch(
-        new Request("http://localhost/users?page=2", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
+        new Request('http://localhost/users?page=2', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ name: 123 }),
         }),
       );
@@ -1113,39 +1113,39 @@ describe("HonoService", () => {
       expectValidationFailed(invalidJsonBody);
     });
 
-    it("VALIDATE_TARGETS iteration order — json validates before query", async () => {
+    it('VALIDATE_TARGETS iteration order — json validates before query', async () => {
       const order: string[] = [];
 
       const jsonCapturingSchema: StandardSchema<{ name: string }> = {
-        "~standard": {
+        '~standard': {
           version: 1 as const,
-          vendor: "test" as const,
+          vendor: 'test' as const,
           validate: (): StandardResult<{ name: string }> => {
-            order.push("json");
-            return { value: { name: "test" } };
+            order.push('json');
+            return { value: { name: 'test' } };
           },
         },
       };
 
       const queryCapturingSchema: StandardSchema<{ page: number }> = {
-        "~standard": {
+        '~standard': {
           version: 1 as const,
-          vendor: "test" as const,
+          vendor: 'test' as const,
           validate: (): StandardResult<{ page: number }> => {
-            order.push("query");
+            order.push('query');
             return { value: { page: 1 } };
           },
         },
       };
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         create = this.route({
-          method: "POST",
-          path: "/",
+          method: 'POST',
+          path: '/',
           validate: { json: jsonCapturingSchema, query: queryCapturingSchema },
           handler: async (c) => {
-            const data = c.req.valid("json");
-            const query = c.req.valid("query");
+            const data = c.req.valid('json');
+            const query = c.req.valid('query');
             return Response.json({ data, query });
           },
         });
@@ -1156,22 +1156,22 @@ describe("HonoService", () => {
       const result = await setupModule(TestModule);
       container = result.container;
       const res = await result.app.fetch(
-        new Request("http://localhost/users?page=1", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ name: "test" }),
+        new Request('http://localhost/users?page=1', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ name: 'test' }),
         }),
       );
       expect(res.status).toBe(200);
-      expect(order).toEqual(["json", "query"]);
+      expect(order).toEqual(['json', 'query']);
     });
 
-    it("route without validate — no validation, works directly", async () => {
-      class UserController extends Controller({ path: "/users" }) {
+    it('route without validate — no validation, works directly', async () => {
+      class UserController extends Controller({ path: '/users' }) {
         list = this.route({
-          method: "GET",
-          path: "/",
-          handler: async () => new Response("ok", { status: 200 }),
+          method: 'GET',
+          path: '/',
+          handler: async () => new Response('ok', { status: 200 }),
         });
       }
 
@@ -1179,26 +1179,26 @@ describe("HonoService", () => {
 
       const result = await setupModule(TestModule);
       container = result.container;
-      const res = await result.app.fetch(new Request("http://localhost/users"));
+      const res = await result.app.fetch(new Request('http://localhost/users'));
       expect(res.status).toBe(200);
       const text = await res.text();
-      expect(text).toBe("ok");
+      expect(text).toBe('ok');
     });
 
-    it("handles schema validate() throwing", async () => {
+    it('handles schema validate() throwing', async () => {
       const throwingSchema: StandardSchema = {
-        "~standard": {
+        '~standard': {
           version: 1 as const,
-          vendor: "test" as const,
+          vendor: 'test' as const,
           validate: () => {
-            throw new Error("Schema exploded");
+            throw new Error('Schema exploded');
           },
         },
       };
-      class ThrowController extends Controller({ path: "/throw" }) {
+      class ThrowController extends Controller({ path: '/throw' }) {
         create = this.route({
-          method: "POST",
-          path: "/",
+          method: 'POST',
+          path: '/',
           validate: { json: throwingSchema },
           handler: (c) => c.json({ ok: true }),
         });
@@ -1209,30 +1209,30 @@ describe("HonoService", () => {
       const service = container.resolve(HonoService);
       try {
         await service.hono.fetch(
-          new Request("http://localhost/throw", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
+          new Request('http://localhost/throw', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
             body: JSON.stringify({}),
           }),
         );
         expect.unreachable();
       } catch (e) {
-        expect((e as Error).message).toBe("Schema exploded");
+        expect((e as Error).message).toBe('Schema exploded');
       }
     });
 
-    it("schema returning empty issues array treated as failure", async () => {
+    it('schema returning empty issues array treated as failure', async () => {
       const emptyIssuesSchema: StandardSchema = {
-        "~standard": {
+        '~standard': {
           version: 1 as const,
-          vendor: "test" as const,
+          vendor: 'test' as const,
           validate: () => ({ issues: [] as const }),
         },
       };
-      class EmptyIssuesController extends Controller({ path: "/empty" }) {
+      class EmptyIssuesController extends Controller({ path: '/empty' }) {
         create = this.route({
-          method: "POST",
-          path: "/",
+          method: 'POST',
+          path: '/',
           validate: { json: emptyIssuesSchema },
           handler: (c) => c.json({ ok: true }),
         });
@@ -1241,9 +1241,9 @@ describe("HonoService", () => {
       const result = await setupModule(TestModule);
       container = result.container;
       const res = await result.app.fetch(
-        new Request("http://localhost/empty", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
+        new Request('http://localhost/empty', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
           body: JSON.stringify({}),
         }),
       );
@@ -1255,28 +1255,28 @@ describe("HonoService", () => {
       });
     });
 
-    it("RequestContext is undefined inside validation middleware", async () => {
-      const NOT_SET = Symbol("NOT_SET");
+    it('RequestContext is undefined inside validation middleware', async () => {
+      const NOT_SET = Symbol('NOT_SET');
       let capturedContext: Context | undefined | typeof NOT_SET = NOT_SET;
 
       const capturingSchema: StandardSchema<{ name: string }> = {
-        "~standard": {
+        '~standard': {
           version: 1 as const,
-          vendor: "test" as const,
+          vendor: 'test' as const,
           validate: (): StandardResult<{ name: string }> => {
             capturedContext = RequestContext.get();
-            return { value: { name: "captured" } };
+            return { value: { name: 'captured' } };
           },
         },
       };
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         create = this.route({
-          method: "POST",
-          path: "/",
+          method: 'POST',
+          path: '/',
           validate: { json: capturingSchema },
           handler: async (c) => {
-            const data = c.req.valid("json");
+            const data = c.req.valid('json');
             return Response.json(data);
           },
         });
@@ -1287,31 +1287,31 @@ describe("HonoService", () => {
       const result = await setupModule(TestModule);
       container = result.container;
       const res = await result.app.fetch(
-        new Request("http://localhost/users", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ name: "test" }),
+        new Request('http://localhost/users', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ name: 'test' }),
         }),
       );
       expect(res.status).toBe(200);
       expect(capturedContext).toBeUndefined();
     });
 
-    it("validation throwing DIError — caught by errorHandler → 500", async () => {
+    it('validation throwing DIError — caught by errorHandler → 500', async () => {
       const diErrorSchema: StandardSchema = {
-        "~standard": {
+        '~standard': {
           version: 1 as const,
-          vendor: "test" as const,
+          vendor: 'test' as const,
           validate: () => {
-            throw new DIError("SCOPE_VIOLATION", "test");
+            throw new DIError('SCOPE_VIOLATION', 'test');
           },
         },
       };
 
-      class ThrowController extends Controller({ path: "/throw" }) {
+      class ThrowController extends Controller({ path: '/throw' }) {
         create = this.route({
-          method: "POST",
-          path: "/",
+          method: 'POST',
+          path: '/',
           validate: { json: diErrorSchema },
           handler: (c) => c.json({ ok: true }),
         });
@@ -1322,38 +1322,38 @@ describe("HonoService", () => {
       const result = await setupModule(TestModule);
       container = result.container;
       const res = await result.app.fetch(
-        new Request("http://localhost/throw", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
+        new Request('http://localhost/throw', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
           body: JSON.stringify({}),
         }),
       );
       expect(res.status).toBe(500);
       const body = await res.json();
-      expect(body).toEqual({ error: { code: "SCOPE_VIOLATION", message: "test" } });
+      expect(body).toEqual({ error: { code: 'SCOPE_VIOLATION', message: 'test' } });
     });
 
-    it("middleware + validation execution order", async () => {
+    it('middleware + validation execution order', async () => {
       const order: string[] = [];
 
       const capturingSchema: StandardSchema<{ name: string }> = {
-        "~standard": {
+        '~standard': {
           version: 1 as const,
-          vendor: "test" as const,
+          vendor: 'test' as const,
           validate: (): StandardResult<{ name: string }> => {
-            order.push("validation");
-            return { value: { name: "test" } };
+            order.push('validation');
+            return { value: { name: 'test' } };
           },
         },
       };
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         create = this.route({
-          method: "POST",
-          path: "/",
+          method: 'POST',
+          path: '/',
           validate: { json: capturingSchema },
           handler: async (c) => {
-            const data = c.req.valid("json");
+            const data = c.req.valid('json');
             return Response.json(data);
           },
         });
@@ -1362,7 +1362,7 @@ describe("HonoService", () => {
       const optionsFactory: HonoModuleOptionsFactory = () => ({
         middlewares: [
           async (_c: Context, next: () => Promise<void>) => {
-            order.push("middleware");
+            order.push('middleware');
             await next();
           },
         ],
@@ -1376,26 +1376,26 @@ describe("HonoService", () => {
       const result = await setupModule(TestModule);
       container = result.container;
       const res = await result.app.fetch(
-        new Request("http://localhost/users", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ name: "test" }),
+        new Request('http://localhost/users', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ name: 'test' }),
         }),
       );
       expect(res.status).toBe(200);
-      expect(order).toEqual(["middleware", "validation"]);
+      expect(order).toEqual(['middleware', 'validation']);
     });
 
-    it("native Zod v4 Standard Schema — no adapter needed", async () => {
+    it('native Zod v4 Standard Schema — no adapter needed', async () => {
       const bodySchema = z.object({ name: z.string(), email: z.string().email() });
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         create = this.route({
-          method: "POST",
-          path: "/",
+          method: 'POST',
+          path: '/',
           validate: { json: bodySchema },
           handler: async (c) => {
-            const data = c.req.valid("json");
+            const data = c.req.valid('json');
             return Response.json(data);
           },
         });
@@ -1408,22 +1408,22 @@ describe("HonoService", () => {
 
       // Valid body — native Zod v4 schema passes validation
       const validRes = await result.app.fetch(
-        new Request("http://localhost/users", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ name: "Alice", email: "alice@example.com" }),
+        new Request('http://localhost/users', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ name: 'Alice', email: 'alice@example.com' }),
         }),
       );
       expect(validRes.status).toBe(200);
       const validBody = await validRes.json();
-      expect(validBody).toEqual({ name: "Alice", email: "alice@example.com" });
+      expect(validBody).toEqual({ name: 'Alice', email: 'alice@example.com' });
 
       // Invalid body — native Zod v4 schema rejects bad data
       const invalidRes = await result.app.fetch(
-        new Request("http://localhost/users", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ name: 123, email: "not-an-email" }),
+        new Request('http://localhost/users', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ name: 123, email: 'not-an-email' }),
         }),
       );
       expect(invalidRes.status).toBe(400);
@@ -1432,26 +1432,26 @@ describe("HonoService", () => {
     });
   });
 
-  describe("options factory", () => {
-    it("middlewares applied", async () => {
+  describe('options factory', () => {
+    it('middlewares applied', async () => {
       const middlewareOrder: string[] = [];
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         get = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           handler: async () => Response.json({ ok: true }),
         });
       }
 
-      const optionsFactory: HonoModuleOptionsFactory = (resolve) => ({
+      const optionsFactory: HonoModuleOptionsFactory = (_resolve) => ({
         middlewares: [
           async (_c: Context, next: () => Promise<void>) => {
-            middlewareOrder.push("mw1");
+            middlewareOrder.push('mw1');
             await next();
           },
           async (_c: Context, next: () => Promise<void>) => {
-            middlewareOrder.push("mw2");
+            middlewareOrder.push('mw2');
             await next();
           },
         ],
@@ -1464,14 +1464,14 @@ describe("HonoService", () => {
 
       const result = await setupModule(TestModule);
       container = result.container;
-      const res = await result.app.fetch(new Request("http://localhost/users"));
+      const res = await result.app.fetch(new Request('http://localhost/users'));
       expect(res.status).toBe(200);
-      expect(middlewareOrder).toEqual(["mw1", "mw2"]);
+      expect(middlewareOrder).toEqual(['mw1', 'mw2']);
     });
 
-    it("resolve function works", async () => {
+    it('resolve function works', async () => {
       class ConfigService extends Injectable({ scope: SCOPE.SINGLETON }) {
-        readonly value = "from-config";
+        readonly value = 'from-config';
       }
 
       let resolvedViaFactory = false;
@@ -1480,7 +1480,7 @@ describe("HonoService", () => {
         providers: [ConfigService],
         options: (resolve) => {
           const config = resolve(ConfigService);
-          if (config instanceof ConfigService && config.value === "from-config") {
+          if (config instanceof ConfigService && config.value === 'from-config') {
             resolvedViaFactory = true;
           }
           return {};
@@ -1492,14 +1492,14 @@ describe("HonoService", () => {
       expect(resolvedViaFactory).toBe(true);
     });
 
-    it("throws DIError when options factory resolve fails", async () => {
+    it('throws DIError when options factory resolve fails', async () => {
       class MissingService extends Injectable({ scope: SCOPE.SINGLETON }) {}
       class TestModule extends HonoModule({
         providers: [],
         options: (resolve) => ({
           middlewares: [],
           port: 3000,
-          host: "localhost",
+          host: 'localhost',
           someOption: resolve(MissingService),
         }),
       }) {}
@@ -1511,30 +1511,30 @@ describe("HonoService", () => {
         expect.unreachable();
       } catch (e) {
         expect(e).toBeInstanceOf(DIError);
-        expect((e as DIError).code).toBe("MISSING_PROVIDER");
+        expect((e as DIError).code).toBe('MISSING_PROVIDER');
       }
     });
 
-    it("throws when options factory itself throws", async () => {
+    it('throws when options factory itself throws', async () => {
       class TestModule extends HonoModule({
         providers: [],
         options: () => {
-          throw new Error("Options factory crashed");
+          throw new Error('Options factory crashed');
         },
       }) {}
       container = new Container(TestModule);
       await container.start();
       const service = container.resolve(HonoService);
-      expect(() => service.hono).toThrow("Options factory crashed");
+      expect(() => service.hono).toThrow('Options factory crashed');
     });
 
-    it("middleware short-circuits — handler not called", async () => {
+    it('middleware short-circuits — handler not called', async () => {
       let handlerCalled = false;
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         get = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           handler: async () => {
             handlerCalled = true;
             return Response.json({ ok: true });
@@ -1557,14 +1557,14 @@ describe("HonoService", () => {
 
       const result = await setupModule(TestModule);
       container = result.container;
-      const res = await result.app.fetch(new Request("http://localhost/users"));
+      const res = await result.app.fetch(new Request('http://localhost/users'));
       expect(res.status).toBe(403);
       const body = await res.json();
       expect(body).toEqual({ blocked: true });
       expect(handlerCalled).toBe(false);
     });
 
-    it("module with middlewares but no controllers — middleware still applied", async () => {
+    it('module with middlewares but no controllers — middleware still applied', async () => {
       let middlewareCalled = false;
       const trackingMiddleware: MiddlewareHandler = async (c, next) => {
         middlewareCalled = true;
@@ -1577,18 +1577,18 @@ describe("HonoService", () => {
       container = new Container(TestModule);
       await container.start();
       const service = container.resolve(HonoService);
-      const res = await service.hono.fetch(new Request("http://localhost/anything"));
+      const res = await service.hono.fetch(new Request('http://localhost/anything'));
       expect(middlewareCalled).toBe(true);
       expect(res.status).toBe(404);
     });
   });
 
-  describe("lifecycle", () => {
-    it("onStop resets initialized and container state", async () => {
-      class UserController extends Controller({ path: "/users" }) {
+  describe('lifecycle', () => {
+    it('onStop resets initialized and container state', async () => {
+      class UserController extends Controller({ path: '/users' }) {
         get = this.route({
-          method: "GET",
-          path: "/",
+          method: 'GET',
+          path: '/',
           handler: async () => Response.json({ users: [] }),
         });
       }
@@ -1597,21 +1597,21 @@ describe("HonoService", () => {
       container = new Container(TestModule);
       await container.start();
       const service = container.resolve(HonoService);
-      const resBefore = await service.hono.fetch(new Request("http://localhost/users"));
+      const resBefore = await service.hono.fetch(new Request('http://localhost/users'));
       expect(resBefore.status).toBe(200);
       await container.stop();
       expect(service.hono).toBeInstanceOf(Hono);
       // After stop, #app is reset to a clean Hono instance with no routes
-      const resAfter = await service.hono.fetch(new Request("http://localhost/users"));
+      const resAfter = await service.hono.fetch(new Request('http://localhost/users'));
       expect(resAfter.status).toBe(404);
     });
 
-    it("reads port and host from module options", async () => {
+    it('reads port and host from module options', async () => {
       const TestModule = HonoModule({
         providers: [],
-        options: (resolve) => ({
+        options: (_resolve) => ({
           port: 3000,
-          host: "0.0.0.0",
+          host: '0.0.0.0',
         }),
       });
       container = new Container(TestModule);
@@ -1619,10 +1619,10 @@ describe("HonoService", () => {
       const service = container.resolve(HonoService);
       expect(service.hono).toBeInstanceOf(Hono);
       expect(service.port).toBe(3000);
-      expect(service.host).toBe("0.0.0.0");
+      expect(service.host).toBe('0.0.0.0');
     });
 
-    it("port and host default to undefined", async () => {
+    it('port and host default to undefined', async () => {
       const TestModule = HonoModule({ providers: [] });
       container = new Container(TestModule);
       await container.start();
@@ -1631,28 +1631,28 @@ describe("HonoService", () => {
       expect(service.host).toBeUndefined();
     });
 
-    it("onStop resets port and host", async () => {
+    it('onStop resets port and host', async () => {
       const TestModule = HonoModule({
         providers: [],
-        options: () => ({ port: 3000, host: "0.0.0.0" }),
+        options: () => ({ port: 3000, host: '0.0.0.0' }),
       });
       container = new Container(TestModule);
       await container.start();
       const service = container.resolve(HonoService);
       expect(service.hono).toBeInstanceOf(Hono);
       expect(service.port).toBe(3000);
-      expect(service.host).toBe("0.0.0.0");
+      expect(service.host).toBe('0.0.0.0');
       await container.stop();
       expect(service.port).toBeUndefined();
       expect(service.host).toBeUndefined();
     });
 
-    it("plain Module without _honoOptions — #readOptions returns undefined, routes still work", async () => {
-      class UserController extends Controller({ path: "/users" }) {
+    it('plain Module without _honoOptions — #readOptions returns undefined, routes still work', async () => {
+      class UserController extends Controller({ path: '/users' }) {
         list = this.route({
-          method: "GET",
-          path: "/",
-          handler: async () => new Response("ok", { status: 200 }),
+          method: 'GET',
+          path: '/',
+          handler: async () => new Response('ok', { status: 200 }),
         });
       }
 
@@ -1663,18 +1663,18 @@ describe("HonoService", () => {
       container = new Container(TestModule);
       await container.start();
       const service = container.resolve(HonoService);
-      const res = await service.hono.fetch(new Request("http://localhost/users"));
+      const res = await service.hono.fetch(new Request('http://localhost/users'));
       expect(res.status).toBe(200);
       expect(service.port).toBeUndefined();
       expect(service.host).toBeUndefined();
     });
 
-    it("HonoModule as nested import — options still applied", async () => {
-      class UserController extends Controller({ path: "/users" }) {
+    it('HonoModule as nested import — options still applied', async () => {
+      class UserController extends Controller({ path: '/users' }) {
         list = this.route({
-          method: "GET",
-          path: "/",
-          handler: async () => new Response("ok", { status: 200 }),
+          method: 'GET',
+          path: '/',
+          handler: async () => new Response('ok', { status: 200 }),
         });
       }
 
@@ -1684,7 +1684,7 @@ describe("HonoService", () => {
       }) {}
 
       class HttpModule extends HonoModule({
-        options: () => ({ port: 3000, host: "0.0.0.0" }),
+        options: () => ({ port: 3000, host: '0.0.0.0' }),
       }) {}
 
       class AppModule extends Module({
@@ -1696,23 +1696,23 @@ describe("HonoService", () => {
       const service = container.resolve(HonoService);
       expect(service.hono).toBeInstanceOf(Hono);
       expect(service.port).toBe(3000);
-      expect(service.host).toBe("0.0.0.0");
-      const res = await service.hono.fetch(new Request("http://localhost/users"));
+      expect(service.host).toBe('0.0.0.0');
+      const res = await service.hono.fetch(new Request('http://localhost/users'));
       expect(res.status).toBe(200);
     });
 
-    it("HonoModule as nested import — middlewares still applied", async () => {
+    it('HonoModule as nested import — middlewares still applied', async () => {
       const middlewareOrder: string[] = [];
       const trackingMiddleware: MiddlewareHandler = async (_c, next) => {
-        middlewareOrder.push("global");
+        middlewareOrder.push('global');
         await next();
       };
 
-      class UserController extends Controller({ path: "/users" }) {
+      class UserController extends Controller({ path: '/users' }) {
         list = this.route({
-          method: "GET",
-          path: "/",
-          handler: async () => new Response("ok", { status: 200 }),
+          method: 'GET',
+          path: '/',
+          handler: async () => new Response('ok', { status: 200 }),
         });
       }
 
@@ -1733,21 +1733,21 @@ describe("HonoService", () => {
       await container.start();
       const service = container.resolve(HonoService);
       expect(service.hono).toBeInstanceOf(Hono);
-      const res = await service.hono.fetch(new Request("http://localhost/users"));
+      const res = await service.hono.fetch(new Request('http://localhost/users'));
       expect(res.status).toBe(200);
-      expect(middlewareOrder).toEqual(["global"]);
+      expect(middlewareOrder).toEqual(['global']);
     });
   });
 
-  describe("edge cases", () => {
-    it("controller with null property — getRouteProperties skips null", async () => {
-      class UserController extends Controller({ path: "/users" }) {
+  describe('edge cases', () => {
+    it('controller with null property — getRouteProperties skips null', async () => {
+      class UserController extends Controller({ path: '/users' }) {
         nullable: unknown = null;
 
         list = this.route({
-          method: "GET",
-          path: "/",
-          handler: async () => new Response("ok", { status: 200 }),
+          method: 'GET',
+          path: '/',
+          handler: async () => new Response('ok', { status: 200 }),
         });
       }
 
@@ -1755,13 +1755,13 @@ describe("HonoService", () => {
 
       const result = await setupModule(TestModule);
       container = result.container;
-      const res = await result.app.fetch(new Request("http://localhost/users"));
+      const res = await result.app.fetch(new Request('http://localhost/users'));
       expect(res.status).toBe(200);
     });
 
-    it("diamond imports — cycle detection skips already-collected module", async () => {
+    it('diamond imports — cycle detection skips already-collected module', async () => {
       class SharedService extends Injectable({ scope: SCOPE.SINGLETON }) {
-        readonly name = "shared";
+        readonly name = 'shared';
       }
 
       class ModA extends Module({
@@ -1778,7 +1778,7 @@ describe("HonoService", () => {
 
       const result = await setupModule(TestModule);
       container = result.container;
-      const res = await result.app.fetch(new Request("http://localhost/"));
+      const res = await result.app.fetch(new Request('http://localhost/'));
       expect(res.status).toBe(404);
     });
   });

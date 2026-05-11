@@ -1,12 +1,12 @@
-import { Module } from "@ultranomic/di";
-import { OrpcService } from "./orpc-service.ts";
-import type { OrpcModuleConfig, OrpcModuleOptionsFactory } from "./types.ts";
+import { Module } from '@ultranomic/di';
+import { OrpcService } from './orpc-service.ts';
+import type { OrpcModuleConfig, OrpcModuleOptionsFactory } from './types.ts';
 
 export const OrpcModule = (config?: OrpcModuleConfig) => {
   const optionsFactory: OrpcModuleOptionsFactory =
     config?.options ??
-    ((resolve) => ({
-      prefix: config?.prefix ?? "/rpc",
+    ((_resolve) => ({
+      prefix: config?.prefix ?? '/rpc',
       plugins: config?.plugins,
       errorInterceptor: config?.errorInterceptor,
     }));

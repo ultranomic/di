@@ -1,7 +1,7 @@
-import { DI_ERROR_CODE, DIError } from "./di-error.ts";
-import { resolveExports } from "./module.ts";
-import { type Scope, SCOPE } from "./scope.ts";
-import type { GraphResult, InjectableClass, ModuleClass } from "./types.ts";
+import { DI_ERROR_CODE, DIError } from './di-error.ts';
+import { resolveExports } from './module.ts';
+import { type Scope, SCOPE } from './scope.ts';
+import type { GraphResult, InjectableClass, ModuleClass } from './types.ts';
 
 const VALID_SCOPES = new Set<Scope>(Object.values(SCOPE));
 
@@ -35,7 +35,7 @@ const collectImports = (
   collected: Set<ModuleClass>,
 ): void => {
   if (path.has(module)) {
-    const chain = [...path, module].map((m) => m.name).join(" -> ");
+    const chain = [...path, module].map((m) => m.name).join(' -> ');
     throw new DIError(
       DI_ERROR_CODE.CIRCULAR_DEPENDENCY,
       `Circular module import detected: ${chain}`,

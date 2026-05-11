@@ -1,7 +1,7 @@
-import { expect } from "vite-plus/test";
-import { DIError, type DIErrorCode } from "./di-error.ts";
+import { expect } from 'vite-plus/test';
+import { DIError, type DIErrorCode } from './di-error.ts';
 
-declare module "vite-plus/test" {
+declare module 'vite-plus/test' {
   // oxlint-disable-next-line typescript/consistent-type-definitions, typescript/no-explicit-any
   interface Assertion<T = any> {
     toThrowDIError(code: DIErrorCode, pattern?: RegExp): T;
@@ -23,7 +23,7 @@ expect.extend({
       return {
         pass: false,
         message: () =>
-          `Expected function to throw DIError with code "${code}"${pattern ? ` matching ${pattern}` : ""}`,
+          `Expected function to throw DIError with code "${code}"${pattern ? ` matching ${pattern}` : ''}`,
       };
     } catch (e: unknown) {
       if (!(e instanceof DIError)) {
@@ -45,7 +45,7 @@ expect.extend({
           message: () => `Expected DIError message to match ${pattern} but got "${e.message}"`,
         };
       }
-      return { pass: true, message: () => "OK" };
+      return { pass: true, message: () => 'OK' };
     }
   },
 });

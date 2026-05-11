@@ -1,5 +1,6 @@
 ---
 description: Commit the current staged changes
+model: zai-coding-plan/glm-5-turbo
 ---
 
 Commit staged changes following Conventional Commits (Angular) and semantic-release standards.

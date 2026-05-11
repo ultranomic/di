@@ -20,20 +20,18 @@
     "check": "vp check",
     "prepublishOnly": "vp run build"
   },
-  "dependencies": {
-    "@ultranomic/di": "workspace:*"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "25.6.2",
     "@typescript/native-preview": "7.0.0-dev.20260509.2",
     "@ultranomic/tsconfig": "workspace:*",
     "bumpp": "11.1.0",
-    "hono": "4.12.18",
     "typescript": "6.0.3",
     "vite-plus": "0.1.20",
     "zod": "4.4.3"
   },
   "peerDependencies": {
+    "@ultranomic/di": "workspace:*",
     "hono": "4.12.16"
   }
 }

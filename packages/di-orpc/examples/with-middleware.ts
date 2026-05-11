@@ -6,9 +6,9 @@
  * Run: node libs/di-orpc/examples/with-middleware.ts
  */
 
-import { Container, Module } from "@ultranomic/di";
-import { z } from "zod";
-import { OrpcMiddleware, OrpcModule, OrpcRouter, OrpcService } from "../src/index.ts";
+import { Container, Module } from '@ultranomic/di';
+import { z } from 'zod';
+import { OrpcMiddleware, OrpcModule, OrpcRouter, OrpcService } from '../src/index.ts';
 
 // ---------------------------------------------------------------------------
 // 1. Define auth middleware
@@ -16,7 +16,7 @@ import { OrpcMiddleware, OrpcModule, OrpcRouter, OrpcService } from "../src/inde
 class AuthMiddleware extends OrpcMiddleware({}) {
   public requireAuth = this.orpc.middleware(({ next }) => {
     // In production, validate auth token here
-    return next({ context: { userId: "authenticated-user-id" } });
+    return next({ context: { userId: 'authenticated-user-id' } });
   });
 }
 
@@ -24,14 +24,14 @@ class AuthMiddleware extends OrpcMiddleware({}) {
 // 2. Define a router that uses the middleware
 // ---------------------------------------------------------------------------
 class ProtectedRouter extends OrpcRouter({
-  path: "protected",
-  inject: [["auth", AuthMiddleware]],
+  path: 'protected',
+  inject: [['auth', AuthMiddleware]],
 }) {
   public getProfile = this.orpc
     .use(this.inject.auth.requireAuth)
     .input(z.object({}))
     .handler(({ context }) => {
-      return { userId: context.userId, name: "Protected User" };
+      return { userId: context.userId, name: 'Protected User' };
     });
 }
 
@@ -49,8 +49,8 @@ async function main(): Promise<void> {
   const container = new Container(AppModule);
   await container.start();
 
-  const orpcService = container.resolve(OrpcService);
-  console.log("ORPC with auth middleware ready");
+  const _orpcService = container.resolve(OrpcService);
+  console.log('ORPC with auth middleware ready');
 
   await container.stop();
 }

@@ -19,67 +19,67 @@
   },
   "agents": {
     "sisyphus": {
-      "model": "opencode-go/mimo-v2.5-pro",
+      "model": "zai-coding-plan/glm-5.1",
       "variant": "high",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0,
       "prompt_append": "Always update related README.md files"
     },
     "oracle": {
-      "model": "opencode-go/mimo-v2.5-pro",
+      "model": "zai-coding-plan/glm-5.1",
       "variant": "high",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "librarian": {
-      "model": "opencode-go/mimo-v2.5-pro",
+      "model": "zai-coding-plan/glm-5.1",
       "variant": "high",
       "temperature": 0
     },
     "explore": {
-      "model": "opencode-go/mimo-v2.5-pro",
+      "model": "zai-coding-plan/glm-5.1",
       "variant": "high",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "multimodal-looker": {
-      "model": "opencode-go/mimo-v2.5-pro",
+      "model": "zai-coding-plan/glm-5.1",
       "variant": "high",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "prometheus": {
-      "model": "opencode-go/mimo-v2.5-pro",
+      "model": "zai-coding-plan/glm-5.1",
       "variant": "high",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "metis": {
-      "model": "opencode-go/mimo-v2.5-pro",
+      "model": "zai-coding-plan/glm-5.1",
       "variant": "high",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "momus": {
-      "model": "opencode-go/mimo-v2.5-pro",
+      "model": "zai-coding-plan/glm-5.1",
       "variant": "high",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "atlas": {
-      "model": "opencode-go/mimo-v2.5-pro",
+      "model": "zai-coding-plan/glm-5.1",
       "variant": "high",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "pr-review": {
-      "model": "opencode-go/mimo-v2.5-pro",
+      "model": "zai-coding-plan/glm-5.1",
       "variant": "high",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "sisyphus-junior": {
-      "model": "opencode-go/mimo-v2.5-pro",
+      "model": "zai-coding-plan/glm-5.1",
       "variant": "high",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
@@ -88,48 +88,48 @@
   "categories": {
     "variant": "high",
     "visual-engineering": {
-      "model": "opencode-go/mimo-v2.5-pro",
+      "model": "zai-coding-plan/glm-5.1",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "ultrabrain": {
-      "model": "opencode-go/mimo-v2.5-pro",
+      "model": "zai-coding-plan/glm-5.1",
       "variant": "high",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "deep": {
-      "model": "opencode-go/mimo-v2.5-pro",
+      "model": "zai-coding-plan/glm-5.1",
       "variant": "high",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "artistry": {
-      "model": "opencode-go/mimo-v2.5-pro",
+      "model": "zai-coding-plan/glm-5.1",
       "variant": "high",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "quick": {
-      "model": "opencode-go/mimo-v2.5-pro",
+      "model": "zai-coding-plan/glm-5.1",
       "variant": "high",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "unspecified-low": {
-      "model": "opencode-go/mimo-v2.5-pro",
+      "model": "zai-coding-plan/glm-5.1",
       "variant": "high",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "unspecified-high": {
-      "model": "opencode-go/mimo-v2.5-pro",
+      "model": "zai-coding-plan/glm-5.1",
       "variant": "high",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "writing": {
-      "model": "opencode-go/mimo-v2.5-pro",
+      "model": "zai-coding-plan/glm-5.1",
       "variant": "high",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0

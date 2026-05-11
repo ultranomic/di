@@ -1,1 +1,1 @@
-import "./transient-scope.ts";
+import './transient-scope.ts';

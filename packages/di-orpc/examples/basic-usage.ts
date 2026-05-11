@@ -6,10 +6,10 @@
  * Run: node libs/di-orpc/examples/basic-usage.ts
  */
 
-import { Container, Injectable, Module, SCOPE } from "@ultranomic/di";
-import { Controller, HonoModule } from "@ultranomic/di-hono";
-import { z } from "zod";
-import { OrpcModule, OrpcRouter, OrpcService } from "../src/index.ts";
+import { Container, Injectable, Module, SCOPE } from '@ultranomic/di';
+import { Controller, HonoModule } from '@ultranomic/di-hono';
+import { z } from 'zod';
+import { OrpcModule, OrpcRouter, OrpcService } from '../src/index.ts';
 
 // ---------------------------------------------------------------------------
 // 1. Define a service
@@ -17,22 +17,22 @@ import { OrpcModule, OrpcRouter, OrpcService } from "../src/index.ts";
 class UserService extends Injectable({ scope: SCOPE.SINGLETON }) {
   public list() {
     return [
-      { id: "1", name: "Alice" },
-      { id: "2", name: "Bob" },
+      { id: '1', name: 'Alice' },
+      { id: '2', name: 'Bob' },
     ];
   }
 
   public getById(id: string) {
-    return { id, name: "Alice" };
+    return { id, name: 'Alice' };
   }
 }
 
 class UserController extends Controller({
-  path: "/users",
+  path: '/users',
 }) {
   public profile = this.route({
-    method: "GET",
-    path: "/profile",
+    method: 'GET',
+    path: '/profile',
     handler: (c) => {
       return c.json({ userId: 1 });
     },
@@ -43,8 +43,8 @@ class UserController extends Controller({
 // 2. Define an ORPC router with procedures
 // ---------------------------------------------------------------------------
 class UserRouter extends OrpcRouter({
-  path: "user",
-  inject: [["user", UserService]],
+  path: 'user',
+  inject: [['user', UserService]],
 }) {
   readonly #userService: UserService;
 
@@ -86,10 +86,10 @@ const main = async (): Promise<void> => {
   const container = new Container(AppModule);
   await container.start();
 
-  const orpcService = container.resolve(OrpcService);
+  const _orpcService = container.resolve(OrpcService);
   // orpcService.handler is the StandardRPCHandler
   // Use it to handle ORPC requests
-  console.log("ORPC handler ready");
+  console.log('ORPC handler ready');
 
   await container.stop();
 };

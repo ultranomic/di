@@ -1,12 +1,12 @@
-import { DI_ERROR_CODE, DIError } from "./di-error.ts";
-import type { InjectableClass, ModuleClass } from "./types.ts";
+import { DI_ERROR_CODE, DIError } from './di-error.ts';
+import type { InjectableClass, ModuleClass } from './types.ts';
 
 type FlattenExports<T extends readonly unknown[]> = T extends readonly [
   infer First,
   ...infer Rest extends readonly unknown[],
 ]
   ? First extends ModuleClass
-    ? readonly [...FlattenExports<First["_exports"]>, ...FlattenExports<Rest>]
+    ? readonly [...FlattenExports<First['_exports']>, ...FlattenExports<Rest>]
     : First extends InjectableClass
       ? readonly [First, ...FlattenExports<Rest>]
       : never
@@ -16,7 +16,7 @@ type ImportedExports<TImports extends readonly ModuleClass[]> = TImports extends
   infer First extends ModuleClass,
   ...infer Rest extends ModuleClass[],
 ]
-  ? readonly [...FlattenExports<First["_exports"]>, ...ImportedExports<Rest>]
+  ? readonly [...FlattenExports<First['_exports']>, ...ImportedExports<Rest>]
   : readonly [];
 
 export type ResolvedProviders<
@@ -25,7 +25,7 @@ export type ResolvedProviders<
 > = readonly [...ImportedExports<TImports>, ...TProviders];
 
 const isModuleClass = (entry: InjectableClass | ModuleClass): entry is ModuleClass =>
-  "_isModule" in entry && entry._isModule === true;
+  '_isModule' in entry && entry._isModule === true;
 
 /**
  * Recursively flatten module exports into a list of injectable classes.

@@ -1,5 +1,5 @@
-import { AsyncLocalStorage } from "node:async_hooks";
-import type { Context } from "hono";
+import { AsyncLocalStorage } from 'node:async_hooks';
+import type { Context } from 'hono';
 
 type RequestStore = { hono: Context };
 

@@ -1,5 +1,5 @@
-import { Injectable, SCOPE, type InjectEntry } from "@ultranomic/di";
-import type { ControllerConfig, HttpMethod, RouteDefinition, ValidateTargets } from "./types.ts";
+import { Injectable, SCOPE, type InjectEntry } from '@ultranomic/di';
+import type { ControllerConfig, HttpMethod, RouteDefinition, ValidateTargets } from './types.ts';
 
 export const Controller = <
   const P extends string,
@@ -16,7 +16,7 @@ export const Controller = <
     public static readonly _path: P = config.path;
 
     public route<T extends ValidateTargets, M extends HttpMethod, R extends string>(
-      def: Omit<RouteDefinition<T, M, R>, "_isRoute">,
+      def: Omit<RouteDefinition<T, M, R>, '_isRoute'>,
     ): RouteDefinition<T, M, R> {
       return {
         ...def,

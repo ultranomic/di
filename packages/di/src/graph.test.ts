@@ -1,20 +1,20 @@
-import { describe, expect, it } from "vite-plus/test";
-import { DI_ERROR_CODE } from "./di-error.ts";
-import { buildGraph } from "./graph.ts";
-import { Injectable } from "./injectable.ts";
-import { Module } from "./module.ts";
-import { SCOPE } from "./scope.ts";
-import "./test-utils.ts";
+import { describe, expect, it } from 'vite-plus/test';
+import { DI_ERROR_CODE } from './di-error.ts';
+import { buildGraph } from './graph.ts';
+import { Injectable } from './injectable.ts';
+import { Module } from './module.ts';
+import { SCOPE } from './scope.ts';
+import './test-utils.ts';
 
 // ---------------------------------------------------------------------------
 // 1. Simple linear graph
 // ---------------------------------------------------------------------------
-describe("buildGraph — simple linear graph", () => {
-  it("returns [B, A] when A depends on B and B has no deps", () => {
+describe('buildGraph — simple linear graph', () => {
+  it('returns [B, A] when A depends on B and B has no deps', () => {
     class ServiceB extends Injectable({ scope: SCOPE.SINGLETON }) {}
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceB", ServiceB]],
+      inject: [['serviceB', ServiceB]],
     }) {}
 
     class AppModule extends Module({
@@ -25,10 +25,10 @@ describe("buildGraph — simple linear graph", () => {
     const result = buildGraph(AppModule);
     const names = result.sorted.map((s) => s.name);
 
-    expect(names).toEqual(["ServiceB", "ServiceA"]);
+    expect(names).toEqual(['ServiceB', 'ServiceA']);
   });
 
-  it("returns single provider with no deps as-is", () => {
+  it('returns single provider with no deps as-is', () => {
     class Solo extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     class AppModule extends Module({
@@ -44,22 +44,22 @@ describe("buildGraph — simple linear graph", () => {
 // ---------------------------------------------------------------------------
 // 2. Diamond graph
 // ---------------------------------------------------------------------------
-describe("buildGraph — diamond graph", () => {
-  it("A→B,C; B→D; C→D → D first, A last", () => {
+describe('buildGraph — diamond graph', () => {
+  it('A→B,C; B→D; C→D → D first, A last', () => {
     class ServiceD extends Injectable({ scope: SCOPE.SINGLETON }) {}
     class ServiceC extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceD", ServiceD]],
+      inject: [['serviceD', ServiceD]],
     }) {}
     class ServiceB extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceD", ServiceD]],
+      inject: [['serviceD', ServiceD]],
     }) {}
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
       inject: [
-        ["serviceB", ServiceB],
-        ["serviceC", ServiceC],
+        ['serviceB', ServiceB],
+        ['serviceC', ServiceC],
       ],
     }) {}
 
@@ -72,10 +72,10 @@ describe("buildGraph — diamond graph", () => {
     const names = result.sorted.map((s) => s.name);
 
     // D must come first, A last. B and C can be in either order between D and A.
-    const dIdx = names.indexOf("ServiceD");
-    const bIdx = names.indexOf("ServiceB");
-    const cIdx = names.indexOf("ServiceC");
-    const aIdx = names.indexOf("ServiceA");
+    const dIdx = names.indexOf('ServiceD');
+    const bIdx = names.indexOf('ServiceB');
+    const cIdx = names.indexOf('ServiceC');
+    const aIdx = names.indexOf('ServiceA');
 
     expect(dIdx).toBeLessThan(bIdx);
     expect(dIdx).toBeLessThan(cIdx);
@@ -88,15 +88,15 @@ describe("buildGraph — diamond graph", () => {
 // ---------------------------------------------------------------------------
 // 3. Cycle detection (cycles allowed at graph level, resolved at runtime)
 // ---------------------------------------------------------------------------
-describe("buildGraph — cycle detection", () => {
-  it("allows A→B→A cycle (resolved at runtime via proxy)", () => {
+describe('buildGraph — cycle detection', () => {
+  it('allows A→B→A cycle (resolved at runtime via proxy)', () => {
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
       inject: [], // placeholder, will set below
     }) {}
     class ServiceB extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceA", ServiceA]],
+      inject: [['serviceA', ServiceA]],
     }) {}
 
     // Mutate _inject to create cycle A→B→A
@@ -112,7 +112,7 @@ describe("buildGraph — cycle detection", () => {
     expect(result.sorted).toContain(ServiceB);
   });
 
-  it("allows self-dependency A→A (resolved at runtime via proxy)", () => {
+  it('allows self-dependency A→A (resolved at runtime via proxy)', () => {
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
       inject: [],
@@ -130,18 +130,18 @@ describe("buildGraph — cycle detection", () => {
     expect(result.sorted).toContain(ServiceA);
   });
 
-  it("allows longer cycle A→B→C→A (resolved at runtime via proxy)", () => {
+  it('allows longer cycle A→B→C→A (resolved at runtime via proxy)', () => {
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
       inject: [],
     }) {}
     class ServiceB extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceA", ServiceA]],
+      inject: [['serviceA', ServiceA]],
     }) {}
     class ServiceC extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceB", ServiceB]],
+      inject: [['serviceB', ServiceB]],
     }) {}
 
     (ServiceA as any)._inject = [ServiceC];
@@ -154,9 +154,9 @@ describe("buildGraph — cycle detection", () => {
     expect(result.sorted).toHaveLength(3);
   });
 
-  it("allows Transient↔Transient cycle at graph level (throws at runtime)", () => {
+  it('allows Transient↔Transient cycle at graph level (throws at runtime)', () => {
     class TransA extends Injectable({ scope: SCOPE.TRANSIENT, inject: [] }) {}
-    class TransB extends Injectable({ scope: SCOPE.TRANSIENT, inject: [["transA", TransA]] }) {}
+    class TransB extends Injectable({ scope: SCOPE.TRANSIENT, inject: [['transA', TransA]] }) {}
 
     (TransA as any)._inject = [TransB];
 
@@ -173,12 +173,12 @@ describe("buildGraph — cycle detection", () => {
 // ---------------------------------------------------------------------------
 // 4. Missing provider
 // ---------------------------------------------------------------------------
-describe("buildGraph — missing provider", () => {
-  it("throws MISSING_PROVIDER when dependency is not in any module", () => {
+describe('buildGraph — missing provider', () => {
+  it('throws MISSING_PROVIDER when dependency is not in any module', () => {
     class MissingService extends Injectable({ scope: SCOPE.SINGLETON }) {}
     class ServiceA extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["missingService", MissingService]],
+      inject: [['missingService', MissingService]],
     }) {}
 
     class AppModule extends Module({
@@ -195,8 +195,8 @@ describe("buildGraph — missing provider", () => {
 // ---------------------------------------------------------------------------
 // 5. Duplicate provider
 // ---------------------------------------------------------------------------
-describe("buildGraph — duplicate provider", () => {
-  it("throws DUPLICATE_PROVIDER when same class in two modules", () => {
+describe('buildGraph — duplicate provider', () => {
+  it('throws DUPLICATE_PROVIDER when same class in two modules', () => {
     class SharedService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     class ModuleA extends Module({
@@ -210,7 +210,7 @@ describe("buildGraph — duplicate provider", () => {
     }) {}
 
     expect(() => {
-      class AppModule extends Module({
+      class _AppModule extends Module({
         providers: [],
         imports: [ModuleA, ModuleB],
       }) {}
@@ -221,12 +221,12 @@ describe("buildGraph — duplicate provider", () => {
 // ---------------------------------------------------------------------------
 // 6. Scope violation
 // ---------------------------------------------------------------------------
-describe("buildGraph — scope violation", () => {
-  it("throws SCOPE_VIOLATION when Singleton depends on Request-scoped", () => {
+describe('buildGraph — scope violation', () => {
+  it('throws SCOPE_VIOLATION when Singleton depends on Request-scoped', () => {
     class RequestService extends Injectable({ scope: SCOPE.REQUEST }) {}
     class SingletonService extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["requestService", RequestService]],
+      inject: [['requestService', RequestService]],
     }) {}
 
     class AppModule extends Module({
@@ -239,11 +239,11 @@ describe("buildGraph — scope violation", () => {
     );
   });
 
-  it("does NOT throw when Singleton depends on Transient", () => {
+  it('does NOT throw when Singleton depends on Transient', () => {
     class TransientService extends Injectable({ scope: SCOPE.TRANSIENT }) {}
     class SingletonService extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["transientService", TransientService]],
+      inject: [['transientService', TransientService]],
     }) {}
 
     class AppModule extends Module({
@@ -254,11 +254,11 @@ describe("buildGraph — scope violation", () => {
     expect(result.sorted).toHaveLength(2);
   });
 
-  it("does NOT throw when Transient depends on Request-scoped", () => {
+  it('does NOT throw when Transient depends on Request-scoped', () => {
     class RequestService extends Injectable({ scope: SCOPE.REQUEST }) {}
     class TransientService extends Injectable({
       scope: SCOPE.TRANSIENT,
-      inject: [["requestService", RequestService]],
+      inject: [['requestService', RequestService]],
     }) {}
 
     class AppModule extends Module({
@@ -269,15 +269,15 @@ describe("buildGraph — scope violation", () => {
     expect(result.sorted).toHaveLength(2);
   });
 
-  it("throws SCOPE_VIOLATION for transitive scope violation (Singleton→Transient→Request)", () => {
+  it('throws SCOPE_VIOLATION for transitive scope violation (Singleton→Transient→Request)', () => {
     class RequestService extends Injectable({ scope: SCOPE.REQUEST }) {}
     class TransientService extends Injectable({
       scope: SCOPE.TRANSIENT,
-      inject: [["requestService", RequestService]],
+      inject: [['requestService', RequestService]],
     }) {}
     class SingletonService extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["transientService", TransientService]],
+      inject: [['transientService', TransientService]],
     }) {}
 
     class AppModule extends Module({
@@ -290,19 +290,19 @@ describe("buildGraph — scope violation", () => {
     );
   });
 
-  it("throws SCOPE_VIOLATION for deep transitive violation (Singleton→Transient→Transient→Request)", () => {
+  it('throws SCOPE_VIOLATION for deep transitive violation (Singleton→Transient→Transient→Request)', () => {
     class RequestService extends Injectable({ scope: SCOPE.REQUEST }) {}
     class TransientB extends Injectable({
       scope: SCOPE.TRANSIENT,
-      inject: [["requestService", RequestService]],
+      inject: [['requestService', RequestService]],
     }) {}
     class TransientA extends Injectable({
       scope: SCOPE.TRANSIENT,
-      inject: [["transientB", TransientB]],
+      inject: [['transientB', TransientB]],
     }) {}
     class SingletonService extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["transientA", TransientA]],
+      inject: [['transientA', TransientA]],
     }) {}
 
     class AppModule extends Module({
@@ -319,12 +319,12 @@ describe("buildGraph — scope violation", () => {
 // ---------------------------------------------------------------------------
 // 7. Module imports
 // ---------------------------------------------------------------------------
-describe("buildGraph — module imports", () => {
-  it("providers from imported module are accessible", () => {
+describe('buildGraph — module imports', () => {
+  it('providers from imported module are accessible', () => {
     class ConfigService extends Injectable({ scope: SCOPE.SINGLETON }) {}
     class DbService extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["configService", ConfigService]],
+      inject: [['configService', ConfigService]],
     }) {}
 
     class CoreModule extends Module({
@@ -340,15 +340,15 @@ describe("buildGraph — module imports", () => {
     const result = buildGraph(AppModule);
     const names = result.sorted.map((s) => s.name);
 
-    expect(names).toEqual(["ConfigService", "DbService"]);
+    expect(names).toEqual(['ConfigService', 'DbService']);
   });
 
-  it("only exported providers from imported module are accessible", () => {
+  it('only exported providers from imported module are accessible', () => {
     class PublicService extends Injectable({ scope: SCOPE.SINGLETON }) {}
     class PrivateService extends Injectable({ scope: SCOPE.SINGLETON }) {}
     class ConsumerService extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["publicService", PublicService]],
+      inject: [['publicService', PublicService]],
     }) {}
 
     class SharedModule extends Module({
@@ -364,20 +364,20 @@ describe("buildGraph — module imports", () => {
     const result = buildGraph(AppModule);
     const names = result.sorted.map((s) => s.name);
 
-    expect(names).toContain("PublicService");
-    expect(names).toContain("ConsumerService");
-    expect(names).not.toContain("PrivateService");
+    expect(names).toContain('PublicService');
+    expect(names).toContain('ConsumerService');
+    expect(names).not.toContain('PrivateService');
   });
 
-  it("nested imports: grandchild module providers accessible", () => {
+  it('nested imports: grandchild module providers accessible', () => {
     class DeepService extends Injectable({ scope: SCOPE.SINGLETON }) {}
     class MidService extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["deepService", DeepService]],
+      inject: [['deepService', DeepService]],
     }) {}
     class TopService extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["midService", MidService]],
+      inject: [['midService', MidService]],
     }) {}
 
     class DeepModule extends Module({
@@ -399,25 +399,25 @@ describe("buildGraph — module imports", () => {
     const result = buildGraph(AppModule);
     const names = result.sorted.map((s) => s.name);
 
-    expect(names).toEqual(["DeepService", "MidService", "TopService"]);
+    expect(names).toEqual(['DeepService', 'MidService', 'TopService']);
   });
 });
 
 // ---------------------------------------------------------------------------
 // 8. Large graph (10+ services)
 // ---------------------------------------------------------------------------
-describe("buildGraph — large graph", () => {
-  it("correctly sorts 10+ services with mixed deps", () => {
+describe('buildGraph — large graph', () => {
+  it('correctly sorts 10+ services with mixed deps', () => {
     // Build a chain: S1 → S2 → S3 → ... → S10
     const services: any[] = [];
     for (let i = 10; i >= 1; i--) {
-      const deps = i < 10 ? [["dep", services.at(-1)]] : [];
+      const deps: [string, any][] | [] = i < 10 ? [['dep', services.at(-1)]] : [];
       const cls = class extends Injectable({
         scope: i % 3 === 0 ? SCOPE.TRANSIENT : SCOPE.SINGLETON,
         inject: deps,
       }) {};
       // Give a meaningful name
-      Object.defineProperty(cls, "name", { value: `Svc${i}`, configurable: true });
+      Object.defineProperty(cls, 'name', { value: `Svc${i}`, configurable: true });
       services.push(cls);
     }
     // services[0] = Svc10 (no deps), services[9] = Svc1 (depends on Svc2)
@@ -431,8 +431,8 @@ describe("buildGraph — large graph", () => {
     const names = result.sorted.map((s) => s.name);
 
     // Svc10 must be first (no deps), Svc1 must be last
-    expect(names[0]).toBe("Svc10");
-    expect(names.at(-1)).toBe("Svc1");
+    expect(names[0]).toBe('Svc10');
+    expect(names.at(-1)).toBe('Svc1');
     expect(names).toHaveLength(10);
 
     // Verify ordering: each svc must appear after its dependency
@@ -447,8 +447,8 @@ describe("buildGraph — large graph", () => {
 // ---------------------------------------------------------------------------
 // 9. Deep module nesting
 // ---------------------------------------------------------------------------
-describe("buildGraph — deep module nesting", () => {
-  it("detects circular module imports with visited set", () => {
+describe('buildGraph — deep module nesting', () => {
+  it('detects circular module imports with visited set', () => {
     class SharedService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     class ModuleA extends Module({
@@ -473,8 +473,8 @@ describe("buildGraph — deep module nesting", () => {
 // ---------------------------------------------------------------------------
 // 10. Bug fix regressions: diamond module imports
 // ---------------------------------------------------------------------------
-describe("buildGraph — diamond module imports", () => {
-  it("B3: root-level diamond does not throw DUPLICATE_PROVIDER", () => {
+describe('buildGraph — diamond module imports', () => {
+  it('B3: root-level diamond does not throw DUPLICATE_PROVIDER', () => {
     class DbService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     class DatabaseModule extends Module({
@@ -503,10 +503,10 @@ describe("buildGraph — diamond module imports", () => {
     const names = result.sorted.map((s) => s.name);
 
     expect(names).toHaveLength(1);
-    expect(names).toContain("DbService");
+    expect(names).toContain('DbService');
   });
 
-  it("B2: non-root diamond does not throw CIRCULAR_DEPENDENCY", () => {
+  it('B2: non-root diamond does not throw CIRCULAR_DEPENDENCY', () => {
     class DbService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     class DatabaseModule extends Module({
@@ -541,14 +541,14 @@ describe("buildGraph — diamond module imports", () => {
     const names = result.sorted.map((s) => s.name);
 
     expect(names).toHaveLength(1);
-    expect(names).toContain("DbService");
+    expect(names).toContain('DbService');
   });
 
-  it("diamond with providers using shared dep resolves correctly", () => {
+  it('diamond with providers using shared dep resolves correctly', () => {
     class ConfigService extends Injectable({ scope: SCOPE.SINGLETON }) {}
     class DbService extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["configService", ConfigService]],
+      inject: [['configService', ConfigService]],
     }) {}
 
     class DatabaseModule extends Module({
@@ -576,14 +576,14 @@ describe("buildGraph — diamond module imports", () => {
     const result = buildGraph(AppModule);
     const names = result.sorted.map((s) => s.name);
 
-    expect(names).toEqual(["ConfigService", "DbService"]);
+    expect(names).toEqual(['ConfigService', 'DbService']);
   });
 
-  it("D7: exported provider can depend on module private provider", () => {
+  it('D7: exported provider can depend on module private provider', () => {
     class PrivateService extends Injectable({ scope: SCOPE.SINGLETON }) {}
     class PublicService extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["privateService", PrivateService]],
+      inject: [['privateService', PrivateService]],
     }) {}
 
     class FeatureModule extends Module({
@@ -599,22 +599,22 @@ describe("buildGraph — diamond module imports", () => {
     const result = buildGraph(AppModule);
     const names = result.sorted.map((s) => s.name);
 
-    expect(names).toContain("PrivateService");
-    expect(names).toContain("PublicService");
-    const privateIdx = names.indexOf("PrivateService");
-    const publicIdx = names.indexOf("PublicService");
+    expect(names).toContain('PrivateService');
+    expect(names).toContain('PublicService');
+    const privateIdx = names.indexOf('PrivateService');
+    const publicIdx = names.indexOf('PublicService');
     expect(privateIdx).toBeLessThan(publicIdx);
   });
 
-  it("D7: transitive private deps are collected", () => {
+  it('D7: transitive private deps are collected', () => {
     class SecretService extends Injectable({ scope: SCOPE.SINGLETON }) {}
     class PrivateService extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["secretService", SecretService]],
+      inject: [['secretService', SecretService]],
     }) {}
     class PublicService extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["privateService", PrivateService]],
+      inject: [['privateService', PrivateService]],
     }) {}
 
     class FeatureModule extends Module({
@@ -630,22 +630,22 @@ describe("buildGraph — diamond module imports", () => {
     const result = buildGraph(AppModule);
     const names = result.sorted.map((s) => s.name);
 
-    expect(names).toEqual(["SecretService", "PrivateService", "PublicService"]);
+    expect(names).toEqual(['SecretService', 'PrivateService', 'PublicService']);
   });
 });
 
 // ---------------------------------------------------------------------------
 // 11. Module re-exports (exports: [SomeModule])
 // ---------------------------------------------------------------------------
-describe("buildGraph — module re-exports", () => {
-  it("re-exported module exports are available to importing module", () => {
+describe('buildGraph — module re-exports', () => {
+  it('re-exported module exports are available to importing module', () => {
     class DeepService extends Injectable({ scope: SCOPE.SINGLETON }) {}
     class MidService extends Injectable({ scope: SCOPE.SINGLETON }) {}
     class TopService extends Injectable({
       scope: SCOPE.SINGLETON,
       inject: [
-        ["deepService", DeepService],
-        ["midService", MidService],
+        ['deepService', DeepService],
+        ['midService', MidService],
       ],
     }) {}
 
@@ -668,15 +668,15 @@ describe("buildGraph — module re-exports", () => {
     const result = buildGraph(AppModule);
     const names = result.sorted.map((s) => s.name);
 
-    expect(names).toEqual(["DeepService", "MidService", "TopService"]);
+    expect(names).toEqual(['DeepService', 'MidService', 'TopService']);
   });
 
-  it("selective re-export: only re-exported module flows up via _exports", () => {
+  it('selective re-export: only re-exported module flows up via _exports', () => {
     class ServiceA extends Injectable({ scope: SCOPE.SINGLETON }) {}
     class ServiceB extends Injectable({ scope: SCOPE.SINGLETON }) {}
     class ConsumerService extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["serviceA", ServiceA]],
+      inject: [['serviceA', ServiceA]],
     }) {}
 
     class ModuleA extends Module({
@@ -699,15 +699,15 @@ describe("buildGraph — module re-exports", () => {
     expect(MidModule._providers).toEqual([ServiceA, ServiceB, ConsumerService]);
   });
 
-  it("private deps of re-exported providers are included", () => {
+  it('private deps of re-exported providers are included', () => {
     class PrivateHelper extends Injectable({ scope: SCOPE.SINGLETON }) {}
     class PublicService extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["helper", PrivateHelper]],
+      inject: [['helper', PrivateHelper]],
     }) {}
     class ConsumerService extends Injectable({
       scope: SCOPE.SINGLETON,
-      inject: [["publicService", PublicService]],
+      inject: [['publicService', PublicService]],
     }) {}
 
     class FeatureModule extends Module({
@@ -729,6 +729,6 @@ describe("buildGraph — module re-exports", () => {
     const result = buildGraph(AppModule);
     const names = result.sorted.map((s) => s.name);
 
-    expect(names).toEqual(["PrivateHelper", "PublicService", "ConsumerService"]);
+    expect(names).toEqual(['PrivateHelper', 'PublicService', 'ConsumerService']);
   });
 });

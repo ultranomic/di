@@ -1,5 +1,6 @@
 ---
-description: "Create branch, commit staged changes, push, and create PR (usage: /ship-staged [--skip-ai-review])"
+description: 'Create branch, commit staged changes, push, and create PR (usage: /ship-staged [--skip-ai-review])'
+model: zai-coding-plan/glm-5-turbo
 ---
 
 Ship staged changes: create branch, commit, push, and create PR.

@@ -6,20 +6,20 @@
  * Run: node packages/di/examples/basic-usage.ts
  */
 
-import { Container, Injectable, Module, SCOPE } from "../src/index.ts";
+import { Container, Injectable, Module, SCOPE } from '../src/index.ts';
 
 // ---------------------------------------------------------------------------
 // 1. Define a standalone service (no dependencies)
 // ---------------------------------------------------------------------------
 class ConfigService extends Injectable({ scope: SCOPE.SINGLETON }) {
   public getDbUrl(): string {
-    return "postgres://localhost:5432/mydb";
+    return 'postgres://localhost:5432/mydb';
   }
 }
 
 class DefaultConfigService extends Injectable() {
   public getDefaultUrl(): string {
-    return "postgres://localhost:5432/default";
+    return 'postgres://localhost:5432/default';
   }
 }
 
@@ -29,8 +29,8 @@ class DefaultConfigService extends Injectable() {
 class DatabaseService extends Injectable({
   scope: SCOPE.SINGLETON,
   inject: [
-    ["config", ConfigService],
-    ["defaults", DefaultConfigService],
+    ['config', ConfigService],
+    ['defaults', DefaultConfigService],
   ],
 }) {
   public connect(): void {

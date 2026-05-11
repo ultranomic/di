@@ -1,9 +1,9 @@
-import type { Container } from "@ultranomic/di";
-import type { Context } from "@orpc/server";
-import type { StandardRPCHandler, StandardHandleResult } from "@orpc/server/standard";
-import { OrpcRequestContext } from "./orpc-request-context.ts";
+import type { Container } from '@ultranomic/di';
+import type { Context } from '@orpc/server';
+import type { StandardRPCHandler } from '@orpc/server/standard';
+import { OrpcRequestContext } from './orpc-request-context.ts';
 
-const BODY_PARSER_METHODS = ["arrayBuffer", "blob", "formData", "json", "text"] as const;
+const BODY_PARSER_METHODS = ['arrayBuffer', 'blob', 'formData', 'json', 'text'] as const;
 type BodyParserMethod = (typeof BODY_PARSER_METHODS)[number];
 
 type HonoServiceShape = {
@@ -37,7 +37,7 @@ export function mountOrpcOnHono(
   prefix: string,
 ): void {
   const HonoServiceClass = container.sorted.find(
-    (cls) => "_isHonoService" in cls && cls._isHonoService === true,
+    (cls) => '_isHonoService' in cls && cls._isHonoService === true,
   );
 
   if (!HonoServiceClass) return;
@@ -45,12 +45,12 @@ export function mountOrpcOnHono(
   const honoService = container.resolve(HonoServiceClass) as HonoServiceShape;
   const app = honoService.hono;
 
-  app.use(prefix + "/*", async (c: unknown, next: () => Promise<unknown>) => {
+  app.use(prefix + '/*', async (c: unknown, next: () => Promise<unknown>) => {
     const honoContext = c as HonoContextShape;
 
     const request = new Proxy(honoContext.req.raw, {
       get(target, prop) {
-        if (typeof prop !== "string") return Reflect.get(target, prop, target);
+        if (typeof prop !== 'string') return Reflect.get(target, prop, target);
         if (BODY_PARSER_METHODS.includes(prop as BodyParserMethod)) {
           return () => honoContext.req[prop as BodyParserMethod]();
         }
@@ -65,17 +65,17 @@ export function mountOrpcOnHono(
       },
       headers: Object.fromEntries(request.headers.entries()) as Record<string, string>,
       body: async () => {
-        const contentType = request.headers.get("content-type");
-        if (contentType?.includes("application/json")) {
+        const contentType = request.headers.get('content-type');
+        if (contentType?.includes('application/json')) {
           return honoContext.req.json();
         }
-        if (contentType?.includes("application/x-www-form-urlencoded")) {
+        if (contentType?.includes('application/x-www-form-urlencoded')) {
           return honoContext.req.formData();
         }
-        if (contentType?.includes("multipart/form-data")) {
+        if (contentType?.includes('multipart/form-data')) {
           return honoContext.req.formData();
         }
-        if (contentType?.includes("text/")) {
+        if (contentType?.includes('text/')) {
           return honoContext.req.text();
         }
         return honoContext.req.arrayBuffer();
@@ -109,7 +109,7 @@ function standardBodyToBodyInit(body: unknown): ReadableStream | string | null {
   if (body === undefined || body === null) {
     return null;
   }
-  if (typeof body === "string") {
+  if (typeof body === 'string') {
     return body;
   }
   if (body instanceof ReadableStream) {

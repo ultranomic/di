@@ -1,10 +1,10 @@
-import { Container, Injectable, Module, SCOPE } from "@ultranomic/di";
-import { HonoModule, HonoService } from "@ultranomic/di-hono";
-import { afterEach, describe, expect, it } from "vite-plus/test";
-import { z } from "zod";
-import { OrpcModule } from "./orpc-module.ts";
-import { OrpcRouter } from "./orpc-router.ts";
-import { OrpcService } from "./orpc-service.ts";
+import { Container, Injectable, Module, SCOPE } from '@ultranomic/di';
+import { HonoModule, HonoService } from '@ultranomic/di-hono';
+import { afterEach, describe, expect, it } from 'vite-plus/test';
+import { z } from 'zod';
+import { OrpcModule } from './orpc-module.ts';
+import { OrpcRouter } from './orpc-router.ts';
+import { OrpcService } from './orpc-service.ts';
 
 let container: Container;
 
@@ -12,13 +12,13 @@ afterEach(async () => {
   if (container) await container.stop();
 });
 
-describe("End-to-end ORPC with Hono integration", () => {
-  describe("Full lifecycle", () => {
-    it("define modules → start container → make RPC calls → stop container", async () => {
+describe('End-to-end ORPC with Hono integration', () => {
+  describe('Full lifecycle', () => {
+    it('define modules → start container → make RPC calls → stop container', async () => {
       class UserService extends Injectable({ scope: SCOPE.SINGLETON }) {
         readonly #users = [
-          { id: "1", name: "Alice" },
-          { id: "2", name: "Bob" },
+          { id: '1', name: 'Alice' },
+          { id: '2', name: 'Bob' },
         ];
 
         list() {
@@ -31,8 +31,8 @@ describe("End-to-end ORPC with Hono integration", () => {
       }
 
       class UserRouter extends OrpcRouter({
-        path: "users",
-        inject: [["userService", UserService]] as const,
+        path: 'users',
+        inject: [['userService', UserService]] as const,
       }) {
         list = this.orpc
           .input(z.object({}))
@@ -67,20 +67,20 @@ describe("End-to-end ORPC with Hono integration", () => {
     });
   });
 
-  describe("Multiple routers", () => {
-    it("composes multiple routers into a single handler", async () => {
-      class UserRouter extends OrpcRouter({ path: "users" }) {
+  describe('Multiple routers', () => {
+    it('composes multiple routers into a single handler', async () => {
+      class UserRouter extends OrpcRouter({ path: 'users' }) {
         list = this.orpc
           .input(z.object({}))
           .output(z.array(z.string()))
-          .handler(async () => ["Alice", "Bob"]);
+          .handler(async () => ['Alice', 'Bob']);
       }
 
-      class ProductRouter extends OrpcRouter({ path: "products" }) {
+      class ProductRouter extends OrpcRouter({ path: 'products' }) {
         list = this.orpc
           .input(z.object({}))
           .output(z.array(z.string()))
-          .handler(async () => ["Widget", "Gadget"]);
+          .handler(async () => ['Widget', 'Gadget']);
       }
 
       class AppModule extends Module({
@@ -98,17 +98,17 @@ describe("End-to-end ORPC with Hono integration", () => {
     });
   });
 
-  describe("Service dependencies", () => {
-    it("resolves service dependencies in router handlers", async () => {
+  describe('Service dependencies', () => {
+    it('resolves service dependencies in router handlers', async () => {
       class ConfigService extends Injectable({ scope: SCOPE.SINGLETON }) {
         getApiKey() {
-          return "test-api-key";
+          return 'test-api-key';
         }
       }
 
       class ApiService extends Injectable({
         scope: SCOPE.SINGLETON,
-        inject: [["config", ConfigService]],
+        inject: [['config', ConfigService]],
       }) {
         getData() {
           return { apiKey: this.inject.config.getApiKey() };
@@ -116,8 +116,8 @@ describe("End-to-end ORPC with Hono integration", () => {
       }
 
       class ApiRouter extends OrpcRouter({
-        path: "api",
-        inject: [["apiService", ApiService]] as const,
+        path: 'api',
+        inject: [['apiService', ApiService]] as const,
       }) {
         getData = this.orpc
           .input(z.object({}))
@@ -142,14 +142,14 @@ describe("End-to-end ORPC with Hono integration", () => {
     });
   });
 
-  describe("Request-scoped services", () => {
-    it("creates new instances for each request", async () => {
+  describe('Request-scoped services', () => {
+    it('creates new instances for each request', async () => {
       class RequestContext extends Injectable({ scope: SCOPE.REQUEST }) {
         static #counter = 0;
         readonly id = ++RequestContext.#counter;
       }
 
-      class TestRouter extends OrpcRouter({ path: "test" }) {
+      class TestRouter extends OrpcRouter({ path: 'test' }) {
         #container: Container | undefined;
 
         setContainer(c: Container) {
@@ -180,14 +180,14 @@ describe("End-to-end ORPC with Hono integration", () => {
     });
   });
 
-  describe("Error handling", () => {
-    it("handles errors from router procedures", async () => {
-      class FailingRouter extends OrpcRouter({ path: "failing" }) {
+  describe('Error handling', () => {
+    it('handles errors from router procedures', async () => {
+      class FailingRouter extends OrpcRouter({ path: 'failing' }) {
         fail = this.orpc
           .input(z.object({}))
           .output(z.never())
           .handler(async () => {
-            throw new Error("Procedure failed");
+            throw new Error('Procedure failed');
           });
       }
 
@@ -206,8 +206,8 @@ describe("End-to-end ORPC with Hono integration", () => {
     });
   });
 
-  describe("Container lifecycle", () => {
-    it("starts and stops cleanly", async () => {
+  describe('Container lifecycle', () => {
+    it('starts and stops cleanly', async () => {
       class AppModule extends Module({
         imports: [OrpcModule(), HonoModule()],
       }) {}
@@ -224,7 +224,7 @@ describe("End-to-end ORPC with Hono integration", () => {
       await container.stop();
     });
 
-    it("resolves services after start", async () => {
+    it('resolves services after start', async () => {
       class AppModule extends Module({
         imports: [OrpcModule(), HonoModule()],
       }) {}

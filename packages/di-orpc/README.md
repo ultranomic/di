@@ -17,24 +17,24 @@ This is a workspace package, so it's already available in the monorepo.
 ## Quick Start
 
 ```typescript
-import { Container, Injectable, Module, SCOPE } from "@ultranomic/di";
-import { OrpcModule, OrpcRouter, OrpcService } from "@ultranomic/di-orpc";
-import { z } from "zod";
+import { Container, Injectable, Module, SCOPE } from '@ultranomic/di';
+import { OrpcModule, OrpcRouter, OrpcService } from '@ultranomic/di-orpc';
+import { z } from 'zod';
 
 // 1. Define a service
 class UserService extends Injectable({ scope: SCOPE.SINGLETON }) {
   async list() {
-    return [{ id: "1", name: "Alice" }];
+    return [{ id: '1', name: 'Alice' }];
   }
   async getById(id: string) {
-    return { id, name: "Alice" };
+    return { id, name: 'Alice' };
   }
 }
 
 // 2. Define an ORPC router with procedures
 class UserRouter extends OrpcRouter({
-  path: "user",
-  inject: [["userService", UserService]],
+  path: 'user',
+  inject: [['userService', UserService]],
 }) {
   list = this.orpc.input(z.object({})).handler(async () => {
     return this.inject.userService.list();
@@ -77,8 +77,8 @@ Procedures are class field initializers using `this.orpc` (a typed ORPC builder 
 
 ```typescript
 class UserRouter extends OrpcRouter({
-  path: "users",
-  inject: [["userService", UserService]],
+  path: 'users',
+  inject: [['userService', UserService]],
 }) {
   list = this.orpc
     .input(z.object({}))
@@ -88,7 +88,7 @@ class UserRouter extends OrpcRouter({
   create = this.orpc
     .input(z.object({ name: z.string() }))
     .output(z.object({ id: z.string(), name: z.string() }))
-    .handler(async ({ input }) => ({ id: "1", ...input }));
+    .handler(async ({ input }) => ({ id: '1', ...input }));
 }
 ```
 
@@ -101,11 +101,11 @@ Routers are singleton-scoped. Dependencies are declared as named entries and acc
 **Pattern:**
 
 ```typescript
-import { OrpcMiddleware } from "@ultranomic/di-orpc";
+import { OrpcMiddleware } from '@ultranomic/di-orpc';
 
 class AuthMiddleware extends OrpcMiddleware({}) {
   requireAuth = this.orpc.middleware(async ({ next }) => {
-    return next({ context: { userId: "authenticated-user-id" } });
+    return next({ context: { userId: 'authenticated-user-id' } });
   });
 }
 ```
@@ -126,7 +126,7 @@ class AuthMiddleware extends OrpcMiddleware({}) {
 **Pattern:**
 
 ```typescript
-import { OrpcModule } from "@ultranomic/di-orpc";
+import { OrpcModule } from '@ultranomic/di-orpc';
 
 // Default options (prefix: /rpc)
 class AppModule extends Module({
@@ -136,7 +136,7 @@ class AppModule extends Module({
 
 // Custom prefix
 class AppModule extends Module({
-  imports: [OrpcModule({ prefix: "/api" })],
+  imports: [OrpcModule({ prefix: '/api' })],
   providers: [UserRouter],
 }) {}
 
@@ -173,8 +173,8 @@ const handler = orpcService.handler; // StandardRPCHandler
 Use `InferOrpcRouterTree` to extract the typed router tree from your module for client-side type inference:
 
 ```typescript
-import type { InferOrpcRouterTree } from "@ultranomic/di-orpc";
-import type { RouterClient } from "@orpc/client";
+import type { InferOrpcRouterTree } from '@ultranomic/di-orpc';
+import type { RouterClient } from '@orpc/client';
 
 class UserModule extends Module({
   providers: [UserRouter],
@@ -196,14 +196,14 @@ type Client = RouterClient<AppRouter>;
 When both `OrpcModule()` and `HonoModule` are in the module tree, ORPC routes automatically mount on the Hono app at the configured prefix:
 
 ```typescript
-import { Controller, HonoModule } from "@ultranomic/di-hono";
-import { OrpcModule, OrpcRouter } from "@ultranomic/di-orpc";
+import { Controller, HonoModule } from '@ultranomic/di-hono';
+import { OrpcModule, OrpcRouter } from '@ultranomic/di-orpc';
 
-class HealthController extends Controller({ path: "/health" }) {
-  check = this.route({ method: "GET", path: "/", handler: (c) => c.json({ status: "ok" }) });
+class HealthController extends Controller({ path: '/health' }) {
+  check = this.route({ method: 'GET', path: '/', handler: (c) => c.json({ status: 'ok' }) });
 }
 
-class UserRouter extends OrpcRouter({ path: "user" }) {
+class UserRouter extends OrpcRouter({ path: 'user' }) {
   list = this.orpc.input(z.object({})).handler(async () => []);
 }
 
@@ -223,7 +223,7 @@ await container.start();
 `OrpcRequestContext` provides access to the current ORPC request context from anywhere in the request scope. It uses `AsyncLocalStorage` under the hood.
 
 ```typescript
-import { OrpcRequestContext } from "@ultranomic/di-orpc";
+import { OrpcRequestContext } from '@ultranomic/di-orpc';
 
 class AuditService extends Injectable({ scope: SCOPE.REQUEST }) {
   log(action: string) {
@@ -238,17 +238,17 @@ class AuditService extends Injectable({ scope: SCOPE.REQUEST }) {
 Custom error interceptors catch non-ORPC errors thrown in procedure handlers and transform them into ORPC errors:
 
 ```typescript
-import { OrpcModule } from "@ultranomic/di-orpc";
-import { ORPCError } from "@orpc/server";
+import { OrpcModule } from '@ultranomic/di-orpc';
+import { ORPCError } from '@orpc/server';
 
 class AppModule extends Module({
   imports: [
     OrpcModule({
       errorInterceptor: async (error, context) => {
         if (error instanceof NotFoundError) {
-          return new ORPCError("NOT_FOUND", { message: error.message });
+          return new ORPCError('NOT_FOUND', { message: error.message });
         }
-        return new ORPCError("INTERNAL", { message: "Internal error" });
+        return new ORPCError('INTERNAL', { message: 'Internal error' });
       },
     }),
   ],

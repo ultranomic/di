@@ -1,6 +1,6 @@
-import { type ModuleClass, Container } from "@ultranomic/di";
-import { expect } from "vite-plus/test";
-import { HonoService, VALIDATION_ERROR_MESSAGE } from "./hono-service.ts";
+import { type ModuleClass, Container } from '@ultranomic/di';
+import { expect } from 'vite-plus/test';
+import { HonoService, VALIDATION_ERROR_MESSAGE } from './hono-service.ts';
 
 export const setupModule = async (moduleClass: ModuleClass) => {
   const container = new Container(moduleClass);
@@ -17,7 +17,7 @@ export const expectValidationFailed = (body: unknown) => {
   const issues = (body as { issues: { message: string }[] }).issues;
   expect(issues.length).toBeGreaterThan(0);
   for (const issue of issues) {
-    expect(issue.message).toBeTypeOf("string");
+    expect(issue.message).toBeTypeOf('string');
     expect(issue.message.length).toBeGreaterThan(0);
   }
 };

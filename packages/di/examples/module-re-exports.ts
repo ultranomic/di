@@ -6,14 +6,14 @@
  * Run: node packages/di/examples/module-re-exports.ts
  */
 
-import { Container, Injectable, Module, SCOPE } from "../src/index.ts";
+import { Container, Injectable, Module, SCOPE } from '../src/index.ts';
 
 // ---------------------------------------------------------------------------
 // Deep Module — provides and exports DeepService
 // ---------------------------------------------------------------------------
 class DeepService extends Injectable({ scope: SCOPE.SINGLETON }) {
   public getValue(): string {
-    return "deep-value";
+    return 'deep-value';
   }
 }
 
@@ -27,7 +27,7 @@ class DeepModule extends Module({
 // ---------------------------------------------------------------------------
 class MidService extends Injectable({ scope: SCOPE.SINGLETON }) {
   public getValue(): string {
-    return "mid-value";
+    return 'mid-value';
   }
 }
 
@@ -58,7 +58,7 @@ const mid = container.resolve(MidService);
 console.log(`[module-re-exports] MidService: ${mid.getValue()}`);
 
 // Verify MidModule._exports preserves DeepModule entry
-const exportsList = MidModule._exports.map((e) => e.name).join(", ");
+const exportsList = MidModule._exports.map((e) => e.name).join(', ');
 console.log(`[module-re-exports] MidModule._exports: [${exportsList}]`);
 
 await container.stop();

@@ -1,6 +1,6 @@
-import { DI_ERROR_CODE, DIError } from "./di-error.ts";
-import { SCOPE, type Scope } from "./scope.ts";
-import type { InjectableClass, InjectEntry } from "./types.ts";
+import { DI_ERROR_CODE, DIError } from './di-error.ts';
+import { SCOPE, type Scope } from './scope.ts';
+import type { InjectableClass, InjectEntry, ValidInjectEntries } from './types.ts';
 
 type ExtractInjectObject<TInject extends readonly InjectEntry[]> = {
   readonly [K in TInject[number] as K[0]]: InstanceType<K[1]>;
@@ -26,7 +26,7 @@ export const Injectable = <
   const TInject extends readonly InjectEntry[] = [],
 >(config?: {
   scope?: TScope;
-  inject?: TInject;
+  inject?: ValidInjectEntries<TInject>;
 }) => {
   const injectEntries = [...(config?.inject ?? [])] as unknown as TInject;
   const seenKeys = new Set<string>();

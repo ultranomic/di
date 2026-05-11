@@ -1,27 +1,27 @@
-import type { Container, InjectableClass, ModuleClass } from "@ultranomic/di";
-import { DIError, Injectable, SCOPE } from "@ultranomic/di";
-import type { AnyRouter, Context } from "@orpc/server";
-import { isProcedure, ORPCError } from "@orpc/server";
+import type { Container, InjectableClass, ModuleClass } from '@ultranomic/di';
+import { DIError, Injectable, SCOPE } from '@ultranomic/di';
+import type { AnyRouter, Context } from '@orpc/server';
+import { isProcedure, ORPCError } from '@orpc/server';
 import type {
   StandardHandleResult,
   StandardHandlerInterceptorOptions,
-} from "@orpc/server/standard";
-import { StandardRPCHandler } from "@orpc/server/standard";
-import { createErrorInterceptor } from "./error-interceptor.ts";
-import { mountOrpcOnHono } from "./hono-adapter.ts";
-import { OrpcRequestContext } from "./orpc-request-context.ts";
-import type { ErrorInterceptor, OrpcModuleClass, OrpcRouterClass } from "./types.ts";
+} from '@orpc/server/standard';
+import { StandardRPCHandler } from '@orpc/server/standard';
+import { createErrorInterceptor } from './error-interceptor.ts';
+import { mountOrpcOnHono } from './hono-adapter.ts';
+import { OrpcRequestContext } from './orpc-request-context.ts';
+import type { ErrorInterceptor, OrpcModuleClass, OrpcRouterClass } from './types.ts';
 
 function isOrpcRouterClass(cls: InjectableClass): cls is OrpcRouterClass {
-  return "_isOrpcRouter" in cls && cls._isOrpcRouter === true;
+  return '_isOrpcRouter' in cls && cls._isOrpcRouter === true;
 }
 
 function isOrpcModuleClass(moduleClass: ModuleClass): moduleClass is OrpcModuleClass {
-  return "_isOrpcModule" in moduleClass && moduleClass._isOrpcModule === true;
+  return '_isOrpcModule' in moduleClass && moduleClass._isOrpcModule === true;
 }
 
 const isHonoModuleClass = (moduleClass: ModuleClass): boolean =>
-  "_isHonoModule" in moduleClass && moduleClass._isHonoModule === true;
+  '_isHonoModule' in moduleClass && moduleClass._isHonoModule === true;
 
 const findOrpcModule = (
   moduleClass: ModuleClass,
@@ -90,20 +90,20 @@ export class OrpcService extends Injectable({ scope: SCOPE.SINGLETON }) {
     }
     if (!this.#handler) {
       throw new DIError(
-        "CONTAINER_NOT_STARTED",
-        "OrpcService handler accessed before container start",
+        'CONTAINER_NOT_STARTED',
+        'OrpcService handler accessed before container start',
       );
     }
     return this.#handler;
   }
 
   public handle(
-    ...args: Parameters<StandardRPCHandler<Context>["handle"]>
+    ...args: Parameters<StandardRPCHandler<Context>['handle']>
   ): Promise<StandardHandleResult> {
     if (!this.#container) {
       throw new DIError(
-        "CONTAINER_NOT_STARTED",
-        "OrpcService.handle() called before container start or after stop",
+        'CONTAINER_NOT_STARTED',
+        'OrpcService.handle() called before container start or after stop',
       );
     }
     return this.#container.withRequestScope(async () =>
@@ -136,7 +136,7 @@ export class OrpcService extends Injectable({ scope: SCOPE.SINGLETON }) {
 
       const path = provider._orpcPath;
       if (seenPaths.has(path)) {
-        throw new DIError("DUPLICATE_PROVIDER", `Duplicate ORPC router path: '${path}'`);
+        throw new DIError('DUPLICATE_PROVIDER', `Duplicate ORPC router path: '${path}'`);
       }
       seenPaths.add(path);
 
@@ -157,7 +157,7 @@ export class OrpcService extends Injectable({ scope: SCOPE.SINGLETON }) {
     });
 
     if (hasHonoModuleInTree(moduleClass)) {
-      mountOrpcOnHono(container, this.#handler, options?.prefix ?? "/rpc");
+      mountOrpcOnHono(container, this.#handler, options?.prefix ?? '/rpc');
     }
 
     this.#initialized = true;
