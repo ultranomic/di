@@ -21,24 +21,8 @@ export type HonoModuleConfig<
   readonly options?: HonoModuleOptionsFactory;
 };
 
-const flattenExports = (exports: readonly (InjectableClass | ModuleClass)[]): InjectableClass[] => {
-  const result: InjectableClass[] = [];
-  for (const entry of exports) {
-    if ('_isModule' in entry && entry._isModule === true) {
-      result.push(...flattenExports(entry._exports));
-    } else {
-      result.push(entry as InjectableClass);
-    }
-  }
-  return result;
-};
-
-const isHonoServiceInImportedExports = (imports: readonly ModuleClass[]): boolean => {
-  for (const imp of imports) {
-    if (flattenExports(imp._exports).includes(HonoService)) return true;
-  }
-  return false;
-};
+const ensureIncluded = <T>(list: readonly T[] | undefined, item: T): readonly T[] =>
+  list?.includes(item as T) ? list : [...(list ?? []), item];
 
 export const HonoModule = <
   const TProviders extends readonly InjectableClass[] = readonly [],
@@ -48,16 +32,7 @@ export const HonoModule = <
 >(
   config?: HonoModuleConfig<TProviders, TImports, TExports>,
 ) => {
-  const ensureIncluded = <T>(list: readonly T[] | undefined, item: T): readonly T[] =>
-    list?.includes(item as T) ? list : [...(list ?? []), item];
-
-  const imports = [...(config?.imports ?? [])] as TImports;
-  const honoServiceAlreadyExported = isHonoServiceInImportedExports(imports);
-
-  const providers = honoServiceAlreadyExported
-    ? (config?.providers ?? [])
-    : ensureIncluded(config?.providers, HonoService);
-
+  const providers = ensureIncluded(config?.providers, HonoService);
   const exports = ensureIncluded(
     config?.exports as readonly (InjectableClass | ModuleClass)[] | undefined,
     HonoService,
@@ -66,7 +41,7 @@ export const HonoModule = <
   const Base = Module({
     providers,
     exports,
-    imports,
+    imports: config?.imports,
   });
 
   return class extends Base {

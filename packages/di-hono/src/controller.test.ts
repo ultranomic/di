@@ -31,7 +31,7 @@ describe('Controller mixin', () => {
     class DepService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
     const BaseController = Controller({ path: '/test', inject: [['dep', DepService]] });
-    expect(BaseController._inject).toEqual([DepService]);
+    expect(BaseController._injectClasses).toEqual([DepService]);
   });
 
   describe('route() method', () => {

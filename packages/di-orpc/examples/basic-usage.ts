@@ -49,7 +49,7 @@ class UserRouter extends OrpcRouter({
   readonly #userService: UserService;
 
   public constructor(userService: UserService) {
-    super();
+    super(userService);
     this.#userService = userService;
   }
 

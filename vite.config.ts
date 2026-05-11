@@ -5,6 +5,7 @@ export default defineConfig({
     '*': 'vp check --fix',
   },
   fmt: {
+    ignorePatterns: ['coverage', 'dist'],
     singleQuote: true,
   },
   lint: { options: { typeAware: true, typeCheck: true } },

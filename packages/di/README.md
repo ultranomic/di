@@ -165,15 +165,18 @@ class MidModule extends Module({
   exports: [DeepModule, MidService], // Re-export DeepModule + own service
 }) {}
 // MidModule._exports → [DeepModule, MidService]  (raw; resolveExports flattens DeepModule)
-// MidModule._providers → [DeepService, MidService]
+// MidModule._providers → [MidService]  (local providers only)
+// MidModule._combinedProviders → [MidService, DeepService]  (local + imported combined exports)
 ```
 
 **Resolved metadata:**
 
 At definition time, `Module()` resolves:
 
-- `_providers` = `[...imports.flatMap(m => resolveExports(m._exports)), ...ownProviders]`
+- `_providers` = own providers only (what was declared in `providers`)
+- `_combinedProviders` = `[...ownProviders, ...imports.flatMap(m => m._combinedExports)]` (local + all imported combined exports)
 - `_exports` = raw config (preserves `ModuleClass` entries; flattened internally when resolving providers)
+- `_combinedExports` = flattened exports (module entries resolved recursively to injectable classes)
 
 ### Container
 
@@ -225,22 +228,22 @@ Attempting to resolve a `SCOPE.REQUEST` provider outside of `withRequestScope()`
 
 ## API Reference
 
-| Export                | Kind     | Description                                                                                 |
-| --------------------- | -------- | ------------------------------------------------------------------------------------------- |
-| `Injectable`          | Function | Mixin factory. Returns a base class configured with scope and dependencies.                 |
-| `Module`              | Function | Mixin factory. Returns a base class configured with providers, exports, and imports.        |
-| `Container`           | Class    | Entry point for resolving providers and managing lifecycles.                                |
-| `SCOPE`               | Object   | `{ SINGLETON, TRANSIENT, REQUEST }` scope constants.                                        |
-| `DI_ERROR_CODE`       | Object   | Error code constants for `DIError`.                                                         |
-| `DIError`             | Class    | Typed error with a `code: DIErrorCode` discriminator.                                       |
-| `Constructor<T>`      | Type     | Generic class constructor: `new (...args: any[]) => T`.                                     |
-| `InjectableClass`     | Type     | A `Constructor` with `_isInjectable`, `_scope`, and `_inject` static metadata.              |
-| `InjectableClassBase` | Type     | Minimal `InjectableClass` shape for forward declarations and graph traversal.               |
-| `InjectEntry`         | Type     | Tuple of `[name, InjectableClassBase]` for declaring injectable dependencies.               |
-| `ModuleClass`         | Type     | A `Constructor` with `_isModule`, `_providers`, `_exports`, and `_imports` static metadata. |
-| `LifecycleHooks<T>`   | Type     | Optional `onStart(container)` and `onStop(container)` hooks.                                |
-| `DIErrorCode`         | Type     | Union of all DI error code literals (derived from `DI_ERROR_CODE`).                         |
-| `Scope`               | Type     | Union of valid provider scope literals (derived from `SCOPE`).                              |
+| Export                | Kind     | Description                                                                                                                           |
+| --------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `Injectable`          | Function | Mixin factory. Returns a base class configured with scope and dependencies.                                                           |
+| `Module`              | Function | Mixin factory. Returns a base class configured with providers, exports, and imports.                                                  |
+| `Container`           | Class    | Entry point for resolving providers and managing lifecycles.                                                                          |
+| `SCOPE`               | Object   | `{ SINGLETON, TRANSIENT, REQUEST }` scope constants.                                                                                  |
+| `DI_ERROR_CODE`       | Object   | Error code constants for `DIError`.                                                                                                   |
+| `DIError`             | Class    | Typed error with a `code: DIErrorCode` discriminator.                                                                                 |
+| `Constructor<T>`      | Type     | Generic class constructor: `new (...args: any[]) => T`.                                                                               |
+| `InjectableClass`     | Type     | A `Constructor` with `_isInjectable`, `_scope`, `_inject`, and `_injectClasses` static metadata.                                      |
+| `InjectableClassBase` | Type     | Minimal `InjectableClass` shape for forward declarations and graph traversal.                                                         |
+| `InjectEntry`         | Type     | Tuple of `[name, InjectableClassBase]` for declaring injectable dependencies.                                                         |
+| `ModuleClass`         | Type     | A `Constructor` with `_isModule`, `_providers`, `_combinedProviders`, `_combinedExports`, `_exports`, and `_imports` static metadata. |
+| `LifecycleHooks<T>`   | Type     | Optional `onStart(container)` and `onStop(container)` hooks.                                                                          |
+| `DIErrorCode`         | Type     | Union of all DI error code literals (derived from `DI_ERROR_CODE`).                                                                   |
+| `Scope`               | Type     | Union of valid provider scope literals (derived from `SCOPE`).                                                                        |
 
 ## Error Handling
 
@@ -265,13 +268,14 @@ try {
 | `MISSING_PROVIDER`        | A dependency is not registered in any reachable module.                                                                   |
 | `DUPLICATE_PROVIDER`      | The same provider appears in multiple modules.                                                                            |
 | `EXPORT_NOT_IN_PROVIDERS` | A class listed in `exports` is not in `providers`.                                                                        |
+| `EXPORT_NOT_IN_IMPORTS`   | A module listed in `exports` is not in `imports`.                                                                         |
 | `SCOPE_VIOLATION`         | A Singleton provider directly or transitively depends on a Request-scoped provider.                                       |
 | `NOT_IN_REQUEST_SCOPE`    | Resolving a Request-scoped provider, or a provider that depends on one, outside `withRequestScope()`.                     |
 | `CONTAINER_STOPPED`       | Calling `resolve()`, `start()`, or `withRequestScope()` after `container.stop()`.                                         |
 | `CONTAINER_NOT_STARTED`   | Calling `resolve()`, `stop()`, or `withRequestScope()` before `container.start()` completes, or after a failed `start()`. |
 | `ALREADY_STARTED`         | Calling `start()` on a container that has already been started or is starting.                                            |
 | `UNKNOWN_SCOPE`           | Provider has an unrecognized scope value. Internal error.                                                                 |
-| `DUPLICATE_INJECT_KEY`    | Duplicate inject key in `Injectable` config.                                                                              |
+| `DUPLICATE_INJECT_KEY`    | Duplicate inject key in `Injectable` config (type-level check).                                                           |
 
 ## Examples
 

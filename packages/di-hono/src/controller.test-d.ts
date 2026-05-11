@@ -32,7 +32,7 @@ describe('Controller types', () => {
 
   test('static _inject metadata is correct', () => {
     assertType<readonly []>(UserController._inject);
-    assertType<readonly [typeof UserService]>(OrderController._inject);
+    assertType<readonly [readonly ['userService', typeof UserService]]>(OrderController._inject);
   });
 
   test('route() returns RouteDefinition', () => {

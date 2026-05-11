@@ -28,7 +28,7 @@ describe('OrpcMiddleware', () => {
 
   it('passes inject config to Injectable', () => {
     class TestMiddleware extends OrpcMiddleware({ inject: [['service', TestService]] as const }) {}
-    expect(TestMiddleware._inject).toEqual([TestService]);
+    expect(TestMiddleware._injectClasses).toEqual([TestService]);
   });
 
   it('this.orpc returns a builder from os.$context()', () => {

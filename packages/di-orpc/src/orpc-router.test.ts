@@ -37,7 +37,7 @@ describe('OrpcRouter', () => {
       path: 'test',
       inject: [['service', TestService]] as const,
     }) {}
-    expect(TestRouter._inject).toEqual([TestService]);
+    expect(TestRouter._injectClasses).toEqual([TestService]);
   });
 
   it('this.orpc returns a builder from os.$context()', () => {
