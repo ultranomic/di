@@ -1,5 +1,7 @@
 import type { Scope } from './scope.ts';
 
+export type Simplify<T> = { [KeyType in keyof T]: T[KeyType] } & {};
+
 type Digit = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9';
 
 type LowercaseLetter =
@@ -56,7 +58,8 @@ export type Constructor<T = unknown> = new (...args: any[]) => T;
 export type InjectableClassBase = Constructor<unknown> & {
   readonly _isInjectable: true;
   readonly _scope: Scope;
-  readonly _inject: readonly InjectableClassBase[];
+  readonly _inject: readonly InjectEntry[];
+  readonly _injectClasses: readonly InjectableClassBase[];
 };
 
 /** Tuple of `[name, InjectableClassBase]` for declaring injectable dependencies. The name becomes a property on `this.inject`. */
@@ -73,12 +76,13 @@ export type ValidInjectEntries<T extends readonly InjectEntry[]> = {
 /** A `Constructor` with `_scope` and `_inject` static metadata attached by `Injectable()`. */
 export type InjectableClass<
   T = unknown,
-  TInject extends readonly InjectableClassBase[] = readonly InjectableClassBase[],
+  TInject extends readonly InjectEntry[] = readonly InjectEntry[],
   TScope extends Scope = Scope,
 > = Constructor<T> &
-  Omit<InjectableClassBase, '_scope' | '_inject'> & {
+  Omit<InjectableClassBase, '_scope' | '_inject' | '_injectClasses'> & {
     readonly _scope: TScope;
     readonly _inject: TInject;
+    readonly _injectClasses: { readonly [K in keyof TInject]: TInject[K][1] };
   };
 
 /** A `Constructor` with `_providers`, `_exports`, and `_imports` static metadata attached by `Module()`. */

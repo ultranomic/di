@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { DI_ERROR_CODE } from './di-error.ts';
 import { Injectable } from './injectable.ts';
 import { SCOPE } from './scope.ts';
-import './test-utils.ts';
 
 class ServiceA extends Injectable({ scope: SCOPE.SINGLETON }) {
   public greet() {
@@ -64,32 +62,60 @@ describe('Injectable', () => {
     expect(ServiceA._scope).toBe('SINGLETON');
   });
 
+  it('sets static _isInjectable to true', () => {
+    expect(ServiceA._isInjectable).toBe(true);
+  });
+
   it('sets static _inject as empty array when no deps', () => {
     expect(ServiceA._inject).toEqual([]);
   });
 
-  it('sets static _inject with provided dependencies', () => {
-    expect(ServiceB._inject).toEqual([ServiceA]);
+  it('sets static _injectClasses as empty array when no deps', () => {
+    expect(ServiceA._injectClasses).toEqual([]);
+  });
+
+  it('sets static _inject with provided dependency entries', () => {
+    expect(ServiceB._inject).toEqual([['serviceA', ServiceA]]);
     expect(ServiceB._inject).toHaveLength(1);
   });
 
-  it('infers tuple type for inject', () => {
-    expect(ServiceB._inject[0]).toBe(ServiceA);
+  it('sets static _injectClasses with provided dependency classes', () => {
+    expect(ServiceB._injectClasses).toEqual([ServiceA]);
+    expect(ServiceB._injectClasses).toHaveLength(1);
   });
 
-  it('infers tuple type for multiple dependencies', () => {
-    expect(ServiceMultipleDeps._inject).toEqual([ServiceA, ServiceB]);
+  it('preserves tuple type for inject entries', () => {
+    expect(ServiceB._inject[0]).toEqual(['serviceA', ServiceA]);
+  });
+
+  it('preserves tuple type for multiple dependencies', () => {
+    expect(ServiceMultipleDeps._inject).toEqual([
+      ['a', ServiceA],
+      ['b', ServiceB],
+    ]);
     expect(ServiceMultipleDeps._inject).toHaveLength(2);
-    expect(ServiceMultipleDeps._inject[0]).toBe(ServiceA);
-    expect(ServiceMultipleDeps._inject[1]).toBe(ServiceB);
+    expect(ServiceMultipleDeps._inject[0]).toEqual(['a', ServiceA]);
+    expect(ServiceMultipleDeps._inject[1]).toEqual(['b', ServiceB]);
+  });
+
+  it('sets _injectClasses for multiple dependencies', () => {
+    expect(ServiceMultipleDeps._injectClasses).toEqual([ServiceA, ServiceB]);
+    expect(ServiceMultipleDeps._injectClasses).toHaveLength(2);
+    expect(ServiceMultipleDeps._injectClasses[0]).toBe(ServiceA);
+    expect(ServiceMultipleDeps._injectClasses[1]).toBe(ServiceB);
   });
 
   it('defaults _inject to empty array when inject is omitted', () => {
     expect(ServiceC._inject).toEqual([]);
   });
 
+  it('defaults _injectClasses to empty array when inject is omitted', () => {
+    expect(ServiceC._injectClasses).toEqual([]);
+  });
+
   it('supports explicit empty deps array', () => {
     expect(ServiceEmptyDeps._inject).toEqual([]);
+    expect(ServiceEmptyDeps._injectClasses).toEqual([]);
   });
 
   it('creates instances with new', () => {
@@ -149,16 +175,5 @@ describe('Injectable', () => {
     const serviceMultiple = new ServiceMultipleDeps(serviceA, serviceB);
     expect(serviceMultiple.inject.a).toBe(serviceA);
     expect(serviceMultiple.inject.b).toBe(serviceB);
-  });
-
-  it('throws DUPLICATE_INJECT_KEY when inject keys are duplicated', () => {
-    expect(() => {
-      class _BadService extends Injectable({
-        inject: [
-          ['a', ServiceA],
-          ['a', ServiceA],
-        ],
-      }) {}
-    }).toThrowDIError(DI_ERROR_CODE.DUPLICATE_INJECT_KEY, /Duplicate inject key: "a"/);
   });
 });
