@@ -7,11 +7,11 @@
  */
 
 import { Container, Injectable, Module, SCOPE } from '@ultranomic/di';
-import { Controller, HonoModule, HonoService, RequestContext } from '../src/index.ts';
+import { Controller, HonoModule, RequestContext } from '../src/index.ts';
 
 class AppContext extends RequestContext({
-  create: (c) => ({
-    requestId: c.req.header('x-request-id') ?? 'unknown',
+  create: (_c) => ({
+    requestId: new Date().getTime().toString(),
   }),
 }) {}
 
@@ -54,7 +54,7 @@ class DemoModule extends Module({
   exports: [AuditService, DemoController],
 }) {}
 
-class HttpModule extends HonoModule({ providers: [AppContext] }) {}
+class HttpModule extends HonoModule({ providers: [AppContext], options: () => ({ port: 3000, host: '0.0.0.0' }) }) {}
 
 class AppModule extends Module({
   imports: [HttpModule, DemoModule],
@@ -64,33 +64,33 @@ const main = async (): Promise<void> => {
   const container = new Container(AppModule);
   await container.start();
 
-  const app = container.resolve(HonoService).hono;
+  // const app = container.resolve(HonoService).hono;
 
-  // Request 1
-  console.log('--- Request 1 (x-request-id: req-001) ---');
-  const res1 = await app.fetch(
-    new Request('http://localhost/demo', {
-      headers: { 'x-request-id': 'req-001' },
-    }),
-  );
-  console.log('Response:', await res1.json());
+  // // Request 1
+  // console.log('--- Request 1 (x-request-id: req-001) ---');
+  // const res1 = await app.fetch(
+  //   new Request('http://localhost/demo', {
+  //     headers: { 'x-request-id': 'req-001' },
+  //   }),
+  // );
+  // console.log('Response:', await res1.json());
 
-  // Request 2
-  console.log('--- Request 2 (x-request-id: req-002) ---');
-  const res2 = await app.fetch(
-    new Request('http://localhost/demo', {
-      headers: { 'x-request-id': 'req-002' },
-    }),
-  );
-  console.log('Response:', await res2.json());
+  // // Request 2
+  // console.log('--- Request 2 (x-request-id: req-002) ---');
+  // const res2 = await app.fetch(
+  //   new Request('http://localhost/demo', {
+  //     headers: { 'x-request-id': 'req-002' },
+  //   }),
+  // );
+  // console.log('Response:', await res2.json());
 
-  console.log('\nAudit log:');
-  const audit = container.resolve(AuditService);
-  for (const entry of audit.getLog()) {
-    console.log(`  ${entry}`);
-  }
+  // console.log('\nAudit log:');
+  // const audit = container.resolve(AuditService);
+  // for (const entry of audit.getLog()) {
+  //   console.log(`  ${entry}`);
+  // }
 
-  await container.stop();
+  // await container.stop();
 };
 
 main().catch(console.error);

@@ -23,9 +23,9 @@
     "erasableSyntaxOnly": true,
     "isolatedModules": true,
 
-    "sourceMap": false,
-    "declaration": false,
-    "declarationMap": false,
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
     "removeComments": true,
     "noEmit": false,
 

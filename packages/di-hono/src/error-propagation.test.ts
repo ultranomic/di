@@ -26,6 +26,8 @@ describe('Cross-package error propagation', () => {
 
       class TestModule extends HonoModule({
         providers: [TestController],
+        options: () => ({ port: 0, host: "0.0.0.0" }),
+
       }) {}
 
       container = new Container(TestModule);
@@ -52,6 +54,8 @@ describe('Cross-package error propagation', () => {
 
       class TestModule extends HonoModule({
         providers: [TestController],
+        options: () => ({ port: 0, host: "0.0.0.0" }),
+
       }) {}
 
       container = new Container(TestModule);
@@ -86,6 +90,8 @@ describe('Cross-package error propagation', () => {
 
       class TestModule extends HonoModule({
         providers: [FailingService, TestController],
+        options: () => ({ port: 0, host: "0.0.0.0" }),
+
       }) {}
 
       const result = await setupModule(TestModule);
@@ -128,6 +134,8 @@ describe('Cross-package error propagation', () => {
 
       class TestModule extends HonoModule({
         providers: [TestController],
+        options: () => ({ port: 0, host: "0.0.0.0" }),
+
       }) {}
 
       const result = await setupModule(TestModule);

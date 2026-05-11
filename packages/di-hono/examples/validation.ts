@@ -100,7 +100,7 @@ class UserModule extends Module({
   exports: [UserController],
 }) {}
 
-class HttpModule extends HonoModule() {}
+class HttpModule extends HonoModule({ options: () => ({ port: 0, host: "0.0.0.0" }) }) {}
 
 class AppModule extends Module({
   imports: [HttpModule, UserModule],

@@ -30,9 +30,14 @@ describe('HonoService types', () => {
     assertType<string | undefined>(service.host);
   });
 
-  test('onStart is (container: Container) => void', () => {
+  test('onStart is (container: Container) => Promise<void>', () => {
     const service = {} as HonoService;
-    assertType<(container: ContainerType) => void>(service.onStart);
+    assertType<(container: ContainerType) => Promise<void>>(service.onStart);
+  });
+
+  test('beforeApplicationShutdown is (container: Container) => Promise<void>', () => {
+    const service = {} as HonoService;
+    assertType<(container: ContainerType) => Promise<void>>(service.beforeApplicationShutdown);
   });
 
   test('onStop is (container: Container) => void', () => {
