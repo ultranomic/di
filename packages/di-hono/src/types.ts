@@ -82,3 +82,9 @@ export type HonoModuleOptions = {
 export type HonoModuleOptionsFactory = (
   resolve: <T>(cls: InjectableClass<T>) => T,
 ) => HonoModuleOptions;
+
+export type RequestContextClass = InjectableClass & {
+  readonly _isRequestContext: true;
+  readonly _createContext: (c: Context) => unknown;
+  run<R>(c: Context, fn: () => Promise<R>): Promise<R>;
+};

@@ -8,10 +8,10 @@ import {
 import { type Context, type MiddlewareHandler, Hono } from 'hono';
 import { validator } from 'hono/validator';
 import { errorHandler } from './error-handler.ts';
-import { RequestContext } from './request-context.ts';
 import {
   type ControllerClass,
   type HonoModuleClass,
+  type RequestContextClass,
   type RouteDefinition,
   type StandardSchema,
   VALIDATE_TARGETS,
@@ -29,6 +29,9 @@ const isRouteDefinition = (value: unknown): value is RouteDefinition =>
 
 const isHonoModuleClass = (moduleClass: ModuleClass): moduleClass is HonoModuleClass =>
   '_isHonoModule' in moduleClass && moduleClass._isHonoModule === true;
+
+const isRequestContextClass = (cls: InjectableClass): cls is RequestContextClass =>
+  '_isRequestContext' in cls && cls._isRequestContext === true;
 
 const getRouteProperties = (instance: object): RouteDefinition[] => {
   const routes: RouteDefinition[] = [];
@@ -103,6 +106,8 @@ export class HonoService extends Injectable({ scope: SCOPE.SINGLETON }) {
 
     const providers = container.sorted;
 
+    const contextProviders = providers.filter(isRequestContextClass);
+
     for (const provider of providers) {
       if (!isControllerClass(provider)) continue;
 
@@ -125,8 +130,11 @@ export class HonoService extends Injectable({ scope: SCOPE.SINGLETON }) {
           }
         }
 
-        const wrappedHandler = (c: Context): Promise<Response> =>
-          RequestContext.run(c, () => container.withRequestScope(() => route.handler(c)));
+        const wrappedHandler = (c: Context): Promise<Response> => {
+          const withContexts = (fn: () => Promise<Response>): Promise<Response> =>
+            contextProviders.reduceRight((next, ctxCls) => () => ctxCls.run(c, next), fn)();
+          return withContexts(() => container.withRequestScope(() => route.handler(c)));
+        };
 
         for (const mw of middlewares) {
           controllerApp.on(route.method, route.path, mw);

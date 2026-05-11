@@ -10,6 +10,7 @@ export type {
   ControllerClass,
   HonoModuleClass,
   HttpMethod,
+  RequestContextClass,
   RouteDefinition,
   StandardSchema,
   StandardIssue,

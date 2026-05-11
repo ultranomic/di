@@ -7,6 +7,10 @@ import { Controller } from './controller.ts';
 import { HonoModule } from './hono-module.ts';
 import { HonoService, VALIDATION_ERROR_MESSAGE } from './hono-service.ts';
 import { RequestContext } from './request-context.ts';
+
+class HonoContext extends RequestContext({
+  create: (c) => c,
+}) {}
 import { expectValidationFailed, setupModule } from './test-helpers.ts';
 import type {
   HonoModuleOptionsFactory,
@@ -289,19 +293,22 @@ describe('HonoService', () => {
     });
 
     it('RequestContext available inside handler', async () => {
-      class UserController extends Controller({ path: '/users' }) {
+      class UserController extends Controller({
+        path: '/users',
+        inject: [['ctx', HonoContext]],
+      }) {
         get = this.route({
           method: 'GET',
           path: '/',
           handler: async () => {
-            const ctx = RequestContext.get();
+            const ctx = this.inject.ctx.get();
             const url = ctx?.req.url ?? 'no-ctx';
             return Response.json({ url });
           },
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController] }) {}
+      class TestModule extends HonoModule({ providers: [HonoContext, UserController] }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -314,9 +321,12 @@ describe('HonoService', () => {
     it('RequestContext available in request-scoped provider onStart hook', async () => {
       let capturedContext: Context | undefined;
 
-      class RequestScopedWithOnStart extends Injectable({ scope: SCOPE.REQUEST }) {
+      class RequestScopedWithOnStart extends Injectable({
+        scope: SCOPE.REQUEST,
+        inject: [['ctx', HonoContext]],
+      }) {
         onStart = () => {
-          capturedContext = RequestContext.get();
+          capturedContext = this.inject.ctx.get();
         };
       }
 
@@ -338,7 +348,7 @@ describe('HonoService', () => {
       }
 
       class TestModule extends HonoModule({
-        providers: [UserController, RequestScopedWithOnStart],
+        providers: [HonoContext, UserController, RequestScopedWithOnStart],
       }) {}
 
       const result = await setupModule(TestModule);
@@ -1264,7 +1274,8 @@ describe('HonoService', () => {
           version: 1 as const,
           vendor: 'test' as const,
           validate: (): StandardResult<{ name: string }> => {
-            capturedContext = RequestContext.get();
+            const ctxInstance = new HonoContext();
+            capturedContext = ctxInstance.get();
             return { value: { name: 'captured' } };
           },
         },

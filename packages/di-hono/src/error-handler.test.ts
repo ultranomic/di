@@ -14,7 +14,6 @@ const createApp = () => {
 const ERROR_CODES: DIErrorCode[] = [
   'CIRCULAR_DEPENDENCY',
   'MISSING_PROVIDER',
-  'DUPLICATE_PROVIDER',
   'EXPORT_NOT_IN_PROVIDERS',
   'SCOPE_VIOLATION',
   'NOT_IN_REQUEST_SCOPE',
@@ -22,7 +21,6 @@ const ERROR_CODES: DIErrorCode[] = [
   'CONTAINER_NOT_STARTED',
   'ALREADY_STARTED',
   'UNKNOWN_SCOPE',
-  'DUPLICATE_INJECT_KEY',
 ];
 
 describe('errorHandler', () => {

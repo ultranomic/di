@@ -2,22 +2,28 @@
 /**
  * request-context.ts — RequestContext usage in request handlers
  *
- * Demonstrates: RequestContext.get() inside handlers, per-request isolation
+ * Demonstrates: custom RequestContext subclass with DI injection
  * Run: node libs/di-hono/examples/request-context.ts
  */
 
 import { Container, Injectable, Module, SCOPE } from '@ultranomic/di';
 import { Controller, HonoModule, HonoService, RequestContext } from '../src/index.ts';
 
-// ---------------------------------------------------------------------------
-// 1. Singleton service that reads RequestContext per-request
-// ---------------------------------------------------------------------------
-class AuditService extends Injectable({ scope: SCOPE.SINGLETON }) {
+class AppContext extends RequestContext({
+  create: (c) => ({
+    requestId: c.req.header('x-request-id') ?? 'unknown',
+  }),
+}) {}
+
+class AuditService extends Injectable({
+  scope: SCOPE.SINGLETON,
+  inject: [['ctx', AppContext]],
+}) {
   #log: string[] = [];
 
   public record(action: string): void {
-    const ctx = RequestContext.get();
-    const requestId = ctx?.req.header('x-request-id') ?? 'unknown';
+    const ctx = this.inject.ctx.get();
+    const requestId = ctx?.requestId ?? 'unknown';
     const entry = `[${requestId}] ${action}`;
     this.#log.push(entry);
     console.log(`[AuditService] ${entry}`);
@@ -28,9 +34,6 @@ class AuditService extends Injectable({ scope: SCOPE.SINGLETON }) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 2. Controller uses RequestContext inside handlers
-// ---------------------------------------------------------------------------
 class DemoController extends Controller({
   path: '/demo',
   inject: [['audit', AuditService]],
@@ -46,15 +49,12 @@ class DemoController extends Controller({
   });
 }
 
-// ---------------------------------------------------------------------------
-// 3. Module + run
-// ---------------------------------------------------------------------------
 class DemoModule extends Module({
-  providers: [AuditService, DemoController],
+  providers: [AppContext, AuditService, DemoController],
   exports: [AuditService, DemoController],
 }) {}
 
-class HttpModule extends HonoModule() {}
+class HttpModule extends HonoModule({ providers: [AppContext] }) {}
 
 class AppModule extends Module({
   imports: [HttpModule, DemoModule],
@@ -84,9 +84,13 @@ const main = async (): Promise<void> => {
   );
   console.log('Response:', await res2.json());
 
-  console.log('Audit log:', container.resolve(AuditService).getLog());
+  console.log('\nAudit log:');
+  const audit = container.resolve(AuditService);
+  for (const entry of audit.getLog()) {
+    console.log(`  ${entry}`);
+  }
+
   await container.stop();
-  console.log('[request-context] Done — RequestContext provided per-request context.');
 };
 
-await main();
+main().catch(console.error);
