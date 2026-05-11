@@ -95,14 +95,14 @@ describe('Container — dependency chain', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 4. Start calls onStart in dep order
+// 4. Start calls onApplicationBootstrap in dep order
 // ---------------------------------------------------------------------------
 describe('Container — start lifecycle', () => {
-  it('calls onStart in dependency order (deps first)', async () => {
+  it('calls onApplicationBootstrap in dependency order (deps first)', async () => {
     const order: string[] = [];
 
     class ServiceB extends Injectable({ scope: SCOPE.SINGLETON }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         order.push('B');
       }
     }
@@ -110,7 +110,7 @@ describe('Container — start lifecycle', () => {
       scope: SCOPE.SINGLETON,
       inject: [['serviceB', ServiceB]],
     }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         order.push('A');
       }
     }
@@ -125,11 +125,11 @@ describe('Container — start lifecycle', () => {
     expect(order).toEqual(['B', 'A']);
   });
 
-  it('calls onStart with the container instance', async () => {
+  it('calls onApplicationBootstrap with the container instance', async () => {
     let receivedContainer: Container | undefined;
 
     class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {
-      public onStart(container: Container) {
+      public onApplicationBootstrap(container: Container) {
         receivedContainer = container;
       }
     }
@@ -164,11 +164,11 @@ describe('Container — start lifecycle', () => {
     expect(receivedContainer).toBe(container);
   });
 
-  it('handles async onStart', async () => {
+  it('handles async onApplicationBootstrap', async () => {
     const order: string[] = [];
 
     class ServiceB extends Injectable({ scope: SCOPE.SINGLETON }) {
-      public async onStart() {
+      public async onApplicationBootstrap() {
         await Promise.resolve();
         order.push('B');
       }
@@ -177,7 +177,7 @@ describe('Container — start lifecycle', () => {
       scope: SCOPE.SINGLETON,
       inject: [['serviceB', ServiceB]],
     }) {
-      public async onStart() {
+      public async onApplicationBootstrap() {
         await Promise.resolve();
         order.push('A');
       }
@@ -258,14 +258,14 @@ describe('Container — stop lifecycle', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 6. onStart failure: aborts and cleans up
+// 6. onApplicationBootstrap failure: aborts and cleans up
 // ---------------------------------------------------------------------------
-describe('Container — onStart failure', () => {
+describe('Container — onApplicationBootstrap failure', () => {
   it('aborts and calls onStop on already-started services', async () => {
     const stopped: string[] = [];
 
     class ServiceB extends Injectable({ scope: SCOPE.SINGLETON }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         /* ok */
       }
       public onStop() {
@@ -276,7 +276,7 @@ describe('Container — onStart failure', () => {
       scope: SCOPE.SINGLETON,
       inject: [['serviceB', ServiceB]],
     }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         throw new Error('start failed');
       }
       public onStop() {
@@ -299,7 +299,7 @@ describe('Container — onStart failure', () => {
     const stopped: string[] = [];
 
     class ServiceA extends Injectable({ scope: SCOPE.SINGLETON }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         /* ok */
       }
       public onStop() {
@@ -326,7 +326,7 @@ describe('Container — onStart failure', () => {
     const stopped: string[] = [];
 
     class ReqA extends Injectable({ scope: SCOPE.REQUEST }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         /* ok */
       }
       public onStop() {
@@ -649,7 +649,7 @@ describe('Container — mixed scopes', () => {
   it('start() skips request-scoped providers without error', async () => {
     let started = false;
     class SingletonService extends Injectable({ scope: SCOPE.SINGLETON }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         started = true;
       }
     }
@@ -825,19 +825,19 @@ describe('Container — unknown scope', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 22. onStart failure with no-stop service: cleanup skips non-hook services
+// 22. onApplicationBootstrap failure with no-stop service: cleanup skips non-hook services
 // ---------------------------------------------------------------------------
-describe('Container — onStart failure with no onStop hook', () => {
+describe('Container — onApplicationBootstrap failure with no onStop hook', () => {
   it('skips cleanup for services without onStop during failed start', async () => {
     const stopped: string[] = [];
 
     class ServiceC extends Injectable({ scope: SCOPE.SINGLETON }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         /* ok */
       }
     }
     class ServiceB extends Injectable({ scope: SCOPE.SINGLETON }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         /* ok */
       }
       public onStop() {
@@ -851,7 +851,7 @@ describe('Container — onStart failure with no onStop hook', () => {
         ['serviceC', ServiceC],
       ],
     }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         throw new Error('start failed');
       }
       public onStop() {
@@ -865,7 +865,7 @@ describe('Container — onStart failure with no onStop hook', () => {
 
     const container = new Container(AppModule);
     await expect(container.start()).rejects.toThrow('start failed');
-    // A has onStart that threw, A also has onStop → cleaned up. B has onStop → cleaned up. C has no onStop → skipped.
+    // A has onApplicationBootstrap that threw, A also has onStop → cleaned up. B has onStop → cleaned up. C has no onStop → skipped.
     expect(stopped).toEqual(['A', 'B']);
   });
 });
@@ -996,7 +996,7 @@ describe('Container — bug fix regressions', () => {
     let startCount = 0;
 
     class ServiceB extends Injectable({ scope: SCOPE.SINGLETON }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         /* ok */
       }
     }
@@ -1004,7 +1004,7 @@ describe('Container — bug fix regressions', () => {
       scope: SCOPE.SINGLETON,
       inject: [['serviceB', ServiceB]],
     }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         startCount++;
         if (startCount === 1) throw new Error('first start failed');
       }
@@ -1054,7 +1054,7 @@ describe('Container — bug fix regressions', () => {
   it('concurrent start() calls are prevented', async () => {
     let resolveStart: () => void = () => {};
     class SlowService extends Injectable({ scope: SCOPE.SINGLETON }) {
-      public async onStart() {
+      public async onApplicationBootstrap() {
         await new Promise<void>((resolve) => {
           resolveStart = resolve;
         });
@@ -1070,7 +1070,7 @@ describe('Container — bug fix regressions', () => {
     // First start begins (will hang until resolveStart is called)
     const firstStart = container.start();
 
-    // Second start should fail immediately — state is 'starting'
+    // Second start should fail immediately — state is 'bootstrapping'
     const err = await container.start().catch((e: any) => e);
     expect(err).toBeInstanceOf(DIError);
     expect(err.code).toBe(DI_ERROR_CODE.ALREADY_STARTED);
@@ -1299,11 +1299,11 @@ describe('Container — design issue regressions', () => {
     expect(err.code).toBe(DI_ERROR_CODE.CONTAINER_STOPPED);
   });
 
-  it('D1: resolve() is blocked during starting state', async () => {
+  it('D1: resolve() is blocked during bootstrapping state', async () => {
     let resolveStart: () => void = () => {};
 
     class SlowService extends Injectable({ scope: SCOPE.SINGLETON }) {
-      public async onStart() {
+      public async onApplicationBootstrap() {
         await new Promise<void>((resolve) => {
           resolveStart = resolve;
         });
@@ -1322,7 +1322,7 @@ describe('Container — design issue regressions', () => {
 
     expect(() => container.resolve(SlowService)).toThrowDIError(
       DI_ERROR_CODE.CONTAINER_NOT_STARTED,
-      /still starting/,
+      /still bootstrapping/,
     );
 
     resolveStart();
@@ -1331,11 +1331,11 @@ describe('Container — design issue regressions', () => {
     await container.stop();
   });
 
-  it('resolve() called from onStart during starting state throws CONTAINER_NOT_STARTED', async () => {
+  it('resolve() called from onApplicationBootstrap during bootstrapping state throws CONTAINER_NOT_STARTED', async () => {
     let resolveError: DIError | undefined;
 
     class ServiceA extends Injectable({ scope: SCOPE.SINGLETON }) {
-      public onStart(container: Container) {
+      public onApplicationBootstrap(container: Container) {
         try {
           container.resolve(ServiceA);
         } catch (e) {
@@ -1354,11 +1354,11 @@ describe('Container — design issue regressions', () => {
     await container.stop();
   });
 
-  it('CF7: withRequestScope from onStart during starting state throws CONTAINER_NOT_STARTED', async () => {
+  it('CF7: withRequestScope from onApplicationBootstrap during bootstrapping state throws CONTAINER_NOT_STARTED', async () => {
     let requestScopeError: DIError | undefined;
 
     class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {
-      public onStart(container: Container) {
+      public onApplicationBootstrap(container: Container) {
         container
           .withRequestScope(() => {})
           .catch((e) => {
@@ -1426,11 +1426,11 @@ describe('Container — design issue regressions', () => {
     await container.stop();
   });
 
-  it('D2: stop() during starting throws CONTAINER_NOT_STARTED', async () => {
+  it('D2: stop() during bootstrapping throws CONTAINER_NOT_STARTED', async () => {
     let resolveStart: () => void = () => {};
 
     class SlowService extends Injectable({ scope: SCOPE.SINGLETON }) {
-      public async onStart() {
+      public async onApplicationBootstrap() {
         await new Promise<void>((resolve) => {
           resolveStart = resolve;
         });
@@ -1455,11 +1455,11 @@ describe('Container — design issue regressions', () => {
     await container.stop();
   });
 
-  it('D3: withRequestScope calls onStart on request-scoped providers', async () => {
+  it('D3: withRequestScope calls onApplicationBootstrap on request-scoped providers', async () => {
     let startCalled = false;
 
     class ReqService extends Injectable({ scope: SCOPE.REQUEST }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         startCalled = true;
       }
     }
@@ -1478,17 +1478,17 @@ describe('Container — design issue regressions', () => {
     await container.stop();
   });
 
-  it('D3: withRequestScope calls onStart in dependency order', async () => {
+  it('D3: withRequestScope calls onApplicationBootstrap in dependency order', async () => {
     const order: string[] = [];
 
     class ReqA extends Injectable({ scope: SCOPE.REQUEST }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         order.push('A');
       }
     }
 
     class ReqB extends Injectable({ scope: SCOPE.REQUEST, inject: [['reqA', ReqA]] }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         order.push('B');
       }
     }
@@ -1507,12 +1507,12 @@ describe('Container — design issue regressions', () => {
     await container.stop();
   });
 
-  it('CF5: resolve() from request-scoped onStart during withRequestScope works', async () => {
+  it('CF5: resolve() from request-scoped onApplicationBootstrap during withRequestScope works', async () => {
     class ReqB extends Injectable({ scope: SCOPE.REQUEST }) {}
     let resolvedFromHook: unknown;
 
     class ReqA extends Injectable({ scope: SCOPE.REQUEST }) {
-      public onStart(container: Container) {
+      public onApplicationBootstrap(container: Container) {
         resolvedFromHook = container.resolve(ReqB);
       }
     }
@@ -1533,11 +1533,11 @@ describe('Container — design issue regressions', () => {
     await container.stop();
   });
 
-  it('D3: withRequestScope rolls back onStart on failure', async () => {
+  it('D3: withRequestScope rolls back onApplicationBootstrap on failure', async () => {
     const stopped: string[] = [];
 
     class ReqA extends Injectable({ scope: SCOPE.REQUEST }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         /* ok */
       }
       public onStop() {
@@ -1546,8 +1546,8 @@ describe('Container — design issue regressions', () => {
     }
 
     class ReqB extends Injectable({ scope: SCOPE.REQUEST, inject: [['reqA', ReqA]] }) {
-      public onStart() {
-        throw new Error('onStart failed');
+      public onApplicationBootstrap() {
+        throw new Error('onApplicationBootstrap failed');
       }
     }
 
@@ -1558,7 +1558,9 @@ describe('Container — design issue regressions', () => {
     const container = new Container(AppModule);
     await container.start();
 
-    await expect(container.withRequestScope(() => {})).rejects.toThrow('onStart failed');
+    await expect(container.withRequestScope(() => {})).rejects.toThrow(
+      'onApplicationBootstrap failed',
+    );
 
     expect(stopped).toEqual(['A']);
 
@@ -1583,7 +1585,7 @@ describe('Container — design issue regressions', () => {
 
   it('CF6: withRequestScope after failed start() throws CONTAINER_NOT_STARTED', async () => {
     class BadService extends Injectable({ scope: SCOPE.SINGLETON }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         throw new Error('fail');
       }
     }
@@ -1602,7 +1604,7 @@ describe('Container — design issue regressions', () => {
     const stopped: string[] = [];
 
     class ReqNoStop extends Injectable({ scope: SCOPE.REQUEST }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         /* ok */
       }
     }
@@ -1611,7 +1613,7 @@ describe('Container — design issue regressions', () => {
       scope: SCOPE.REQUEST,
       inject: [['reqNoStop', ReqNoStop]],
     }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         /* ok */
       }
       public onStop() {
@@ -1623,7 +1625,7 @@ describe('Container — design issue regressions', () => {
       scope: SCOPE.REQUEST,
       inject: [['reqWithStop', ReqWithStop]],
     }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         throw new Error('start failed');
       }
     }
@@ -1640,7 +1642,7 @@ describe('Container — design issue regressions', () => {
     await container.stop();
   });
 
-  it('CF9: calls onStop on all request instances when onStart fails', async () => {
+  it('CF9: calls onStop on all request instances when onApplicationBootstrap fails', async () => {
     const stopped: string[] = [];
 
     class ReqA extends Injectable({ scope: SCOPE.REQUEST }) {
@@ -1650,8 +1652,8 @@ describe('Container — design issue regressions', () => {
     }
 
     class ReqB extends Injectable({ scope: SCOPE.REQUEST }) {
-      public onStart() {
-        throw new Error('onStart failed');
+      public onApplicationBootstrap() {
+        throw new Error('onApplicationBootstrap failed');
       }
     }
 
@@ -1662,16 +1664,18 @@ describe('Container — design issue regressions', () => {
     const container = new Container(AppModule);
     await container.start();
 
-    await expect(container.withRequestScope(() => {})).rejects.toThrow('onStart failed');
-    // ReqA has only onStop (no onStart) — must still be cleaned up
+    await expect(container.withRequestScope(() => {})).rejects.toThrow(
+      'onApplicationBootstrap failed',
+    );
+    // ReqA has only onStop (no onApplicationBootstrap) — must still be cleaned up
     expect(stopped).toEqual(['A']);
 
     await container.stop();
   });
 
-  it('D4: withRequestScope onStart failure collects onStop errors into AggregateError', async () => {
+  it('D4: withRequestScope onApplicationBootstrap failure collects onStop errors into AggregateError', async () => {
     class ReqA extends Injectable({ scope: SCOPE.REQUEST }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         /* ok */
       }
       public onStop() {
@@ -1680,8 +1684,8 @@ describe('Container — design issue regressions', () => {
     }
 
     class ReqB extends Injectable({ scope: SCOPE.REQUEST }) {
-      public onStart() {
-        throw new Error('onStart B failed');
+      public onApplicationBootstrap() {
+        throw new Error('onApplicationBootstrap B failed');
       }
     }
 
@@ -1695,7 +1699,7 @@ describe('Container — design issue regressions', () => {
     const err = await container.withRequestScope(() => {}).catch((e: any) => e);
     expect(err).toBeInstanceOf(AggregateError);
     expect(err.errors).toHaveLength(2);
-    expect(err.errors[0].message).toBe('onStart B failed');
+    expect(err.errors[0].message).toBe('onApplicationBootstrap B failed');
     expect(err.errors[1].message).toBe('onStop A failed');
 
     await container.stop();
@@ -1725,7 +1729,7 @@ describe('Container — design issue regressions', () => {
     const stopped: string[] = [];
 
     class ReqA extends Injectable({ scope: SCOPE.REQUEST }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         /* ok */
       }
       public onStop() {
@@ -1734,7 +1738,7 @@ describe('Container — design issue regressions', () => {
     }
 
     class ReqB extends Injectable({ scope: SCOPE.REQUEST, inject: [['reqA', ReqA]] }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         /* ok */
       }
       public onStop() {
@@ -1743,7 +1747,7 @@ describe('Container — design issue regressions', () => {
     }
 
     class ReqC extends Injectable({ scope: SCOPE.REQUEST, inject: [['reqB', ReqB]] }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         throw new Error('C failed');
       }
       public onStop() {
@@ -1756,7 +1760,7 @@ describe('Container — design issue regressions', () => {
     await container.start();
 
     await expect(container.withRequestScope(() => {})).rejects.toThrow('C failed');
-    // A, B, C all created (in store). A and B started, C's onStart threw.
+    // A, B, C all created (in store). A and B started, C's onApplicationBootstrap threw.
     // Cleanup: C, B, A (reverse store order — all instances with onStop).
     expect(stopped).toEqual(['C', 'B', 'A']);
 
@@ -1788,9 +1792,9 @@ describe('Container — T1: stop() wraps non-Error onStop throw', () => {
     expect(err.errors[0].message).toBe('non-error string');
   });
 
-  it('CF8: onStart throwing non-Error propagates the raw value', async () => {
+  it('CF8: onApplicationBootstrap throwing non-Error propagates the raw value', async () => {
     class BadService extends Injectable({ scope: SCOPE.SINGLETON }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         throw 'start-failed-string';
       }
     }
@@ -1887,14 +1891,14 @@ describe('Container — T4: request-scoped depending on singleton', () => {
 });
 
 // ---------------------------------------------------------------------------
-// T6: onStart failure swallows onStop errors
+// T6: onApplicationBootstrap failure swallows onStop errors
 // ---------------------------------------------------------------------------
-describe('Container — T6: onStart failure swallows onStop cleanup errors', () => {
-  it('onStop error during start failure is swallowed, onStart error propagates', async () => {
+describe('Container — T6: onApplicationBootstrap failure swallows onStop cleanup errors', () => {
+  it('onStop error during start failure is swallowed, onApplicationBootstrap error propagates', async () => {
     const onStopCalls: string[] = [];
 
     class GoodService extends Injectable({ scope: SCOPE.SINGLETON }) {
-      public async onStart() {}
+      public async onApplicationBootstrap() {}
       public async onStop() {
         onStopCalls.push('GoodService');
         throw new Error('onStop failed');
@@ -1905,8 +1909,8 @@ describe('Container — T6: onStart failure swallows onStop cleanup errors', () 
       scope: SCOPE.SINGLETON,
       inject: [['goodService', GoodService]],
     }) {
-      public async onStart() {
-        throw new Error('onStart failed');
+      public async onApplicationBootstrap() {
+        throw new Error('onApplicationBootstrap failed');
       }
     }
 
@@ -1918,7 +1922,7 @@ describe('Container — T6: onStart failure swallows onStop cleanup errors', () 
     const err = await container.start().catch((e: any) => e);
 
     expect(err).toBeInstanceOf(Error);
-    expect(err.message).toBe('onStart failed');
+    expect(err.message).toBe('onApplicationBootstrap failed');
     expect(onStopCalls).toEqual(['GoodService']);
   });
 });
@@ -1927,10 +1931,10 @@ describe('Container — T6: onStart failure swallows onStop cleanup errors', () 
 // D1: Transient providers skip lifecycle hooks
 // ---------------------------------------------------------------------------
 describe('Container — D1: transient providers skip lifecycle hooks', () => {
-  it('transient onStart is NOT called during start()', async () => {
+  it('transient onApplicationBootstrap is NOT called during start()', async () => {
     let startCalled = false;
     class TransService extends Injectable({ scope: SCOPE.TRANSIENT }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         startCalled = true;
       }
     }
@@ -2491,14 +2495,14 @@ describe('Container — withRequestScope with no request providers', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Re-entrant withRequestScope from request-scoped onStart
+// Re-entrant withRequestScope from request-scoped onApplicationBootstrap
 // ---------------------------------------------------------------------------
-describe('Container — re-entrant withRequestScope from onStart', () => {
-  it('throws CIRCULAR_DEPENDENCY when withRequestScope is called from request-scoped onStart', async () => {
+describe('Container — re-entrant withRequestScope from onApplicationBootstrap', () => {
+  it('throws CIRCULAR_DEPENDENCY when withRequestScope is called from request-scoped onApplicationBootstrap', async () => {
     let caughtError: DIError | undefined;
 
     class ReqService extends Injectable({ scope: SCOPE.REQUEST }) {
-      public onStart(container: Container) {
+      public onApplicationBootstrap(container: Container) {
         container
           .withRequestScope(() => {})
           .catch((e: unknown) => {
@@ -2520,19 +2524,19 @@ describe('Container — re-entrant withRequestScope from onStart', () => {
 
     expect(caughtError).toBeInstanceOf(DIError);
     expect(caughtError!.code).toBe(DI_ERROR_CODE.CIRCULAR_DEPENDENCY);
-    expect(caughtError!.message).toMatch(/withRequestScope.*onStart/);
+    expect(caughtError!.message).toMatch(/withRequestScope.*onApplicationBootstrap/);
 
     await container.stop();
   });
 });
 
 // ---------------------------------------------------------------------------
-// withRequestScope onStart non-Error throw with cleanup errors
+// withRequestScope onApplicationBootstrap non-Error throw with cleanup errors
 // ---------------------------------------------------------------------------
-describe('Container — withRequestScope onStart non-Error with cleanup failure', () => {
-  it('wraps non-Error onStart throw into Error when cleanup also fails', async () => {
+describe('Container — withRequestScope onApplicationBootstrap non-Error with cleanup failure', () => {
+  it('wraps non-Error onApplicationBootstrap throw into Error when cleanup also fails', async () => {
     class ReqA extends Injectable({ scope: SCOPE.REQUEST }) {
-      public onStart() {
+      public onApplicationBootstrap() {
         /* ok */
       }
       public onStop() {
@@ -2543,8 +2547,8 @@ describe('Container — withRequestScope onStart non-Error with cleanup failure'
       scope: SCOPE.REQUEST,
       inject: [['reqA', ReqA]],
     }) {
-      public onStart() {
-        throw 'string-from-onStart';
+      public onApplicationBootstrap() {
+        throw 'string-from-onApplicationBootstrap';
       }
     }
 
@@ -2559,7 +2563,7 @@ describe('Container — withRequestScope onStart non-Error with cleanup failure'
 
     expect(err).toBeInstanceOf(AggregateError);
     expect(err.errors[0]).toBeInstanceOf(Error);
-    expect(err.errors[0].message).toBe('string-from-onStart');
+    expect(err.errors[0].message).toBe('string-from-onApplicationBootstrap');
     expect(err.errors[1].message).toBe('cleanup-failed');
 
     await container.stop();
@@ -2604,6 +2608,172 @@ describe('Container — proxy Object.defineProperty', () => {
       writable: true,
     });
     expect((proxyB as any).definedProp).toBe(42);
+
+    await container.stop();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// onStart hook (post-bootstrap phase)
+// ---------------------------------------------------------------------------
+describe('Container — onStart hook', () => {
+  it('calls onStart after onApplicationBootstrap, resolve() is available', async () => {
+    let bootstrapCalled = false;
+    let resolveInOnStart: unknown;
+
+    class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {
+      public onApplicationBootstrap() {
+        bootstrapCalled = true;
+      }
+      public onStart(container: Container) {
+        resolveInOnStart = container.resolve(MyService);
+      }
+    }
+
+    class AppModule extends Module({ providers: [MyService] }) {}
+    const container = new Container(AppModule);
+    await container.start();
+
+    expect(bootstrapCalled).toBe(true);
+    expect(resolveInOnStart).toBeInstanceOf(MyService);
+
+    await container.stop();
+  });
+
+  it('calls onStart in dependency order', async () => {
+    const order: string[] = [];
+
+    class ServiceB extends Injectable({ scope: SCOPE.SINGLETON }) {
+      public onApplicationBootstrap() {}
+      public onStart() {
+        order.push('B');
+      }
+    }
+    class ServiceA extends Injectable({
+      scope: SCOPE.SINGLETON,
+      inject: [['serviceB', ServiceB]],
+    }) {
+      public onApplicationBootstrap() {}
+      public onStart() {
+        order.push('A');
+      }
+    }
+
+    class AppModule extends Module({ providers: [ServiceA, ServiceB] }) {}
+    const container = new Container(AppModule);
+    await container.start();
+
+    expect(order).toEqual(['B', 'A']);
+
+    await container.stop();
+  });
+
+  it('onStart failure rolls back all providers', async () => {
+    const stopped: string[] = [];
+
+    class ServiceB extends Injectable({ scope: SCOPE.SINGLETON }) {
+      public onApplicationBootstrap() {}
+      public onStop() {
+        stopped.push('B');
+      }
+    }
+    class ServiceA extends Injectable({
+      scope: SCOPE.SINGLETON,
+      inject: [['serviceB', ServiceB]],
+    }) {
+      public onApplicationBootstrap() {}
+      public onStart() {
+        throw new Error('onStart failed');
+      }
+      public onStop() {
+        stopped.push('A');
+      }
+    }
+
+    class AppModule extends Module({ providers: [ServiceA, ServiceB] }) {}
+    const container = new Container(AppModule);
+    await expect(container.start()).rejects.toThrow('onStart failed');
+
+    expect(stopped).toEqual(['A', 'B']);
+  });
+
+  it('onStart receives the container instance', async () => {
+    let receivedContainer: Container | undefined;
+
+    class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {
+      public onApplicationBootstrap() {}
+      public onStart(container: Container) {
+        receivedContainer = container;
+      }
+    }
+
+    class AppModule extends Module({ providers: [MyService] }) {}
+    const container = new Container(AppModule);
+    await container.start();
+
+    expect(receivedContainer).toBe(container);
+
+    await container.stop();
+  });
+
+  it('handles async onStart', async () => {
+    let resolved = false;
+
+    class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {
+      public onApplicationBootstrap() {}
+      public async onStart() {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        resolved = true;
+      }
+    }
+
+    class AppModule extends Module({ providers: [MyService] }) {}
+    const container = new Container(AppModule);
+    await container.start();
+
+    expect(resolved).toBe(true);
+
+    await container.stop();
+  });
+
+  it('onStart is called for request-scoped providers inside withRequestScope', async () => {
+    let startCalled = false;
+
+    class ReqService extends Injectable({ scope: SCOPE.REQUEST }) {
+      public onApplicationBootstrap() {}
+      public onStart() {
+        startCalled = true;
+      }
+    }
+
+    class AppModule extends Module({ providers: [ReqService] }) {}
+    const container = new Container(AppModule);
+    await container.start();
+
+    await container.withRequestScope(() => {
+      expect(startCalled).toBe(true);
+    });
+
+    await container.stop();
+  });
+
+  it('onStart runs after onApplicationBootstrap for same provider', async () => {
+    const order: string[] = [];
+
+    class MyService extends Injectable({ scope: SCOPE.SINGLETON }) {
+      public onApplicationBootstrap() {
+        order.push('bootstrap');
+      }
+      public onStart() {
+        order.push('start');
+      }
+    }
+
+    class AppModule extends Module({ providers: [MyService] }) {}
+    const container = new Container(AppModule);
+    await container.start();
+
+    expect(order).toEqual(['bootstrap', 'start']);
 
     await container.stop();
   });

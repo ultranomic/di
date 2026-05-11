@@ -108,6 +108,7 @@ export type ModuleClass = Constructor & {
 
 /** Optional lifecycle hooks that providers can implement for startup and shutdown. */
 export type LifecycleHooks<T = unknown> = {
+  onApplicationBootstrap?(container: T): Promise<void> | void;
   onStart?(container: T): Promise<void> | void;
   onStop?(container: T): Promise<void> | void;
 };
