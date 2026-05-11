@@ -108,6 +108,7 @@ const topologicalSort = (adj: Map<InjectableClass, InjectableClass[]>): Injectab
 
     inPath.add(node);
 
+    /* v8 ignore next -- defensive fallback: every node is in the adjacency map */
     const deps = adj.get(node) ?? [];
     for (const dep of deps) {
       visit(dep);

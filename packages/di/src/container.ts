@@ -402,6 +402,7 @@ export class Container {
   async #callOnStart(providers: readonly InjectableClass[]): Promise<void> {
     for (const provider of providers) {
       const instance = this.#singletons.get(provider);
+      /* v8 ignore next -- defensive: all singletons are instantiated before this runs */
       if (!instance) continue;
       if (hasLifecycleHook(instance, 'onStart')) {
         await Promise.try(() => instance.onStart(this));
@@ -413,6 +414,7 @@ export class Container {
     const errors: Error[] = [];
     for (const provider of providers) {
       const instance = this.#singletons.get(provider);
+      /* v8 ignore next -- defensive: all singletons are instantiated before this runs */
       if (!instance) continue;
       if (hasLifecycleHook(instance, 'beforeApplicationShutdown')) {
         try {

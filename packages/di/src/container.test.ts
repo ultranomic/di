@@ -2982,3 +2982,42 @@ describe('Container — beforeApplicationShutdown hook', () => {
     expect(err.errors[0].message).toBe('string-error');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Stale proxy access after container stop
+// ---------------------------------------------------------------------------
+describe('Container — stale proxy after stop', () => {
+  it('throws when accessing circular dep proxy after container.stop()', async () => {
+    class ServiceA extends Injectable({
+      scope: SCOPE.SINGLETON,
+      inject: [['serviceB', _Fwd]],
+    }) {
+      public getValue() {
+        return 'A';
+      }
+    }
+    class ServiceB extends Injectable({
+      scope: SCOPE.SINGLETON,
+      inject: [['serviceA', ServiceA]],
+    }) {
+      public getValue() {
+        return 'B';
+      }
+    }
+    (ServiceA as any)._injectClasses = [ServiceB];
+
+    class AppModule extends Module({
+      providers: [ServiceA, ServiceB],
+    }) {}
+
+    const container = new Container(AppModule);
+    await container.start();
+    const a = container.resolve(ServiceA);
+    const proxyB = a.inject.serviceB;
+    await container.stop();
+
+    expect(() => {
+      (proxyB as ServiceB).getValue();
+    }).toThrowDIError(DI_ERROR_CODE.CIRCULAR_DEPENDENCY, /no longer available/);
+  });
+});

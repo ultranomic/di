@@ -6,7 +6,10 @@
   "scripts": {
     "ready": "vp check && vp run -r test && vp run -r build",
     "dev": "vp run website#dev",
-    "prepare": "vp config"
+    "prepare": "vp config",
+    "typecheck": "vp check",
+    "prepublishOnly": "vp run -r build",
+    "test:coverage": "vp run -r test -- --coverage"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
