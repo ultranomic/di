@@ -10,9 +10,9 @@ import type { ControllerConfig, HttpMethod, RouteDefinition, ValidateTargets } f
 
 type ControllerInstance<TInject extends readonly InjectEntry[]> = {
   readonly inject: ToInjectObject<TInject>;
-  route<T extends ValidateTargets, M extends HttpMethod, R extends string>(
-    def: Omit<RouteDefinition<T, M, R>, '_isRoute'>,
-  ): RouteDefinition<T, M, R>;
+  route<T extends ValidateTargets, M extends HttpMethod, P extends string, Resp>(
+    def: Omit<RouteDefinition<T, M, P, Resp>, '_isRoute'>,
+  ): RouteDefinition<T, M, P, Resp>;
 };
 
 type ControllerBase<P extends string, TInject extends readonly InjectEntry[]> = InjectableClass<
@@ -37,13 +37,13 @@ export const Controller = <
   return class extends Base {
     public static readonly _path: P = config.path;
 
-    public route<T extends ValidateTargets, M extends HttpMethod, R extends string>(
-      def: Omit<RouteDefinition<T, M, R>, '_isRoute'>,
-    ): RouteDefinition<T, M, R> {
+    public route<T extends ValidateTargets, M extends HttpMethod, P extends string, Resp>(
+      def: Omit<RouteDefinition<T, M, P, Resp>, '_isRoute'>,
+    ): RouteDefinition<T, M, P, Resp> {
       return {
         ...def,
         _isRoute: true as const,
-      } as RouteDefinition<T, M, R>;
+      } as RouteDefinition<T, M, P, Resp>;
     }
   } satisfies ControllerBase<P, TInject> as ControllerBase<P, TInject>;
 };
