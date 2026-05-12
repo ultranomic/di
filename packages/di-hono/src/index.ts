@@ -20,4 +20,5 @@ export type {
   HonoModuleOptions,
   HonoModuleOptionsFactory,
 } from './types.ts';
+export type { HonoRpcType } from './rpc.ts';
 export type { HonoModuleConfig } from './hono-module.ts';

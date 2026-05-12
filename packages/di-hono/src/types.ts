@@ -53,12 +53,13 @@ export type RouteDefinition<
   T extends ValidateTargets = ValidateTargets,
   M extends HttpMethod = HttpMethod,
   P extends string = string,
+  R = Response | Promise<Response>,
 > = {
   readonly _isRoute: true;
   readonly method: M;
   readonly path: P;
   readonly validate?: T;
-  readonly handler: (c: Context<any, P, ValidatedRouteInput<T>>) => Promise<Response> | Response;
+  readonly handler: (c: Context<any, P, ValidatedRouteInput<T>>) => R;
 };
 
 export type ControllerConfig<

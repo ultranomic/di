@@ -4,7 +4,7 @@
 
 ## TL;DR
 
-Hono adapter for `@ultranomic/di`. Define route handlers as class methods with `Controller`, declare validation with the Standard Schema interface, and wire everything together with `HonoModule`. Create typed request context with `RequestContext` — injectable via DI like any other provider.
+Hono adapter for `@ultranomic/di`. Define route handlers as class methods with `Controller`, declare validation with the Standard Schema interface, and wire everything together with `HonoModule`. Create typed request context with `RequestContext` — injectable via DI like any other provider. Use `HonoRpcType` to infer fully-typed Hono RPC clients from your module tree.
 
 ## Installation
 
@@ -340,6 +340,43 @@ The `options` field on `HonoModule` accepts a factory function that receives a `
 
 Controllers are always singletons. But route handlers run inside `container.withRequestScope()`, so any `SCOPE.REQUEST` providers resolved during a request get a fresh instance per request. This means your services can use `SCOPE.REQUEST` to hold per-request state (like audit trails, request IDs, or user context) without passing arguments through every function call.
 
+### RPC Types
+
+`HonoRpcType` is a type helper that extracts route information from your module tree and produces a Hono type compatible with the `hc()` RPC client. It has zero runtime footprint — it's purely for type inference.
+
+**Usage:**
+
+```typescript
+import { hc } from 'hono/client';
+import type { HonoRpcType } from '@ultranomic/di-hono';
+
+// Using the Quick Start module structure:
+type AppType = HonoRpcType<typeof AppModule>;
+const client = hc<AppType>('http://localhost:3000');
+
+// GET /users — response type inferred from c.json() return
+const users = await client.users.$get();
+const userList = await users.json(); // typed
+
+// POST /users — input type inferred from validate schema
+const created = await client.users.$post({
+  json: { name: 'Alice' }, // typed: { name: string }
+});
+const user = await created.json(); // typed from c.json() return
+```
+
+**How it works:**
+
+`HonoRpcType<M>` walks `M._combinedProviders`, finds all controller classes (those with a `_path` property), extracts their route definitions, and builds a merged Hono `Schema`. Controller path prefixes are merged with route paths (e.g., `/users` + `/` → `/users`). Response types come from `c.json()` / `c.text()` return values, and input types come from `validate` schemas.
+
+**Type:**
+
+| Parameter | Constraint    | Description                                      |
+| --------- | ------------- | ------------------------------------------------ |
+| `M`       | `ModuleClass` | The root module class (e.g., `typeof AppModule`) |
+
+Returns `Hono<{}, Schema, '/'>` where `Schema` contains all discovered routes with their input/output types.
+
 ## API Reference
 
 | Export                     | Kind     | Description                                                                                                                                                                                              |
@@ -354,6 +391,7 @@ Controllers are always singletons. But route handlers run inside `container.with
 | `ControllerClass`          | Type     | Type marker for controller classes: `InjectableClass & { _path: string }`.                                                                                                                               |
 | `HttpMethod`               | Type     | HTTP method literal: `'GET' \| 'POST' \| 'PUT' \| 'DELETE' \| 'PATCH' \| 'HEAD' \| 'OPTIONS'`.                                                                                                           |
 | `RouteDefinition`          | Type     | Internal route descriptor: `{ _isRoute, method, path, validate?, handler }`.                                                                                                                             |
+| `HonoRpcType`              | Type     | Type helper: `HonoRpcType<M extends ModuleClass>` extracts route types from module tree and returns `Hono<{}, Schema, '/'>` for use with `hc()`.                                                         |
 | `StandardSchema`           | Type     | Generic validation schema interface with Input/Output generics: `{ '~standard': { version: 1, vendor, validate(value, options?): StandardResult<Output> \| Promise<StandardResult<Output>>, types? } }`. |
 | `StandardIssue`            | Type     | Validation issue: `{ message, path? }`.                                                                                                                                                                  |
 | `StandardResult`           | Type     | Validation result: `{ value: T, issues?: undefined } \| { issues: readonly StandardIssue[] }`.                                                                                                           |
