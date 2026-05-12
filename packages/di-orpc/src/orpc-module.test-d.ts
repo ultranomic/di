@@ -15,7 +15,7 @@ class UserService extends Injectable() {}
 
 class UserRouter extends OrpcRouter({
   path: 'users',
-  inject: [['userService', UserService]] as const,
+  inject: [['userService', UserService]],
 }) {
   list = this.orpc
     .input(z.object({}))

@@ -1,4 +1,4 @@
-import type { InjectableClass, InjectEntry, ModuleClass } from '@ultranomic/di';
+import type { InjectableClass, InjectEntry, ModuleClass, ValidInjectEntries } from '@ultranomic/di';
 import type { StandardHandlerPlugin } from '@orpc/server/standard';
 import type { ORPCError, Procedure } from '@orpc/server';
 
@@ -36,12 +36,12 @@ export type OrpcRouterConfig<
   TInject extends readonly InjectEntry[] = readonly InjectEntry[],
 > = {
   readonly path: TPath;
-  readonly inject?: TInject;
+  readonly inject?: ValidInjectEntries<TInject>;
 };
 
 export type OrpcMiddlewareConfig<TInject extends readonly InjectEntry[] = readonly InjectEntry[]> =
   {
-    readonly inject?: TInject;
+    readonly inject?: ValidInjectEntries<TInject>;
   };
 
 export type OrpcModuleConfig = {

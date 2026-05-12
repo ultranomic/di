@@ -4,7 +4,6 @@ import {
   type InjectableClass,
   type InjectEntry,
   type ToInjectObject,
-  type ValidInjectEntries,
 } from '@ultranomic/di';
 import type { ControllerConfig, HttpMethod, RouteDefinition, ValidateTargets } from './types.ts';
 
@@ -31,7 +30,7 @@ export const Controller = <
 ): ControllerBase<P, TInject> => {
   const Base = Injectable<typeof SCOPE.SINGLETON, TInject>({
     scope: SCOPE.SINGLETON,
-    inject: config.inject as ValidInjectEntries<TInject> | undefined,
+    inject: config.inject,
   });
 
   return class extends Base {

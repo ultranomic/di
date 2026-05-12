@@ -25,9 +25,9 @@ describe('OrpcService types', () => {
     assertType<StandardRPCHandler<any>>(service.handler);
   });
 
-  test('onStart accepts Container', () => {
+  test('onReady accepts Container', () => {
     const service = new OrpcService();
-    assertType<(container: ContainerType) => void>(service.onStart);
+    assertType<(container: ContainerType) => void>(service.onReady);
   });
 
   test('onStop accepts Container', () => {

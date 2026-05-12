@@ -72,6 +72,7 @@ class AppModule extends Module({
     HonoModule({
       options: () => ({
         port: 3000,
+        host: '0.0.0.0',
       }),
     }),
     OrpcModule(),

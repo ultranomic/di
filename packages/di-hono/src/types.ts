@@ -1,4 +1,4 @@
-import type { InjectableClass, InjectEntry, ModuleClass } from '@ultranomic/di';
+import type { InjectableClass, InjectEntry, ModuleClass, ValidInjectEntries } from '@ultranomic/di';
 import type { Context, MiddlewareHandler } from 'hono';
 import type {
   ServerOptions as Http2ServerOptions,
@@ -67,7 +67,7 @@ export type ControllerConfig<
   TInject extends readonly InjectEntry[] = readonly InjectEntry[],
 > = {
   readonly path: P;
-  readonly inject?: TInject;
+  readonly inject?: ValidInjectEntries<TInject>;
 };
 
 export type ControllerClass<P extends string = string> = InjectableClass & {

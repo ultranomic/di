@@ -342,7 +342,7 @@ describe('Container — onApplicationBootstrap failure', () => {
     }
 
     class AppModule extends Module({
-      providers: [ReqA, ReqB] as const,
+      providers: [ReqA, ReqB],
     }) {}
 
     const container = new Container(AppModule);
@@ -1251,7 +1251,7 @@ describe('Container — design issue regressions', () => {
     }
 
     class AppModule extends Module({
-      providers: [ReqService] as const,
+      providers: [ReqService],
     }) {}
 
     const container = new Container(AppModule);
@@ -1368,7 +1368,7 @@ describe('Container — design issue regressions', () => {
       }
     }
 
-    class AppModule extends Module({ providers: [MyService] as const }) {}
+    class AppModule extends Module({ providers: [MyService] }) {}
     const container = new Container(AppModule);
     await container.start();
 
@@ -1519,7 +1519,7 @@ describe('Container — design issue regressions', () => {
     }
 
     class AppModule extends Module({
-      providers: [ReqA, ReqB] as const,
+      providers: [ReqA, ReqB],
     }) {}
 
     const container = new Container(AppModule);
@@ -1592,7 +1592,7 @@ describe('Container — design issue regressions', () => {
     }
     class ReqService extends Injectable({ scope: SCOPE.REQUEST }) {}
 
-    class AppModule extends Module({ providers: [BadService, ReqService] as const }) {}
+    class AppModule extends Module({ providers: [BadService, ReqService] }) {}
     const container = new Container(AppModule);
 
     await expect(container.start()).rejects.toThrow('fail');
@@ -1659,7 +1659,7 @@ describe('Container — design issue regressions', () => {
     }
 
     class AppModule extends Module({
-      providers: [ReqA, ReqB] as const,
+      providers: [ReqA, ReqB],
     }) {}
 
     const container = new Container(AppModule);
@@ -1801,7 +1801,7 @@ describe('Container — T1: stop() wraps non-Error onStop throw', () => {
     }
 
     class AppModule extends Module({
-      providers: [BadService] as const,
+      providers: [BadService],
     }) {}
 
     const container = new Container(AppModule);
@@ -2554,7 +2554,7 @@ describe('Container — withRequestScope onApplicationBootstrap non-Error with c
     }
 
     class AppModule extends Module({
-      providers: [ReqA, ReqB] as const,
+      providers: [ReqA, ReqB],
     }) {}
 
     const container = new Container(AppModule);

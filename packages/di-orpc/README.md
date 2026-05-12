@@ -155,9 +155,14 @@ class AppModule extends Module({
 
 ### OrpcService
 
-`OrpcService` is an auto-registered singleton that lazily builds the ORPC router tree. You don't instantiate it directly — `OrpcModule()` adds it to providers for you.
+`OrpcService` is an auto-registered singleton that builds the ORPC router tree in its `onReady` lifecycle hook. You don't instantiate it directly — `OrpcModule()` adds it to providers for you.
 
-When `.handler` is first accessed, `OrpcService` discovers all `OrpcRouter` providers from `container.sorted`, resolves their instances, collects their procedure properties, and composes the router tree. If a `HonoModule` is found in the module tree, routes auto-mount on the Hono app.
+When the container enters the "ready" phase, `OrpcService.onReady` discovers all `OrpcRouter` providers from `container.sorted`, resolves their instances, collects their procedure properties, and composes the router tree. If a `HonoModule` is found in the module tree, routes auto-mount on the Hono app.
+
+| Method    | Description                                                                                                                                  |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `onReady` | Lifecycle hook. Discovers OrpcRouter providers, builds the router tree, and auto-mounts on Hono if present. Called during the "ready" phase. |
+| `onStop`  | Lifecycle hook. Resets internal state.                                                                                                       |
 
 **Accessing the handler:**
 

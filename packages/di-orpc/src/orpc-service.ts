@@ -79,7 +79,11 @@ const wrapErrorInterceptor = (interceptor: ErrorInterceptor): OrpcInterceptor =>
   };
 };
 
-export class OrpcService extends Injectable({ scope: SCOPE.SINGLETON }) {
+const OrpcServiceBase: InjectableClass<object, readonly [], typeof SCOPE.SINGLETON> = Injectable({
+  scope: SCOPE.SINGLETON,
+});
+
+export class OrpcService extends OrpcServiceBase {
   #handler: StandardRPCHandler<Context> | undefined;
   #container: Container | undefined;
   #initialized = false;

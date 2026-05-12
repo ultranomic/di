@@ -27,7 +27,7 @@ describe('OrpcMiddleware', () => {
   });
 
   it('passes inject config to Injectable', () => {
-    class TestMiddleware extends OrpcMiddleware({ inject: [['service', TestService]] as const }) {}
+    class TestMiddleware extends OrpcMiddleware({ inject: [['service', TestService]] }) {}
     expect(TestMiddleware._injectClasses).toEqual([TestService]);
   });
 
@@ -67,7 +67,7 @@ describe('OrpcMiddleware', () => {
   });
 
   it('Container can resolve middleware instances', async () => {
-    class TestMiddleware extends OrpcMiddleware({ inject: [['service', TestService]] as const }) {
+    class TestMiddleware extends OrpcMiddleware({ inject: [['service', TestService]] }) {
       readonly #service: TestService;
       constructor(service: TestService) {
         super(service);
