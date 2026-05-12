@@ -1,6 +1,6 @@
 import { assertType, describe, expectTypeOf, test } from 'vite-plus/test';
 import { Logger } from './logger.ts';
-import { LOG_LEVEL } from './log-level.ts';
+import { LOG_LEVEL, type LogLevel } from './log-level.ts';
 import { SCOPE } from './scope.ts';
 import { Injectable } from './injectable.ts';
 
@@ -22,13 +22,13 @@ class TypedDepsLogger extends Logger({
 }) {}
 
 describe('Logger types', () => {
-  test('_name type is the literal string', () => {
-    expectTypeOf(TypedLogger._name).toEqualTypeOf<'TypedLogger'>();
+  test('instance name is string', () => {
+    expectTypeOf(new TypedLogger().name).toEqualTypeOf<string | undefined>();
   });
 
-  test('_level type is LogLevel', () => {
-    expectTypeOf(TypedLogger._level).toEqualTypeOf<'INFO'>();
-    expectTypeOf(TypedWarnLogger._level).toEqualTypeOf<'WARN'>();
+  test('instance level is LogLevel', () => {
+    expectTypeOf(new TypedLogger().level).toEqualTypeOf<LogLevel>();
+    expectTypeOf(new TypedWarnLogger().level).toEqualTypeOf<LogLevel>();
   });
 
   test('_scope type narrows correctly', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vite-plus/test';
-import { Logger } from './logger.ts';
+import { Logger, DefaultLogger } from './logger.ts';
 import { LOG_LEVEL } from './log-level.ts';
 import { SCOPE } from './scope.ts';
 import { Injectable } from './injectable.ts';
@@ -40,18 +40,20 @@ describe('Logger', () => {
     expect(InfoLogger._isLogger).toBe(true);
   });
 
-  it('sets static _name from config', () => {
-    expect(InfoLogger._name).toBe('InfoLogger');
+  it('sets instance name from config', () => {
+    const logger = new InfoLogger();
+    expect(logger.name).toBe('InfoLogger');
   });
 
-  it('defaults _level to INFO when not provided', () => {
-    expect(InfoLogger._level).toBe('INFO');
+  it('defaults level to INFO when not provided', () => {
+    const logger = new InfoLogger();
+    expect(logger.level).toBe('INFO');
   });
 
-  it('sets _level correctly when provided', () => {
-    expect(DebugLogger._level).toBe('DEBUG');
-    expect(WarnLogger._level).toBe('WARN');
-    expect(ErrorLogger._level).toBe('ERROR');
+  it('sets level correctly when provided', () => {
+    expect(new DebugLogger().level).toBe('DEBUG');
+    expect(new WarnLogger().level).toBe('WARN');
+    expect(new ErrorLogger().level).toBe('ERROR');
   });
 
   it('defaults _scope to SINGLETON', () => {
@@ -82,7 +84,12 @@ describe('Logger', () => {
     const spy = vi.spyOn(console, 'debug').mockImplementation(() => {});
     const logger = new DebugLogger();
     logger.debug('test message');
-    expect(spy).toHaveBeenCalledWith('[DebugLogger]', 'test message');
+    expect(spy).toHaveBeenCalledWith(
+      '[DebugLogger]',
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/),
+      'DEBUG',
+      'test message',
+    );
     spy.mockRestore();
   });
 
@@ -98,7 +105,12 @@ describe('Logger', () => {
     const spy = vi.spyOn(console, 'info').mockImplementation(() => {});
     const logger = new InfoLogger();
     logger.info('test message');
-    expect(spy).toHaveBeenCalledWith('[InfoLogger]', 'test message');
+    expect(spy).toHaveBeenCalledWith(
+      '[InfoLogger]',
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/),
+      'INFO',
+      'test message',
+    );
     spy.mockRestore();
   });
 
@@ -114,7 +126,12 @@ describe('Logger', () => {
     const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const logger = new WarnLogger();
     logger.warn('test message');
-    expect(spy).toHaveBeenCalledWith('[WarnLogger]', 'test message');
+    expect(spy).toHaveBeenCalledWith(
+      '[WarnLogger]',
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/),
+      'WARN',
+      'test message',
+    );
     spy.mockRestore();
   });
 
@@ -130,22 +147,34 @@ describe('Logger', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const logger = new ErrorLogger();
     logger.error('test message');
-    expect(spy).toHaveBeenCalledWith('[ErrorLogger]', 'test message');
+    expect(spy).toHaveBeenCalledWith(
+      '[ErrorLogger]',
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/),
+      'ERROR',
+      'test message',
+    );
     spy.mockRestore();
   });
 
-  it('prefixes output with [name]', () => {
+  it('includes [name], timestamp, and level', () => {
     const spy = vi.spyOn(console, 'info').mockImplementation(() => {});
     const logger = new InfoLogger();
     logger.info('hello', 'world');
-    expect(spy).toHaveBeenCalledWith('[InfoLogger]', 'hello', 'world');
+    expect(spy).toHaveBeenCalledWith(
+      '[InfoLogger]',
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/),
+      'INFO',
+      'hello',
+      'world',
+    );
     spy.mockRestore();
   });
 
   it('works with just name (no other config)', () => {
     class MinimalLogger extends Logger({ name: 'Minimal' }) {}
-    expect(MinimalLogger._name).toBe('Minimal');
-    expect(MinimalLogger._level).toBe('INFO');
+    const logger = new MinimalLogger();
+    expect(logger.name).toBe('Minimal');
+    expect(logger.level).toBe('INFO');
     expect(MinimalLogger._scope).toBe('SINGLETON');
     expect(MinimalLogger._inject).toEqual([]);
   });
@@ -161,7 +190,39 @@ describe('Logger', () => {
     const spy = vi.spyOn(console, 'info').mockImplementation(() => {});
     const child = new ChildLogger();
     child.info('msg');
-    expect(spy).toHaveBeenCalledWith('[InfoLogger]', 'child:', 'msg');
+    expect(spy).toHaveBeenCalledWith(
+      '[InfoLogger]',
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/),
+      'INFO',
+      'child:',
+      'msg',
+    );
+    spy.mockRestore();
+  });
+});
+
+describe('DefaultLogger', () => {
+  const TS = expect.stringMatching(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+
+  it('has _isLogger set to true', () => {
+    expect(DefaultLogger._isLogger).toBe(true);
+  });
+
+  it('has name set to DI', () => {
+    const logger = new DefaultLogger();
+    expect(logger.name).toBe('DI');
+  });
+
+  it('has level set to DEBUG', () => {
+    const logger = new DefaultLogger();
+    expect(logger.level).toBe('DEBUG');
+  });
+
+  it('outputs with [DI], timestamp, and level', () => {
+    const spy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const logger = new DefaultLogger();
+    logger.info('hello');
+    expect(spy).toHaveBeenCalledWith('[DI]', TS, 'INFO', 'hello');
     spy.mockRestore();
   });
 });

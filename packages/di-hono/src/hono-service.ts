@@ -92,10 +92,13 @@ export class HonoService extends HonoServiceBase {
 
   public onStart = async (container: Container): Promise<void> => {
     this.#registerRoutes(container);
-    await this.#startServer();
+    await this.#startServer(container);
   };
 
-  public beforeApplicationShutdown = async (_: Container): Promise<void> => {
+  public beforeApplicationShutdown = async (container: Container): Promise<void> => {
+    if (this.#server) {
+      container.logger.info('Hono server shutting down');
+    }
     const server = this.#server;
     if (!server) return;
     await new Promise<void>((resolve) => {
@@ -112,7 +115,7 @@ export class HonoService extends HonoServiceBase {
     this.#app = new Hono();
   };
 
-  async #startServer(): Promise<void> {
+  async #startServer(container: Container): Promise<void> {
     if (!isNode() || this.#port === undefined) return;
 
     const { serve } = await import('@hono/node-server');
@@ -132,6 +135,7 @@ export class HonoService extends HonoServiceBase {
     this.#server = await new Promise<NodeServer>((resolve) => {
       const server = serve(opts, (info) => {
         this.#port = info.port;
+        container.logger.info(`Hono server listening on ${info.address}:${info.port}`);
         resolve(server as NodeServer);
       });
     });
@@ -139,6 +143,7 @@ export class HonoService extends HonoServiceBase {
 
   #registerRoutes(container: Container): void {
     const moduleClass = container.module;
+    const logger = container.logger;
 
     const options = this.#readOptions(moduleClass, container);
     const app = new Hono();
@@ -189,6 +194,8 @@ export class HonoService extends HonoServiceBase {
           controllerApp.on(route.method, route.path, mw);
         }
         controllerApp.on(route.method, route.path, wrappedHandler);
+
+        logger.info(`${provider.name} mapped {${prefix}${route.path}, ${route.method}} route`);
       }
 
       app.route(prefix, controllerApp);

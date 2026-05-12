@@ -5,7 +5,8 @@ import { Injectable } from './injectable.ts';
 import { Module } from './module.ts';
 import { SCOPE } from './scope.ts';
 import './test-utils.ts';
-import type { InjectableClass, ContainerLogger } from './types.ts';
+import type { InjectableClass } from './types.ts';
+import type { LoggerInstance } from './logger.ts';
 
 // ---------------------------------------------------------------------------
 // 1. Resolve singleton — same instance twice
@@ -3066,12 +3067,31 @@ describe('Container — stale proxy after stop', () => {
 // Logger integration
 // ---------------------------------------------------------------------------
 describe('Container — logger integration', () => {
+  const TS = expect.stringMatching(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+
+  it('logs module initialization at info level', () => {
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    class LService extends Injectable() {}
+    class LModule extends Module({ providers: [LService] }) {}
+    new Container(LModule);
+    expect(infoSpy).toHaveBeenCalledWith('[DI]', TS, 'INFO', 'LModule dependencies initialized');
+    expect(infoSpy).toHaveBeenCalledWith('[DI]', TS, 'INFO', 'LService registered');
+    infoSpy.mockRestore();
+  });
+
   it('logs graph built at info level with default logger', () => {
     const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
     class LService extends Injectable() {}
     class LModule extends Module({ providers: [LService] }) {}
     new Container(LModule);
-    expect(infoSpy).toHaveBeenCalledWith('[DI]', 'Dependency graph built:', 1, 'providers');
+    expect(infoSpy).toHaveBeenCalledWith(
+      '[DI]',
+      TS,
+      'INFO',
+      'Dependency graph built:',
+      1,
+      'providers',
+    );
     infoSpy.mockRestore();
   });
 
@@ -3081,9 +3101,9 @@ describe('Container — logger integration', () => {
     class LModule extends Module({ providers: [LService] }) {}
     const container = new Container(LModule);
     await container.start();
-    expect(infoSpy).toHaveBeenCalledWith('[DI]', 'Bootstrapping…');
-    expect(infoSpy).toHaveBeenCalledWith('[DI]', 'Starting…');
-    expect(infoSpy).toHaveBeenCalledWith('[DI]', 'Container started');
+    expect(infoSpy).toHaveBeenCalledWith('[DI]', TS, 'INFO', 'Bootstrapping…');
+    expect(infoSpy).toHaveBeenCalledWith('[DI]', TS, 'INFO', 'Starting…');
+    expect(infoSpy).toHaveBeenCalledWith('[DI]', TS, 'INFO', 'Container started');
     infoSpy.mockRestore();
     await container.stop();
   });
@@ -3096,20 +3116,9 @@ describe('Container — logger integration', () => {
     await container.start();
     infoSpy.mockClear();
     await container.stop();
-    expect(infoSpy).toHaveBeenCalledWith('[DI]', 'Shutting down…');
-    expect(infoSpy).toHaveBeenCalledWith('[DI]', 'Container stopped');
+    expect(infoSpy).toHaveBeenCalledWith('[DI]', TS, 'INFO', 'Shutting down…');
+    expect(infoSpy).toHaveBeenCalledWith('[DI]', TS, 'INFO', 'Container stopped');
     infoSpy.mockRestore();
-  });
-
-  it('logs provider creation at debug level', async () => {
-    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
-    class LService extends Injectable() {}
-    class LModule extends Module({ providers: [LService] }) {}
-    const container = new Container(LModule);
-    await container.start();
-    expect(debugSpy).toHaveBeenCalledWith('[DI]', 'Created', 'LService');
-    debugSpy.mockRestore();
-    await container.stop();
   });
 
   it('logs lifecycle hooks at debug level', async () => {
@@ -3123,12 +3132,24 @@ describe('Container — logger integration', () => {
     class LModule extends Module({ providers: [LService] }) {}
     const container = new Container(LModule);
     await container.start();
-    expect(debugSpy).toHaveBeenCalledWith('[DI]', 'onApplicationBootstrap →', 'LService');
-    expect(debugSpy).toHaveBeenCalledWith('[DI]', 'onStart →', 'LService');
+    expect(debugSpy).toHaveBeenCalledWith(
+      '[DI]',
+      TS,
+      'DEBUG',
+      'onApplicationBootstrap →',
+      'LService',
+    );
+    expect(debugSpy).toHaveBeenCalledWith('[DI]', TS, 'DEBUG', 'onStart →', 'LService');
     debugSpy.mockClear();
     await container.stop();
-    expect(debugSpy).toHaveBeenCalledWith('[DI]', 'beforeApplicationShutdown →', 'LService');
-    expect(debugSpy).toHaveBeenCalledWith('[DI]', 'onStop →', 'LService');
+    expect(debugSpy).toHaveBeenCalledWith(
+      '[DI]',
+      TS,
+      'DEBUG',
+      'beforeApplicationShutdown →',
+      'LService',
+    );
+    expect(debugSpy).toHaveBeenCalledWith('[DI]', TS, 'DEBUG', 'onStop →', 'LService');
     debugSpy.mockRestore();
   });
 
@@ -3140,7 +3161,12 @@ describe('Container — logger integration', () => {
     await container.start();
     class MissingService extends Injectable() {}
     expect(() => container.resolve(MissingService)).toThrow();
-    expect(warnSpy).toHaveBeenCalledWith('[DI]', expect.stringContaining('MissingService'));
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[DI]',
+      TS,
+      'WARN',
+      expect.stringContaining('MissingService'),
+    );
     warnSpy.mockRestore();
     await container.stop();
   });
@@ -3157,6 +3183,8 @@ describe('Container — logger integration', () => {
     await expect(container.start()).rejects.toThrow('bootstrap failed');
     expect(errorSpy).toHaveBeenCalledWith(
       '[DI]',
+      TS,
+      'ERROR',
       'Container failed to start:',
       expect.stringContaining('bootstrap failed'),
     );
@@ -3165,7 +3193,9 @@ describe('Container — logger integration', () => {
 
   it('accepts custom logger object', async () => {
     const logs: { level: string; args: unknown[] }[] = [];
-    const customLogger: ContainerLogger = {
+    const customLogger: LoggerInstance = {
+      level: 'INFO',
+      inject: {},
       debug: (...args) => logs.push({ level: 'debug', args }),
       info: (...args) => logs.push({ level: 'info', args }),
       warn: (...args) => logs.push({ level: 'warn', args }),
@@ -3177,14 +3207,10 @@ describe('Container — logger integration', () => {
     await container.start();
     await container.stop();
     const infoLogs = logs.filter((l) => l.level === 'info');
-    expect(infoLogs.some((l) => l.args[0] === '[DI]' && l.args[1] === 'Bootstrapping…')).toBe(true);
-    expect(infoLogs.some((l) => l.args[0] === '[DI]' && l.args[1] === 'Container started')).toBe(
-      true,
-    );
-    expect(infoLogs.some((l) => l.args[0] === '[DI]' && l.args[1] === 'Shutting down…')).toBe(true);
-    expect(infoLogs.some((l) => l.args[0] === '[DI]' && l.args[1] === 'Container stopped')).toBe(
-      true,
-    );
+    expect(infoLogs.some((l) => l.args[0] === 'Bootstrapping…')).toBe(true);
+    expect(infoLogs.some((l) => l.args[0] === 'Container started')).toBe(true);
+    expect(infoLogs.some((l) => l.args[0] === 'Shutting down…')).toBe(true);
+    expect(infoLogs.some((l) => l.args[0] === 'Container stopped')).toBe(true);
   });
 
   it('logs request scope enter/exit at debug level', async () => {
@@ -3194,8 +3220,8 @@ describe('Container — logger integration', () => {
     const container = new Container(RModule);
     await container.start();
     await container.withRequestScope(async () => {});
-    expect(debugSpy).toHaveBeenCalledWith('[DI]', 'Request scope entered');
-    expect(debugSpy).toHaveBeenCalledWith('[DI]', 'Request scope exited');
+    expect(debugSpy).toHaveBeenCalledWith('[DI]', TS, 'DEBUG', 'Request scope entered');
+    expect(debugSpy).toHaveBeenCalledWith('[DI]', TS, 'DEBUG', 'Request scope exited');
     debugSpy.mockRestore();
     await container.stop();
   });
@@ -3210,7 +3236,40 @@ describe('Container — logger integration', () => {
     class NonErrorStartModule extends Module({ providers: [NonErrorStartService] }) {}
     const container = new Container(NonErrorStartModule);
     await expect(container.start()).rejects.toBe('string-error');
-    expect(errorSpy).toHaveBeenCalledWith('[DI]', 'Container failed to start:', 'string-error');
+    expect(errorSpy).toHaveBeenCalledWith(
+      '[DI]',
+      TS,
+      'ERROR',
+      'Container failed to start:',
+      'string-error',
+    );
     errorSpy.mockRestore();
+  });
+
+  it('exposes logger via getter', async () => {
+    class GService extends Injectable() {}
+    class GModule extends Module({ providers: [GService] }) {}
+    const container = new Container(GModule);
+    expect(container.logger).toBeDefined();
+    expect(typeof container.logger.info).toBe('function');
+    expect(typeof container.logger.debug).toBe('function');
+    expect(typeof container.logger.warn).toBe('function');
+    expect(typeof container.logger.error).toBe('function');
+  });
+
+  it('returns custom logger via getter', async () => {
+    const logs: { level: string; args: unknown[] }[] = [];
+    const customLogger: LoggerInstance = {
+      level: 'INFO',
+      inject: {},
+      debug: (...args) => logs.push({ level: 'debug', args }),
+      info: (...args) => logs.push({ level: 'info', args }),
+      warn: (...args) => logs.push({ level: 'warn', args }),
+      error: (...args) => logs.push({ level: 'error', args }),
+    };
+    class GService extends Injectable() {}
+    class GModule extends Module({ providers: [GService] }) {}
+    const container = new Container(GModule, { logger: customLogger });
+    expect(container.logger).toBe(customLogger);
   });
 });

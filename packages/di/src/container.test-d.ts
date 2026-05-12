@@ -2,8 +2,9 @@
 import { assertType, describe, test } from 'vite-plus/test';
 import { Container } from './container.ts';
 import { Injectable } from './injectable.ts';
+import { DefaultLogger, type LoggerInstance } from './logger.ts';
 import { Module } from './module.ts';
-import type { InjectableClass, ModuleClass, ContainerLogger } from './types.ts';
+import type { InjectableClass, ModuleClass } from './types.ts';
 
 class ConfigService extends Injectable() {
   public getDbUrl(): string {
@@ -65,7 +66,9 @@ describe('Container types', () => {
   });
 
   test('constructor accepts logger option', () => {
-    const customLogger: ContainerLogger = {
+    const customLogger: LoggerInstance = {
+      level: 'INFO',
+      inject: {},
       debug: () => {},
       info: () => {},
       warn: () => {},
@@ -78,5 +81,29 @@ describe('Container types', () => {
   test('constructor accepts empty options object', () => {
     const container = new Container(AppModule, {});
     assertType<Container>(container);
+  });
+
+  test('logger getter returns LoggerInstance', () => {
+    const container = new Container(AppModule);
+    assertType<LoggerInstance>(container.logger);
+  });
+
+  test('logger getter returns DefaultLogger instance when no custom logger', () => {
+    const container = new Container(AppModule);
+    assertType<LoggerInstance>(container.logger);
+    assertType<DefaultLogger>({} as typeof container.logger & DefaultLogger);
+  });
+
+  test('logger getter returns custom logger when provided', () => {
+    const customLogger: LoggerInstance = {
+      level: 'INFO',
+      inject: {},
+      debug: () => {},
+      info: () => {},
+      warn: () => {},
+      error: () => {},
+    };
+    const container = new Container(AppModule, { logger: customLogger });
+    assertType<LoggerInstance>(container.logger);
   });
 });
