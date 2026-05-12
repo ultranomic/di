@@ -52,7 +52,6 @@ class AppModule extends Module({
 async function main(): Promise<void> {
   const container = new Container(AppModule);
   await container.start();
-  console.log('Server running at http://localhost:3000');
 
   // await container.stop();
 }

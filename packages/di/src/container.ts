@@ -2,8 +2,9 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { DI_ERROR_CODE, DIError } from './di-error.ts';
 import type { DIErrorCode } from './di-error.ts';
 import { buildGraph } from './graph.ts';
+import { DefaultLogger, type LoggerInstance } from './logger.ts';
 import { SCOPE } from './scope.ts';
-import type { InjectableClass, ModuleClass, ContainerLogger } from './types.ts';
+import type { InjectableClass, ModuleClass } from './types.ts';
 
 type RequestStore = Map<InjectableClass | typeof IN_REQUEST_START, unknown>;
 
@@ -87,11 +88,20 @@ const throwAggregate = (errors: Error[], prefix: string): void => {
 const MSG_NOT_STARTED = 'Container has not been started. Call start() first.';
 const MSG_NOT_IN_STARTED_STATE = 'Container is not in a started state.';
 
-const defaultLogger: ContainerLogger = {
-  debug: (...args) => console.debug(...args),
-  info: (...args) => console.info(...args),
-  warn: (...args) => console.warn(...args),
-  error: (...args) => console.error(...args),
+const logModuleTree = (logger: LoggerInstance, module: ModuleClass): void => {
+  const visited = new Set<ModuleClass>();
+  const walk = (mod: ModuleClass): void => {
+    if (visited.has(mod)) return;
+    visited.add(mod);
+    logger.info(`${mod.name} dependencies initialized`);
+    for (const provider of mod._providers) {
+      logger.info(`${provider.name} registered`);
+    }
+    for (const imp of mod._imports) {
+      walk(imp);
+    }
+  };
+  walk(module);
 };
 
 /** Dependency injection container that resolves providers, manages lifecycles, and handles scoping. */
@@ -105,7 +115,7 @@ export class Container {
   readonly #singletons = new Map<InjectableClass, unknown>();
   readonly #als = new AsyncLocalStorage<RequestStore>();
   readonly #resolutionStack = new Set<InjectableClass>();
-  readonly #logger: ContainerLogger;
+  readonly #logger: LoggerInstance;
   #state:
     | 'idle'
     | 'bootstrapping'
@@ -123,15 +133,15 @@ export class Container {
    * @param {ModuleClass} module - The root module class to build the dependency graph from.
    * @throws {DIError} When the dependency graph contains a cycle, duplicate providers, scope violations, or invalid exports.
    */
-  public constructor(module: ModuleClass, options?: { logger?: ContainerLogger }) {
-    this.#logger = options?.logger ?? defaultLogger;
+  public constructor(module: ModuleClass, options?: { logger?: LoggerInstance }) {
+    this.#logger = options?.logger ?? new DefaultLogger();
     this.#module = module;
     let result;
     try {
       result = buildGraph(module);
     } catch (err) {
       /* v8 ignore next -- buildGraph always throws DIError (extends Error) */
-      this.#logger.warn('[DI]', err instanceof Error ? err.message : String(err));
+      this.#logger.warn(err instanceof Error ? err.message : String(err));
       throw err;
     }
     this.#sorted = result.sorted;
@@ -148,7 +158,8 @@ export class Container {
     this.#reversedSingletonProviders = Object.freeze(singletons.toReversed());
     this.#requestProviders = Object.freeze(requests);
     this.#providerSet = new Set(result.sorted);
-    this.#logger.info('[DI]', 'Dependency graph built:', this.#sorted.length, 'providers');
+    logModuleTree(this.#logger, module);
+    this.#logger.info('Dependency graph built:', this.#sorted.length, 'providers');
   }
 
   /** The root module class passed to the constructor. */
@@ -159,6 +170,11 @@ export class Container {
   /** Topologically sorted list of all providers in the dependency graph. */
   public get sorted(): readonly InjectableClass[] {
     return this.#sorted;
+  }
+
+  /** The logger instance used by the container. */
+  public get logger(): LoggerInstance {
+    return this.#logger;
   }
 
   /**
@@ -257,7 +273,7 @@ export class Container {
       );
     }
     this.#state = 'bootstrapping';
-    this.#logger.info('[DI]', 'Bootstrapping…');
+    this.#logger.info('Bootstrapping…');
 
     try {
       await this.#startProviders(this.#singletonProviders);
@@ -266,7 +282,6 @@ export class Container {
       this.#resolutionStack.clear();
       this.#state = 'idle';
       this.#logger.error(
-        '[DI]',
         'Container failed to start:',
         err instanceof Error ? err.message : String(err),
       );
@@ -275,7 +290,7 @@ export class Container {
 
     this.#state = 'bootstrapped';
     this.#state = 'starting';
-    this.#logger.info('[DI]', 'Starting…');
+    this.#logger.info('Starting…');
 
     try {
       await this.#callOnStart(this.#singletonProviders);
@@ -288,7 +303,6 @@ export class Container {
       this.#resolutionStack.clear();
       this.#state = 'idle';
       this.#logger.error(
-        '[DI]',
         'Container failed to start:',
         err instanceof Error ? err.message : String(err),
       );
@@ -296,7 +310,7 @@ export class Container {
     }
 
     this.#state = 'started';
-    this.#logger.info('[DI]', 'Container started');
+    this.#logger.info('Container started');
   }
 
   /**
@@ -316,7 +330,7 @@ export class Container {
     }
     if (this.#state !== 'started') return;
     this.#state = 'shutting_down';
-    this.#logger.info('[DI]', 'Shutting down…');
+    this.#logger.info('Shutting down…');
 
     const shutdownErrors = await this.#callBeforeApplicationShutdown(this.#singletonProviders);
 
@@ -332,17 +346,13 @@ export class Container {
 
       const allErrors = [...shutdownErrors, ...stopErrors];
       if (allErrors.length > 0) {
-        this.#logger.error(
-          '[DI]',
-          'Container stop failed:',
-          allErrors.map((e) => e.message).join('; '),
-        );
+        this.#logger.error('Container stop failed:', allErrors.map((e) => e.message).join('; '));
         throwAggregate(allErrors, 'Stop failed');
       }
     } finally {
       this.#singletons.clear();
       this.#state = 'stopped';
-      this.#logger.info('[DI]', 'Container stopped');
+      this.#logger.info('Container stopped');
     }
   }
 
@@ -372,7 +382,7 @@ export class Container {
     return await this.#als.run(store, async () => {
       const requestProviders = this.#requestProviders;
       store.set(IN_REQUEST_START, true);
-      this.#logger.debug('[DI]', 'Request scope entered');
+      this.#logger.debug('Request scope entered');
       try {
         await this.#startProviders(requestProviders, { rollback: false });
         for (const provider of requestProviders) {
@@ -383,7 +393,7 @@ export class Container {
         }
       } catch (startErr) {
         store.delete(IN_REQUEST_START);
-        this.#logger.debug('[DI]', 'Request scope exited');
+        this.#logger.debug('Request scope exited');
         const cleanupErrors = await this.#stopInstances([...store.values()].toReversed());
         if (cleanupErrors.length > 0) {
           throwAggregate([toError(startErr), ...cleanupErrors], 'Request scope startup failed');
@@ -392,7 +402,7 @@ export class Container {
         }
       }
       store.delete(IN_REQUEST_START);
-      this.#logger.debug('[DI]', 'Request scope exited');
+      this.#logger.debug('Request scope exited');
 
       let result: T | undefined = undefined;
       let callbackError: unknown = undefined;
@@ -429,12 +439,11 @@ export class Container {
     for (const provider of providers) {
       try {
         const instance = this.#resolveInternal(provider);
-        this.#logger.debug('[DI]', 'Created', provider.name);
         if (rollback) {
           startedInstances.push(instance);
         }
         if (hasLifecycleHook(instance, 'onApplicationBootstrap')) {
-          this.#logger.debug('[DI]', 'onApplicationBootstrap →', provider.name);
+          this.#logger.debug('onApplicationBootstrap →', provider.name);
           await Promise.try(() => instance.onApplicationBootstrap(this));
         }
       } catch (err) {
@@ -452,7 +461,7 @@ export class Container {
       /* v8 ignore next -- defensive: all singletons are instantiated before this runs */
       if (!instance) continue;
       if (hasLifecycleHook(instance, 'onStart')) {
-        this.#logger.debug('[DI]', 'onStart →', provider.name);
+        this.#logger.debug('onStart →', provider.name);
         await Promise.try(() => instance.onStart(this));
       }
     }
@@ -465,7 +474,7 @@ export class Container {
       /* v8 ignore next -- defensive: all singletons are instantiated before this runs */
       if (!instance) continue;
       if (hasLifecycleHook(instance, 'beforeApplicationShutdown')) {
-        this.#logger.debug('[DI]', 'beforeApplicationShutdown →', provider.name);
+        this.#logger.debug('beforeApplicationShutdown →', provider.name);
         try {
           await Promise.try(() => instance.beforeApplicationShutdown(this));
         } catch (err) {
@@ -493,7 +502,7 @@ export class Container {
 
     for (const instance of instances) {
       if (!hasLifecycleHook(instance, 'onStop')) continue;
-      this.#logger.debug('[DI]', 'onStop →', instance.constructor.name);
+      this.#logger.debug('onStop →', instance.constructor.name);
       try {
         await Promise.try(() => instance.onStop(this));
       } catch (err) {
@@ -541,7 +550,7 @@ export class Container {
   }
 
   #throwLogged(code: DIErrorCode, message: string, level: 'warn' | 'error' = 'warn'): never {
-    this.#logger[level]('[DI]', message);
+    this.#logger[level](message);
     throw new DIError(code, message);
   }
 }

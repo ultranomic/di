@@ -126,6 +126,7 @@ export class OrpcService extends Injectable({ scope: SCOPE.SINGLETON }) {
 
   #buildHandler(container: Container): void {
     const moduleClass = container.module;
+    const logger = container.logger;
     const options = this.#readOptions(moduleClass, container);
     const providers = container.sorted;
 
@@ -145,6 +146,7 @@ export class OrpcService extends Injectable({ scope: SCOPE.SINGLETON }) {
       const procedures = getProcedureProperties(instance);
       if (Object.keys(procedures).length > 0) {
         routerTree[path] = procedures;
+        logger.info(`${provider.name} mapped {${path}} ORPC router`);
       }
     }
 
@@ -158,7 +160,9 @@ export class OrpcService extends Injectable({ scope: SCOPE.SINGLETON }) {
     });
 
     if (hasHonoModuleInTree(moduleClass)) {
-      mountOrpcOnHono(container, this.#handler, options?.prefix ?? '/rpc');
+      const prefix = options?.prefix ?? '/rpc';
+      mountOrpcOnHono(container, this.#handler, prefix);
+      logger.info(`ORPC routes mounted at ${prefix}`);
     }
 
     this.#initialized = true;

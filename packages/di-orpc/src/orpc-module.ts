@@ -11,7 +11,7 @@ export const OrpcModule = (config?: OrpcModuleConfig) => {
       errorInterceptor: config?.errorInterceptor,
     }));
 
-  return class extends Module({
+  return class OrpcModule extends Module({
     providers: [OrpcService],
     exports: [OrpcService],
   }) {
