@@ -97,6 +97,14 @@ export type InjectableClass<
     readonly _injectClasses: { readonly [K in keyof TInject]: TInject[K][1] };
   };
 
+/** Duck-typed logger interface for container internal logging. */
+export type ContainerLogger = {
+  debug(...args: unknown[]): void;
+  info(...args: unknown[]): void;
+  warn(...args: unknown[]): void;
+  error(...args: unknown[]): void;
+};
+
 /** A `Constructor` with `_name`, `_level`, and `_isLogger` static metadata attached by `Logger()`. */
 export type LoggerClass<
   TName extends string = string,

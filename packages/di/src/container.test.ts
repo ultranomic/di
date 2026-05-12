@@ -1,11 +1,11 @@
-import { describe, expect, it } from 'vite-plus/test';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import { Container } from './container.ts';
 import { DIError, DI_ERROR_CODE } from './di-error.ts';
 import { Injectable } from './injectable.ts';
 import { Module } from './module.ts';
 import { SCOPE } from './scope.ts';
 import './test-utils.ts';
-import type { InjectableClass } from './types.ts';
+import type { InjectableClass, ContainerLogger } from './types.ts';
 
 // ---------------------------------------------------------------------------
 // 1. Resolve singleton — same instance twice
@@ -3059,5 +3059,158 @@ describe('Container — stale proxy after stop', () => {
     expect(() => {
       (proxyB as ServiceB).getValue();
     }).toThrowDIError(DI_ERROR_CODE.CIRCULAR_DEPENDENCY, /no longer available/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Logger integration
+// ---------------------------------------------------------------------------
+describe('Container — logger integration', () => {
+  it('logs graph built at info level with default logger', () => {
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    class LService extends Injectable() {}
+    class LModule extends Module({ providers: [LService] }) {}
+    new Container(LModule);
+    expect(infoSpy).toHaveBeenCalledWith('[DI]', 'Dependency graph built:', 1, 'providers');
+    infoSpy.mockRestore();
+  });
+
+  it('logs state transitions during start()', async () => {
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    class LService extends Injectable() {}
+    class LModule extends Module({ providers: [LService] }) {}
+    const container = new Container(LModule);
+    await container.start();
+    expect(infoSpy).toHaveBeenCalledWith('[DI]', 'Bootstrapping…');
+    expect(infoSpy).toHaveBeenCalledWith('[DI]', 'Starting…');
+    expect(infoSpy).toHaveBeenCalledWith('[DI]', 'Container started');
+    infoSpy.mockRestore();
+    await container.stop();
+  });
+
+  it('logs state transitions during stop()', async () => {
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    class LService extends Injectable() {}
+    class LModule extends Module({ providers: [LService] }) {}
+    const container = new Container(LModule);
+    await container.start();
+    infoSpy.mockClear();
+    await container.stop();
+    expect(infoSpy).toHaveBeenCalledWith('[DI]', 'Shutting down…');
+    expect(infoSpy).toHaveBeenCalledWith('[DI]', 'Container stopped');
+    infoSpy.mockRestore();
+  });
+
+  it('logs provider creation at debug level', async () => {
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    class LService extends Injectable() {}
+    class LModule extends Module({ providers: [LService] }) {}
+    const container = new Container(LModule);
+    await container.start();
+    expect(debugSpy).toHaveBeenCalledWith('[DI]', 'Created', 'LService');
+    debugSpy.mockRestore();
+    await container.stop();
+  });
+
+  it('logs lifecycle hooks at debug level', async () => {
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    class LService extends Injectable() {
+      public onApplicationBootstrap() {}
+      public onStart() {}
+      public onStop() {}
+      public beforeApplicationShutdown() {}
+    }
+    class LModule extends Module({ providers: [LService] }) {}
+    const container = new Container(LModule);
+    await container.start();
+    expect(debugSpy).toHaveBeenCalledWith('[DI]', 'onApplicationBootstrap →', 'LService');
+    expect(debugSpy).toHaveBeenCalledWith('[DI]', 'onStart →', 'LService');
+    debugSpy.mockClear();
+    await container.stop();
+    expect(debugSpy).toHaveBeenCalledWith('[DI]', 'beforeApplicationShutdown →', 'LService');
+    expect(debugSpy).toHaveBeenCalledWith('[DI]', 'onStop →', 'LService');
+    debugSpy.mockRestore();
+  });
+
+  it('logs resolve-time errors at warn level', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    class LService extends Injectable() {}
+    class LModule extends Module({ providers: [LService] }) {}
+    const container = new Container(LModule);
+    await container.start();
+    class MissingService extends Injectable() {}
+    expect(() => container.resolve(MissingService)).toThrow();
+    expect(warnSpy).toHaveBeenCalledWith('[DI]', expect.stringContaining('MissingService'));
+    warnSpy.mockRestore();
+    await container.stop();
+  });
+
+  it('logs bootstrap failure at error level', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    class FailService extends Injectable() {
+      public onApplicationBootstrap() {
+        throw new Error('bootstrap failed');
+      }
+    }
+    class FailModule extends Module({ providers: [FailService] }) {}
+    const container = new Container(FailModule);
+    await expect(container.start()).rejects.toThrow('bootstrap failed');
+    expect(errorSpy).toHaveBeenCalledWith(
+      '[DI]',
+      'Container failed to start:',
+      expect.stringContaining('bootstrap failed'),
+    );
+    errorSpy.mockRestore();
+  });
+
+  it('accepts custom logger object', async () => {
+    const logs: { level: string; args: unknown[] }[] = [];
+    const customLogger: ContainerLogger = {
+      debug: (...args) => logs.push({ level: 'debug', args }),
+      info: (...args) => logs.push({ level: 'info', args }),
+      warn: (...args) => logs.push({ level: 'warn', args }),
+      error: (...args) => logs.push({ level: 'error', args }),
+    };
+    class CService extends Injectable() {}
+    class CModule extends Module({ providers: [CService] }) {}
+    const container = new Container(CModule, { logger: customLogger });
+    await container.start();
+    await container.stop();
+    const infoLogs = logs.filter((l) => l.level === 'info');
+    expect(infoLogs.some((l) => l.args[0] === '[DI]' && l.args[1] === 'Bootstrapping…')).toBe(true);
+    expect(infoLogs.some((l) => l.args[0] === '[DI]' && l.args[1] === 'Container started')).toBe(
+      true,
+    );
+    expect(infoLogs.some((l) => l.args[0] === '[DI]' && l.args[1] === 'Shutting down…')).toBe(true);
+    expect(infoLogs.some((l) => l.args[0] === '[DI]' && l.args[1] === 'Container stopped')).toBe(
+      true,
+    );
+  });
+
+  it('logs request scope enter/exit at debug level', async () => {
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    class RService extends Injectable({ scope: SCOPE.REQUEST }) {}
+    class RModule extends Module({ providers: [RService] }) {}
+    const container = new Container(RModule);
+    await container.start();
+    await container.withRequestScope(async () => {});
+    expect(debugSpy).toHaveBeenCalledWith('[DI]', 'Request scope entered');
+    expect(debugSpy).toHaveBeenCalledWith('[DI]', 'Request scope exited');
+    debugSpy.mockRestore();
+    await container.stop();
+  });
+
+  it('logs non-Error thrown during onStart at error level', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    class NonErrorStartService extends Injectable() {
+      public onStart() {
+        throw 'string-error'; // eslint-disable-line no-throw-literal -- testing non-Error throw
+      }
+    }
+    class NonErrorStartModule extends Module({ providers: [NonErrorStartService] }) {}
+    const container = new Container(NonErrorStartModule);
+    await expect(container.start()).rejects.toBe('string-error');
+    expect(errorSpy).toHaveBeenCalledWith('[DI]', 'Container failed to start:', 'string-error');
+    errorSpy.mockRestore();
   });
 });

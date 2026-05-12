@@ -3,7 +3,7 @@ import { assertType, describe, test } from 'vite-plus/test';
 import { Container } from './container.ts';
 import { Injectable } from './injectable.ts';
 import { Module } from './module.ts';
-import type { InjectableClass, ModuleClass } from './types.ts';
+import type { InjectableClass, ModuleClass, ContainerLogger } from './types.ts';
 
 class ConfigService extends Injectable() {
   public getDbUrl(): string {
@@ -62,5 +62,21 @@ describe('Container types', () => {
       return 'test';
     });
     assertType<Promise<string>>(result);
+  });
+
+  test('constructor accepts logger option', () => {
+    const customLogger: ContainerLogger = {
+      debug: () => {},
+      info: () => {},
+      warn: () => {},
+      error: () => {},
+    };
+    const container = new Container(AppModule, { logger: customLogger });
+    assertType<Container>(container);
+  });
+
+  test('constructor accepts empty options object', () => {
+    const container = new Container(AppModule, {});
+    assertType<Container>(container);
   });
 });

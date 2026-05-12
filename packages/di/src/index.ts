@@ -12,6 +12,7 @@ export type {
   ValidInjectEntries,
   InjectableClass,
   LoggerClass,
+  ContainerLogger,
   ModuleClass,
   LifecycleHooks,
 } from './types.ts';

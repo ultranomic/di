@@ -1,8 +1,9 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { DI_ERROR_CODE, DIError } from './di-error.ts';
+import type { DIErrorCode } from './di-error.ts';
 import { buildGraph } from './graph.ts';
 import { SCOPE } from './scope.ts';
-import type { InjectableClass, ModuleClass } from './types.ts';
+import type { InjectableClass, ModuleClass, ContainerLogger } from './types.ts';
 
 type RequestStore = Map<InjectableClass | typeof IN_REQUEST_START, unknown>;
 
@@ -86,6 +87,13 @@ const throwAggregate = (errors: Error[], prefix: string): void => {
 const MSG_NOT_STARTED = 'Container has not been started. Call start() first.';
 const MSG_NOT_IN_STARTED_STATE = 'Container is not in a started state.';
 
+const defaultLogger: ContainerLogger = {
+  debug: (...args) => console.debug(...args),
+  info: (...args) => console.info(...args),
+  warn: (...args) => console.warn(...args),
+  error: (...args) => console.error(...args),
+};
+
 /** Dependency injection container that resolves providers, manages lifecycles, and handles scoping. */
 export class Container {
   readonly #module: ModuleClass;
@@ -97,6 +105,7 @@ export class Container {
   readonly #singletons = new Map<InjectableClass, unknown>();
   readonly #als = new AsyncLocalStorage<RequestStore>();
   readonly #resolutionStack = new Set<InjectableClass>();
+  readonly #logger: ContainerLogger;
   #state:
     | 'idle'
     | 'bootstrapping'
@@ -114,9 +123,17 @@ export class Container {
    * @param {ModuleClass} module - The root module class to build the dependency graph from.
    * @throws {DIError} When the dependency graph contains a cycle, duplicate providers, scope violations, or invalid exports.
    */
-  public constructor(module: ModuleClass) {
+  public constructor(module: ModuleClass, options?: { logger?: ContainerLogger }) {
+    this.#logger = options?.logger ?? defaultLogger;
     this.#module = module;
-    const result = buildGraph(module);
+    let result;
+    try {
+      result = buildGraph(module);
+    } catch (err) {
+      /* v8 ignore next -- buildGraph always throws DIError (extends Error) */
+      this.#logger.warn('[DI]', err instanceof Error ? err.message : String(err));
+      throw err;
+    }
     this.#sorted = result.sorted;
     const singletons: InjectableClass[] = [];
     const requests: InjectableClass[] = [];
@@ -131,6 +148,7 @@ export class Container {
     this.#reversedSingletonProviders = Object.freeze(singletons.toReversed());
     this.#requestProviders = Object.freeze(requests);
     this.#providerSet = new Set(result.sorted);
+    this.#logger.info('[DI]', 'Dependency graph built:', this.#sorted.length, 'providers');
   }
 
   /** The root module class passed to the constructor. */
@@ -157,10 +175,10 @@ export class Container {
   public resolve<T>(cls: InjectableClass<T>): T {
     this.#throwIfStopped();
     if (this.#state === 'idle') {
-      throw new DIError(DI_ERROR_CODE.CONTAINER_NOT_STARTED, MSG_NOT_STARTED);
+      this.#throwLogged(DI_ERROR_CODE.CONTAINER_NOT_STARTED, MSG_NOT_STARTED);
     }
     if (this.#state === 'bootstrapping') {
-      throw new DIError(
+      this.#throwLogged(
         DI_ERROR_CODE.CONTAINER_NOT_STARTED,
         'Container is still bootstrapping. resolve() is not available during bootstrap.',
       );
@@ -171,7 +189,7 @@ export class Container {
 
   #resolveInternal<T>(cls: InjectableClass<T>): T {
     if (!this.#providerSet.has(cls)) {
-      throw new DIError(DI_ERROR_CODE.MISSING_PROVIDER, `No provider registered for ${cls.name}`);
+      this.#throwLogged(DI_ERROR_CODE.MISSING_PROVIDER, `No provider registered for ${cls.name}`);
     }
 
     switch (cls._scope) {
@@ -180,7 +198,7 @@ export class Container {
       }
       case SCOPE.TRANSIENT: {
         if (this.#resolutionStack.has(cls)) {
-          throw new DIError(
+          this.#throwLogged(
             DI_ERROR_CODE.CIRCULAR_DEPENDENCY,
             `Circular dependency involving transient ${cls.name} cannot be resolved. Use Singleton or Request scope for at least one participant in the cycle.`,
           );
@@ -195,7 +213,7 @@ export class Container {
       case SCOPE.REQUEST: {
         const store = this.#als.getStore();
         if (store === undefined) {
-          throw new DIError(
+          this.#throwLogged(
             DI_ERROR_CODE.NOT_IN_REQUEST_SCOPE,
             `Cannot resolve ${cls.name} outside of a request scope. Use container.withRequestScope().`,
           );
@@ -204,7 +222,7 @@ export class Container {
       }
       /* v8 ignore start -- unreachable: buildGraph validates all scopes at construction */
       default: {
-        throw new DIError(
+        this.#throwLogged(
           DI_ERROR_CODE.UNKNOWN_SCOPE,
           `Unknown scope "${String(cls._scope)}" for ${cls.name}`,
         );
@@ -233,12 +251,13 @@ export class Container {
   public async start(): Promise<void> {
     this.#throwIfStopped();
     if (this.#state !== 'idle') {
-      throw new DIError(
+      this.#throwLogged(
         DI_ERROR_CODE.ALREADY_STARTED,
         'Container has already been started or is starting',
       );
     }
     this.#state = 'bootstrapping';
+    this.#logger.info('[DI]', 'Bootstrapping…');
 
     try {
       await this.#startProviders(this.#singletonProviders);
@@ -246,11 +265,17 @@ export class Container {
       this.#singletons.clear();
       this.#resolutionStack.clear();
       this.#state = 'idle';
+      this.#logger.error(
+        '[DI]',
+        'Container failed to start:',
+        err instanceof Error ? err.message : String(err),
+      );
       throw err;
     }
 
     this.#state = 'bootstrapped';
     this.#state = 'starting';
+    this.#logger.info('[DI]', 'Starting…');
 
     try {
       await this.#callOnStart(this.#singletonProviders);
@@ -262,10 +287,16 @@ export class Container {
       this.#singletons.clear();
       this.#resolutionStack.clear();
       this.#state = 'idle';
+      this.#logger.error(
+        '[DI]',
+        'Container failed to start:',
+        err instanceof Error ? err.message : String(err),
+      );
       throw err;
     }
 
     this.#state = 'started';
+    this.#logger.info('[DI]', 'Container started');
   }
 
   /**
@@ -281,10 +312,11 @@ export class Container {
       this.#state === 'bootstrapped' ||
       this.#state === 'starting'
     ) {
-      throw new DIError(DI_ERROR_CODE.CONTAINER_NOT_STARTED, MSG_NOT_IN_STARTED_STATE);
+      this.#throwLogged(DI_ERROR_CODE.CONTAINER_NOT_STARTED, MSG_NOT_IN_STARTED_STATE);
     }
     if (this.#state !== 'started') return;
     this.#state = 'shutting_down';
+    this.#logger.info('[DI]', 'Shutting down…');
 
     const shutdownErrors = await this.#callBeforeApplicationShutdown(this.#singletonProviders);
 
@@ -300,11 +332,17 @@ export class Container {
 
       const allErrors = [...shutdownErrors, ...stopErrors];
       if (allErrors.length > 0) {
+        this.#logger.error(
+          '[DI]',
+          'Container stop failed:',
+          allErrors.map((e) => e.message).join('; '),
+        );
         throwAggregate(allErrors, 'Stop failed');
       }
     } finally {
       this.#singletons.clear();
       this.#state = 'stopped';
+      this.#logger.info('[DI]', 'Container stopped');
     }
   }
 
@@ -320,11 +358,11 @@ export class Container {
   public async withRequestScope<T>(fn: () => Promise<T> | T): Promise<T> {
     this.#throwIfStopped();
     if (this.#state !== 'started') {
-      throw new DIError(DI_ERROR_CODE.CONTAINER_NOT_STARTED, MSG_NOT_STARTED);
+      this.#throwLogged(DI_ERROR_CODE.CONTAINER_NOT_STARTED, MSG_NOT_STARTED);
     }
     const currentStore = this.#als.getStore();
     if (currentStore?.has(IN_REQUEST_START)) {
-      throw new DIError(
+      this.#throwLogged(
         DI_ERROR_CODE.CIRCULAR_DEPENDENCY,
         'Cannot call withRequestScope() from within a request-scoped onApplicationBootstrap or onStart hook — this would cause infinite recursion.',
       );
@@ -334,6 +372,7 @@ export class Container {
     return await this.#als.run(store, async () => {
       const requestProviders = this.#requestProviders;
       store.set(IN_REQUEST_START, true);
+      this.#logger.debug('[DI]', 'Request scope entered');
       try {
         await this.#startProviders(requestProviders, { rollback: false });
         for (const provider of requestProviders) {
@@ -344,6 +383,7 @@ export class Container {
         }
       } catch (startErr) {
         store.delete(IN_REQUEST_START);
+        this.#logger.debug('[DI]', 'Request scope exited');
         const cleanupErrors = await this.#stopInstances([...store.values()].toReversed());
         if (cleanupErrors.length > 0) {
           throwAggregate([toError(startErr), ...cleanupErrors], 'Request scope startup failed');
@@ -352,6 +392,7 @@ export class Container {
         }
       }
       store.delete(IN_REQUEST_START);
+      this.#logger.debug('[DI]', 'Request scope exited');
 
       let result: T | undefined = undefined;
       let callbackError: unknown = undefined;
@@ -388,10 +429,12 @@ export class Container {
     for (const provider of providers) {
       try {
         const instance = this.#resolveInternal(provider);
+        this.#logger.debug('[DI]', 'Created', provider.name);
         if (rollback) {
           startedInstances.push(instance);
         }
         if (hasLifecycleHook(instance, 'onApplicationBootstrap')) {
+          this.#logger.debug('[DI]', 'onApplicationBootstrap →', provider.name);
           await Promise.try(() => instance.onApplicationBootstrap(this));
         }
       } catch (err) {
@@ -409,6 +452,7 @@ export class Container {
       /* v8 ignore next -- defensive: all singletons are instantiated before this runs */
       if (!instance) continue;
       if (hasLifecycleHook(instance, 'onStart')) {
+        this.#logger.debug('[DI]', 'onStart →', provider.name);
         await Promise.try(() => instance.onStart(this));
       }
     }
@@ -421,6 +465,7 @@ export class Container {
       /* v8 ignore next -- defensive: all singletons are instantiated before this runs */
       if (!instance) continue;
       if (hasLifecycleHook(instance, 'beforeApplicationShutdown')) {
+        this.#logger.debug('[DI]', 'beforeApplicationShutdown →', provider.name);
         try {
           await Promise.try(() => instance.beforeApplicationShutdown(this));
         } catch (err) {
@@ -448,6 +493,7 @@ export class Container {
 
     for (const instance of instances) {
       if (!hasLifecycleHook(instance, 'onStop')) continue;
+      this.#logger.debug('[DI]', 'onStop →', instance.constructor.name);
       try {
         await Promise.try(() => instance.onStop(this));
       } catch (err) {
@@ -490,7 +536,12 @@ export class Container {
     if (this.#state === 'stopped' || this.#state === 'stopping') {
       const message =
         this.#state === 'stopping' ? 'Container is shutting down' : 'Container has been stopped';
-      throw new DIError(DI_ERROR_CODE.CONTAINER_STOPPED, message);
+      this.#throwLogged(DI_ERROR_CODE.CONTAINER_STOPPED, message);
     }
+  }
+
+  #throwLogged(code: DIErrorCode, message: string, level: 'warn' | 'error' = 'warn'): never {
+    this.#logger[level]('[DI]', message);
+    throw new DIError(code, message);
   }
 }
