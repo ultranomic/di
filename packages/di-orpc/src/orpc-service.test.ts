@@ -59,7 +59,7 @@ describe('OrpcService', () => {
       expect(handler1).toBe(handler2);
     });
 
-    it('onStart returns void (not Promise)', async () => {
+    it('onReady returns void (not Promise)', async () => {
       class TestModule extends Module({ imports: [OrpcModule()] }) {}
       container = new Container(TestModule);
       await container.start();
@@ -75,7 +75,7 @@ describe('OrpcService', () => {
   });
 
   describe('eager initialization', () => {
-    it('handler built during onStart — immediately available after container start', async () => {
+    it('handler built during onReady — immediately available after container start', async () => {
       class UserRouter extends OrpcRouter({ path: 'user' }) {
         get = this.orpc
           .input(z.object({ id: z.string() }))

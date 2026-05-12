@@ -77,17 +77,18 @@ describe('HonoService', () => {
       expect(app1).toBe(app2);
     });
 
-    it('onStart returns Promise<void>', async () => {
-      class TestModule extends HonoModule({
-        providers: [],
-        options: () => ({ port: 0, host: '0.0.0.0' }),
+    it('onReady returns void, onStart returns Promise<void>', async () => {
+      class TestModule extends Module({
+        providers: [HonoService],
       }) {}
       container = new Container(TestModule);
       await container.start();
       const service = container.resolve(HonoService);
-      const result = service.onStart(container);
-      expect(result).toBeInstanceOf(Promise);
-      await result;
+      const readyResult = service.onReady(container);
+      expect(readyResult).toBeUndefined();
+      const startResult = service.onStart(container);
+      expect(startResult).toBeInstanceOf(Promise);
+      await startResult;
     });
 
     it('onStop returns void (not Promise)', async () => {
