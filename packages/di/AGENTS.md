@@ -37,6 +37,28 @@ Dependency injection framework for Ultranomic. Zero runtime dependencies, no dec
 2. Update `LOG_LEVEL_PRIORITY` in `src/logger.ts` to assign a priority number to the new level.
 3. Add a corresponding instance method on the Logger class in `src/logger.ts` if the new level needs a dedicated method.
 
+### Container logger
+
+The Container accepts an optional `{ logger }` option in its constructor. The logger must implement the `ContainerLogger` interface (duck-typed: `debug`, `info`, `warn`, `error` methods). All container log messages are prefixed with `[DI]`. Default: console output.
+
+When adding new container events that should be logged:
+
+1. State transitions → `info` level
+2. Per-provider events (creation, lifecycle hooks) → `debug` level
+3. Resolve-time errors → `warn` level (log then throw)
+4. Lifecycle failures during start/stop → `error` level (log then throw)
+
+### Container logger
+
+The Container accepts an optional `{ logger }` option in its constructor. The logger must implement the `ContainerLogger` interface (duck-typed: `debug`, `info`, `warn`, `error` methods). All container log messages are prefixed with `[DI]`. Default: console output.
+
+When adding new container events that should be logged:
+
+1. State transitions → `info` level
+2. Per-provider events (creation, lifecycle hooks) → `debug` level
+3. Resolve-time errors → `warn` level (log then throw)
+4. Lifecycle failures during start/stop → `error` level (log then throw)
+
 ## Testing
 
 ```bash
