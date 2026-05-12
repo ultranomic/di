@@ -1,7 +1,7 @@
 import { SCOPE, type Scope } from './scope.ts';
-import type { InjectEntry, ValidInjectEntries, Simplify } from './types.ts';
+import type { InjectEntry, ValidInjectEntries, Simplify, InjectableClass } from './types.ts';
 
-type ToInjectObject<TInject extends readonly InjectEntry[]> = Simplify<{
+export type ToInjectObject<TInject extends readonly InjectEntry[]> = Simplify<{
   readonly [K in TInject[number] as K[0]]: InstanceType<K[1]>;
 }>;
 
@@ -26,7 +26,7 @@ export const Injectable = <
 >(config?: {
   scope?: TScope;
   inject?: ValidInjectEntries<TInject>;
-}) => {
+}): InjectableClass<{ readonly inject: ToInjectObject<TInject> }, TInject, TScope> => {
   const scope = (config?.scope ?? SCOPE.SINGLETON) as TScope;
   const inject = (config?.inject ?? []) as TInject;
   //No need to check for duplicated key, we will do it at the type level

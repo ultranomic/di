@@ -1,11 +1,38 @@
-import { Injectable, SCOPE, type InjectEntry, type ValidInjectEntries } from './index.ts';
+import {
+  Injectable,
+  SCOPE,
+  type InjectEntry,
+  type ValidInjectEntries,
+  type ToInjectObject,
+} from './index.ts';
 import { LOG_LEVEL, type LogLevel } from './log-level.ts';
+import type { Scope } from './scope.ts';
+import type { InjectableClass } from './types.ts';
 
 const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
   DEBUG: 0,
   INFO: 1,
   WARN: 2,
   ERROR: 3,
+};
+
+type LoggerInstance<TInject extends readonly InjectEntry[]> = {
+  readonly inject: ToInjectObject<TInject>;
+  debug(...args: unknown[]): void;
+  info(...args: unknown[]): void;
+  warn(...args: unknown[]): void;
+  error(...args: unknown[]): void;
+};
+
+type LoggerBase<
+  TName extends string,
+  TLevel extends LogLevel,
+  TScope extends Scope,
+  TInject extends readonly InjectEntry[],
+> = InjectableClass<LoggerInstance<TInject>, TInject, TScope> & {
+  readonly _isLogger: true;
+  readonly _name: TName;
+  readonly _level: TLevel;
 };
 
 export const Logger = <
@@ -19,7 +46,7 @@ export const Logger = <
   level?: TLevel;
   scope?: TScope;
   inject?: ValidInjectEntries<TInject>;
-}) => {
+}): LoggerBase<TName, TLevel, TScope, TInject> => {
   const level = (config.level ?? LOG_LEVEL.INFO) as TLevel;
   const scope = (config.scope ?? SCOPE.SINGLETON) as TScope;
 

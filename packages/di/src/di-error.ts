@@ -1,5 +1,4 @@
-/** Error code constants used as discriminators by {@link DIError}. */
-export const DI_ERROR_CODE = Object.freeze({
+export const DI_ERROR_CODE = {
   CIRCULAR_DEPENDENCY: 'CIRCULAR_DEPENDENCY',
   MISSING_PROVIDER: 'MISSING_PROVIDER',
   EXPORT_NOT_IN_PROVIDERS: 'EXPORT_NOT_IN_PROVIDERS',
@@ -10,8 +9,8 @@ export const DI_ERROR_CODE = Object.freeze({
   CONTAINER_NOT_STARTED: 'CONTAINER_NOT_STARTED',
   ALREADY_STARTED: 'ALREADY_STARTED',
   UNKNOWN_SCOPE: 'UNKNOWN_SCOPE',
-} as const);
-/** Union type of all DI error code string literals, derived from {@link DI_ERROR_CODE}. */
+} as const;
+
 export type DIErrorCode = (typeof DI_ERROR_CODE)[keyof typeof DI_ERROR_CODE];
 
 /** Typed error with a `code` discriminator for programmatic error handling in the DI system. */
