@@ -90,8 +90,11 @@ export class HonoService extends HonoServiceBase {
     return this.#host;
   }
 
-  public onStart = async (container: Container): Promise<void> => {
+  public onReady = (container: Container): void => {
     this.#registerRoutes(container);
+  };
+
+  public onStart = async (container: Container): Promise<void> => {
     await this.#startServer(container);
   };
 

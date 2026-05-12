@@ -119,7 +119,7 @@ export class Container {
   #state:
     | 'idle'
     | 'bootstrapping'
-    | 'bootstrapped'
+    | 'ready'
     | 'starting'
     | 'started'
     | 'shutting_down'
@@ -253,7 +253,8 @@ export class Container {
    * Lifecycle phases:
    * 1. **Bootstrapping** — providers are instantiated and their `onApplicationBootstrap` hooks are called.
    *    `resolve()` is NOT available during this phase.
-   * 2. **Starting** — providers' `onStart` hooks are called. `resolve()` IS available during this phase.
+   * 2. **Ready** — providers' `onReady` hooks are called. `resolve()` IS available during this phase.
+   * 3. **Starting** — providers' `onStart` hooks are called. `resolve()` IS available during this phase.
    *
    * @throws {DIError} When the container has already been started or is starting (code `ALREADY_STARTED`).
    * @throws {DIError} When the container has been stopped or is stopping (code `CONTAINER_STOPPED`).
@@ -288,7 +289,26 @@ export class Container {
       throw err;
     }
 
-    this.#state = 'bootstrapped';
+    this.#state = 'ready';
+    this.#logger.info('Ready…');
+
+    try {
+      await this.#callOnReady(this.#singletonProviders);
+    } catch (err) {
+      const instances = this.#singletonProviders
+        .map((p) => this.#singletons.get(p))
+        .filter((inst): inst is object => inst !== undefined);
+      await this.#rollbackStarted(instances);
+      this.#singletons.clear();
+      this.#resolutionStack.clear();
+      this.#state = 'idle';
+      this.#logger.error(
+        'Container failed to start:',
+        err instanceof Error ? err.message : String(err),
+      );
+      throw err;
+    }
+
     this.#state = 'starting';
     this.#logger.info('Starting…');
 
@@ -323,7 +343,7 @@ export class Container {
     if (
       this.#state === 'idle' ||
       this.#state === 'bootstrapping' ||
-      this.#state === 'bootstrapped' ||
+      this.#state === 'ready' ||
       this.#state === 'starting'
     ) {
       this.#throwLogged(DI_ERROR_CODE.CONTAINER_NOT_STARTED, MSG_NOT_IN_STARTED_STATE);
@@ -451,6 +471,18 @@ export class Container {
           await this.#rollbackStarted(startedInstances);
         }
         throw err;
+      }
+    }
+  }
+
+  async #callOnReady(providers: readonly InjectableClass[]): Promise<void> {
+    for (const provider of providers) {
+      const instance = this.#singletons.get(provider);
+      /* v8 ignore next -- defensive: all singletons are instantiated before this runs */
+      if (!instance) continue;
+      if (hasLifecycleHook(instance, 'onReady')) {
+        this.#logger.debug('onReady →', provider.name);
+        await Promise.try(() => instance.onReady(this));
       }
     }
   }
