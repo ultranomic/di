@@ -115,6 +115,7 @@ export class OrpcService extends Injectable({ scope: SCOPE.SINGLETON }) {
 
   public onStart = (container: Container): void => {
     this.#container = container;
+    this.#buildHandler(container);
   };
 
   public onStop = (_container: Container): void => {

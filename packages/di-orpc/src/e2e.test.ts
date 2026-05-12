@@ -50,7 +50,7 @@ describe('End-to-end ORPC with Hono integration', () => {
       }
 
       class AppModule extends Module({
-        imports: [OrpcModule(), HonoModule()],
+        imports: [OrpcModule(), HonoModule({ options: () => ({ port: 3000, host: '0.0.0.0' }) })],
         providers: [UserService, UserRouter],
       }) {}
 
@@ -84,7 +84,7 @@ describe('End-to-end ORPC with Hono integration', () => {
       }
 
       class AppModule extends Module({
-        imports: [OrpcModule(), HonoModule()],
+        imports: [OrpcModule(), HonoModule({ options: () => ({ port: 3000, host: '0.0.0.0' }) })],
         providers: [UserRouter, ProductRouter],
       }) {}
 
@@ -128,7 +128,7 @@ describe('End-to-end ORPC with Hono integration', () => {
       }
 
       class AppModule extends Module({
-        imports: [OrpcModule(), HonoModule()],
+        imports: [OrpcModule(), HonoModule({ options: () => ({ port: 3000, host: '0.0.0.0' }) })],
         providers: [ConfigService, ApiService, ApiRouter],
       }) {}
 
@@ -166,7 +166,7 @@ describe('End-to-end ORPC with Hono integration', () => {
       }
 
       class AppModule extends Module({
-        imports: [OrpcModule(), HonoModule()],
+        imports: [OrpcModule(), HonoModule({ options: () => ({ port: 3000, host: '0.0.0.0' }) })],
         providers: [RequestContext, TestRouter],
       }) {}
 
@@ -192,7 +192,7 @@ describe('End-to-end ORPC with Hono integration', () => {
       }
 
       class AppModule extends Module({
-        imports: [OrpcModule(), HonoModule()],
+        imports: [OrpcModule(), HonoModule({ options: () => ({ port: 3000, host: '0.0.0.0' }) })],
         providers: [FailingRouter],
       }) {}
 
@@ -209,7 +209,7 @@ describe('End-to-end ORPC with Hono integration', () => {
   describe('Container lifecycle', () => {
     it('starts and stops cleanly', async () => {
       class AppModule extends Module({
-        imports: [OrpcModule(), HonoModule()],
+        imports: [OrpcModule(), HonoModule({ options: () => ({ port: 3000, host: '0.0.0.0' }) })],
       }) {}
 
       container = new Container(AppModule);
@@ -226,7 +226,7 @@ describe('End-to-end ORPC with Hono integration', () => {
 
     it('resolves services after start', async () => {
       class AppModule extends Module({
-        imports: [OrpcModule(), HonoModule()],
+        imports: [OrpcModule(), HonoModule({ options: () => ({ port: 3000, host: '0.0.0.0' }) })],
       }) {}
 
       container = new Container(AppModule);
