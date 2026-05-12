@@ -22,10 +22,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 24
+      - name: Setup Node.js 26
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '26'
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -49,12 +49,12 @@ jobs:
       - name: Type check
         run: |
           pnpm run typecheck
-          echo "🔍 Type check passed on Node.js 24" >> $GITHUB_STEP_SUMMARY
+          echo "🔍 Type check passed on Node.js 26" >> $GITHUB_STEP_SUMMARY
 
       - name: Run full pipeline
         run: |
           pnpm run prepublishOnly
-          echo "✅ Full pipeline passed on Node.js 24" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Full pipeline passed on Node.js 26" >> $GITHUB_STEP_SUMMARY
 
       - name: Run tests with coverage verification
         run: |
@@ -66,4 +66,4 @@ jobs:
       - name: Verify package contents
         run: |
           pnpm pack
-          echo "📦 Package contents verified on Node.js 24" >> $GITHUB_STEP_SUMMARY
+          echo "📦 Package contents verified on Node.js 26" >> $GITHUB_STEP_SUMMARY
