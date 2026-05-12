@@ -1,3 +1,4 @@
+import type { LogLevel } from './log-level.ts';
 import type { Scope } from './scope.ts';
 
 export type Simplify<T> = { [KeyType in keyof T]: T[KeyType] } & {};
@@ -95,6 +96,18 @@ export type InjectableClass<
     readonly _inject: TInject;
     readonly _injectClasses: { readonly [K in keyof TInject]: TInject[K][1] };
   };
+
+/** A `Constructor` with `_name`, `_level`, and `_isLogger` static metadata attached by `Logger()`. */
+export type LoggerClass<
+  TName extends string = string,
+  TLevel extends LogLevel = LogLevel,
+  TScope extends Scope = Scope,
+  TInject extends readonly InjectEntry[] = readonly InjectEntry[],
+> = InjectableClass<unknown, TInject, TScope> & {
+  readonly _isLogger: true;
+  readonly _name: TName;
+  readonly _level: TLevel;
+};
 
 /** A `Constructor` with `_providers`, `_exports`, and `_imports` static metadata attached by `Module()`. */
 export type ModuleClass = Constructor & {
