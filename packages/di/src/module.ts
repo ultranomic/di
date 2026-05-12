@@ -1,5 +1,5 @@
 import { DI_ERROR_CODE, DIError } from './di-error.ts';
-import type { InjectableClass, ModuleClass } from './types.ts';
+import type { Constructor, InjectableClass, ModuleClass } from './types.ts';
 
 const isModuleClass = (entry: InjectableClass | ModuleClass): entry is ModuleClass =>
   '_isModule' in entry && entry._isModule === true;
@@ -24,6 +24,33 @@ export const resolveExports = (
   return result;
 };
 
+type FlattenExports<T extends readonly unknown[]> = T extends readonly [
+  infer First,
+  ...infer Rest extends readonly unknown[],
+]
+  ? First extends ModuleClass
+    ? readonly [...First['_combinedExports'], ...FlattenExports<Rest>]
+    : First extends InjectableClass
+      ? readonly [First, ...FlattenExports<Rest>]
+      : never
+  : readonly [];
+
+type ModuleBase<
+  TProviders extends readonly InjectableClass[] = readonly InjectableClass[],
+  TImports extends readonly ModuleClass[] = readonly ModuleClass[],
+  TExports extends readonly (InjectableClass | ModuleClass)[] = readonly (
+    | InjectableClass
+    | ModuleClass
+  )[],
+> = Constructor<object> & {
+  readonly _isModule: true;
+  readonly _providers: TProviders;
+  readonly _exports: TExports;
+  readonly _imports: TImports;
+  readonly _combinedProviders: readonly [...TProviders, ...FlattenExports<TImports>];
+  readonly _combinedExports: FlattenExports<TExports>;
+};
+
 /**
  * Mixin factory that groups providers and declares what's shared with other modules.
  * @param {{ providers?: TProviders; imports?: TImports; exports?: TExports }} config - Optional configuration with providers, exports, and imports.
@@ -44,7 +71,7 @@ export const Module = <
   providers?: TProviders;
   imports?: TImports;
   exports?: TExports;
-}) => {
+}): ModuleBase<TProviders, TImports, TExports> => {
   const providers = (config?.providers ?? []) as TProviders;
   const imports = (config?.imports ?? []) as TImports;
   const exports = (config?.exports ?? []) as TExports;
@@ -74,21 +101,15 @@ export const Module = <
   ) as unknown as FlattenExports<TExports>;
 
   return class {
-    public static readonly _isModule = true as const;
-    public static readonly _providers = providers;
-    public static readonly _imports = imports;
-    public static readonly _exports = exports;
-    public static readonly _combinedProviders = combinedProviders;
-    public static readonly _combinedExports = combinedExports;
+    public static readonly _isModule: true = true as const;
+    public static readonly _providers: TProviders = providers;
+    public static readonly _imports: TImports = imports;
+    public static readonly _exports: TExports = exports;
+    public static readonly _combinedProviders: readonly [
+      ...TProviders,
+      ...FlattenExports<TImports>,
+    ] = combinedProviders as unknown as readonly [...TProviders, ...FlattenExports<TImports>];
+    public static readonly _combinedExports: FlattenExports<TExports> =
+      combinedExports as unknown as FlattenExports<TExports>;
   };
 };
-type FlattenExports<T extends readonly unknown[]> = T extends readonly [
-  infer First,
-  ...infer Rest extends readonly unknown[],
-]
-  ? First extends ModuleClass
-    ? readonly [...First['_combinedExports'], ...FlattenExports<Rest>]
-    : First extends InjectableClass
-      ? readonly [First, ...FlattenExports<Rest>]
-      : never
-  : readonly [];

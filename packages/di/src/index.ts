@@ -16,6 +16,7 @@ export type {
   ModuleClass,
   LifecycleHooks,
 } from './types.ts';
+export type { ToInjectObject } from './injectable.ts';
 export type { DIErrorCode } from './di-error.ts';
 export type { Scope } from './scope.ts';
 export type { LogLevel } from './log-level.ts';
