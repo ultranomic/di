@@ -91,29 +91,68 @@ Dependencies are resolved in order and passed to the constructor as positional a
 
 #### Lifecycle Hooks
 
-Providers can define optional lifecycle hooks that the container calls during startup and shutdown:
+Providers can define optional lifecycle hooks that the container calls during a 3-phase startup (bootstrapping, ready, starting) and a 2-phase shutdown:
+
+**Execution order:**
+
+1. `onApplicationBootstrap(container)` — bootstrapping phase. Providers are being instantiated. `resolve()` is NOT available.
+2. `onReady(container)` — ready phase. All singletons are instantiated. `resolve()` IS available. Use for route registration, router binding, etc.
+3. `onStart(container)` — starting phase. `resolve()` IS available. Use for starting servers, external connections.
+4. `beforeApplicationShutdown(container)` — shutdown phase, called before `onStop`.
+5. `onStop(container)` — shutdown phase, called in reverse dependency order.
 
 ```typescript
 class DatabaseService extends Injectable({
   scope: SCOPE.SINGLETON,
   inject: [['config', ConfigService]],
 }) {
-  async onStart(container: Container): Promise<void> {
-    // Called during container.start(), in dependency order
-    await this.connect(this.inject.config.getConnectionString());
+  async onApplicationBootstrap(container: Container): Promise<void> {
+    // Bootstrapping: providers are still being instantiated
   }
 
-  async onStop(container: Container): Promise<void> {
-    // Called during container.stop(), in reverse dependency order
-    await this.disconnect();
+  async onReady(container: Container): Promise<void> {
+    // Ready: resolve() is available. Register routes, bind routers.
+  }
+
+  async onStart(container: Container): Promise<void> {
+    // Starting: open connections, start servers
+    await this.connect(this.inject.config.getConnectionString());
   }
 }
 ```
 
-- `onStart(container)` is called for each **singleton** provider during `container.start()`, following the resolved dependency order. Request-scoped providers are started inside `withRequestScope()` instead. Transient providers are skipped — lifecycle hooks are not meaningful for them since each `resolve()` creates a fresh instance.
-- `onStop(container)` is called for each **singleton** provider during `container.stop()`, in reverse order. Request-scoped providers are stopped at the end of each `withRequestScope()` call. Transient providers are never stopped.
-- If any `onStart` throws, already-started providers are stopped (reverse order), and the error propagates. During `start()` rollback, `onStop` errors are intentionally suppressed to avoid masking the original failure.
+- Hooks are called for each **singleton** provider in dependency order. Request-scoped providers are started inside `withRequestScope()` instead. Transient providers are skipped — lifecycle hooks are not meaningful for them since each `resolve()` creates a fresh instance.
+- `onStop(container)` is called during `container.stop()` in reverse order. Request-scoped providers are stopped at the end of each `withRequestScope()` call.
+- If any startup hook throws, already-started providers are stopped (reverse order), and the error propagates. During `start()` rollback, `onStop` errors are intentionally suppressed to avoid masking the original failure.
 - If any `onStop` throws, errors are collected and thrown as an `AggregateError`. This applies to `stop()` and the normal `withRequestScope()` cleanup path.
+
+### Logging
+
+The container has a built-in logger accessible via `container.logger`. The default logger outputs messages in the format `[name] YYYY-MM-DD HH:mm:ss LEVEL ...args`.
+
+```typescript
+import { Container, DefaultLogger } from '@ultranomic/di';
+
+// Use default logger with custom name
+const container = new Container(AppModule, {
+  logger: new DefaultLogger({ name: 'MyApp' }),
+});
+
+// Access logger from container
+container.logger.info('Server started');
+```
+
+You can customize the logger by extending the `Logger()` factory:
+
+```typescript
+import { Logger } from '@ultranomic/di';
+
+class CustomLogger extends Logger({ name: 'App', level: LOG_LEVEL.INFO }) {
+  info(...args: unknown[]) {
+    // Custom implementation
+  }
+}
+```
 
 ### Module
 
@@ -192,7 +231,7 @@ await container.stop();
 | Method             | Signature                                      | Description                                                                                                                                                                                                                                                            |
 | ------------------ | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `resolve`          | `<T>(cls: InjectableClass<T>) => T`            | Get an instance. Behavior depends on provider scope.                                                                                                                                                                                                                   |
-| `start`            | `() => Promise<void>`                          | Instantiate singleton providers, call `onStart` hooks in dependency order. Request-scoped providers are started inside `withRequestScope()`.                                                                                                                           |
+| `start`            | `() => Promise<void>`                          | 3-phase startup: (1) bootstrapping — instantiate singletons and call `onApplicationBootstrap`, (2) ready — call `onReady`, (3) starting — call `onStart`. Request-scoped providers are started inside `withRequestScope()`.                                            |
 | `stop`             | `() => Promise<void>`                          | Call `onStop` hooks in reverse order, mark container as stopped.                                                                                                                                                                                                       |
 | `withRequestScope` | `<T>(fn: () => Promise<T> \| T) => Promise<T>` | Run a callback with a fresh request-scoped instance store. All request-scoped providers are instantiated and started before the callback runs. If a request-scoped provider's `onStart` fails, already-started request providers are stopped and the error propagates. |
 | `module`           | `ModuleClass`                                  | The root module class passed to the constructor.                                                                                                                                                                                                                       |
@@ -241,9 +280,13 @@ Attempting to resolve a `SCOPE.REQUEST` provider outside of `withRequestScope()`
 | `InjectableClassBase` | Type     | Minimal `InjectableClass` shape for forward declarations and graph traversal.                                                         |
 | `InjectEntry`         | Type     | Tuple of `[name, InjectableClassBase]` for declaring injectable dependencies.                                                         |
 | `ModuleClass`         | Type     | A `Constructor` with `_isModule`, `_providers`, `_combinedProviders`, `_combinedExports`, `_exports`, and `_imports` static metadata. |
-| `LifecycleHooks<T>`   | Type     | Optional `onStart(container)` and `onStop(container)` hooks.                                                                          |
+| `LifecycleHooks<T>`   | Type     | Optional `onApplicationBootstrap`, `onReady`, `onStart`, `beforeApplicationShutdown`, and `onStop` hooks.                             |
 | `DIErrorCode`         | Type     | Union of all DI error code literals (derived from `DI_ERROR_CODE`).                                                                   |
 | `Scope`               | Type     | Union of valid provider scope literals (derived from `SCOPE`).                                                                        |
+| `Logger`              | Function | Factory that creates a logger class with configurable name, level, and inject.                                                        |
+| `DefaultLogger`       | Class    | Default logger implementation extending `Logger()`. Name defaults to `'DI'`, level defaults to `DEBUG`.                               |
+| `LOG_LEVEL`           | Object   | `{ DEBUG, INFO, WARN, ERROR }` log level constants.                                                                                   |
+| `LoggerInstance`      | Type     | Structural type for logger instances: `{ name?, level, inject, debug, info, warn, error }`.                                           |
 
 ## Error Handling
 

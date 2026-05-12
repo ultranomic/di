@@ -11,7 +11,7 @@ class UserController extends Controller({
 
 class OrderController extends Controller({
   path: '/orders',
-  inject: [['userService', UserService]] as const,
+  inject: [['userService', UserService]],
 }) {}
 
 class DefaultController extends Controller({

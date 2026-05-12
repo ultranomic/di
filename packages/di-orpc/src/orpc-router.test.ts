@@ -35,7 +35,7 @@ describe('OrpcRouter', () => {
   it('passes inject config to Injectable', () => {
     class TestRouter extends OrpcRouter({
       path: 'test',
-      inject: [['service', TestService]] as const,
+      inject: [['service', TestService]],
     }) {}
     expect(TestRouter._injectClasses).toEqual([TestService]);
   });
@@ -73,7 +73,7 @@ describe('OrpcRouter', () => {
   it('Container can resolve router instances', async () => {
     class TestRouter extends OrpcRouter({
       path: 'test',
-      inject: [['service', TestService]] as const,
+      inject: [['service', TestService]],
     }) {
       readonly #service: TestService;
       constructor(service: TestService) {

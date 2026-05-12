@@ -68,7 +68,7 @@ describe('Cross-package error propagation', () => {
 
       class TestRouter extends OrpcRouter({
         path: 'test',
-        inject: [['service', FailingService]] as const,
+        inject: [['service', FailingService]],
       }) {
         getValue = this.orpc
           .input(z.object({}))

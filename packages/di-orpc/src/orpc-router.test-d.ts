@@ -8,7 +8,7 @@ class UserService extends Injectable({ scope: SCOPE.SINGLETON }) {}
 
 class UserRouter extends OrpcRouter({
   path: 'users',
-  inject: [['userService', UserService]] as const,
+  inject: [['userService', UserService]],
 }) {
   list = this.orpc.handler(async () => []);
   getById = this.orpc.handler(async () => '');
@@ -51,14 +51,14 @@ describe('OrpcRouter types', () => {
     assertType<OrpcRouterConfig<'users'>>({ path: 'users' });
     assertType<OrpcRouterConfig<'users', readonly [readonly ['userService', typeof UserService]]>>({
       path: 'users',
-      inject: [['userService', UserService]] as const,
+      inject: [['userService', UserService]],
     });
   });
 
   test('instance has orpc builder', () => {
     class ExposedRouter extends OrpcRouter({
       path: 'users',
-      inject: [['userService', UserService]] as const,
+      inject: [['userService', UserService]],
     }) {
       public getOrpc() {
         return this.orpc;

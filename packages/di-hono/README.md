@@ -237,7 +237,7 @@ class HttpModule extends HonoModule({
 
 `HonoService` is an auto-registered singleton that creates and configures the Hono app. You don't instantiate it directly. `HonoModule` adds it to providers for you.
 
-When `.hono` is first accessed, `HonoService` discovers all controller providers, resolves their instances, collects their route definitions, and registers them on the Hono app. Each handler is wrapped to run inside a container request scope with all `RequestContext` subclasses populated.
+Route registration happens in the `onReady` lifecycle hook: `HonoService` discovers all controller providers, resolves their instances, collects their route definitions, and registers them on the Hono app. Each handler is wrapped to run inside a container request scope with all `RequestContext` subclasses populated. Server startup happens separately in `onStart`, which starts the HTTP server if running in Node.js with a configured port.
 
 **Accessing the Hono instance:**
 
@@ -248,13 +248,16 @@ const honoService = container.resolve(HonoService);
 const app = honoService.hono;
 ```
 
-| Property  | Type   | Description                                                                                                                                                    |
-| --------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `hono`    | Getter | The configured Hono application instance.                                                                                                                      |
-| `port`    | Getter | `number \| undefined` — Configured server port from module options.                                                                                            |
-| `host`    | Getter | `string \| undefined` — Configured server host from module options.                                                                                            |
-| `onStart` | Method | Lifecycle hook called by the container. Sets container reference. Route registration (including error handler binding) happens lazily on first `.hono` access. |
-| `onStop`  | Method | Lifecycle hook called by the container. Resets internal state (HonoService does not manage a server lifecycle).                                                |
+| Property                    | Type   | Description                                                                                                                   |
+| --------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `hono`                      | Getter | The configured Hono application instance.                                                                                     |
+| `port`                      | Getter | `number \| undefined` — Configured server port from module options.                                                           |
+| `host`                      | Getter | `string \| undefined` — Configured server host from module options.                                                           |
+| `logger`                    | Getter | The container logger instance (available during lifecycle hooks via `container.logger`).                                      |
+| `onReady`                   | Method | Lifecycle hook. Discovers controllers, resolves instances, registers routes on the Hono app. Called during the "ready" phase. |
+| `onStart`                   | Method | Lifecycle hook. Starts the HTTP server if running in Node.js with a configured port. Called after `onReady`.                  |
+| `beforeApplicationShutdown` | Method | Lifecycle hook. Logs shutdown and closes the server.                                                                          |
+| `onStop`                    | Method | Lifecycle hook. Resets internal state.                                                                                        |
 
 ### RequestContext
 

@@ -32,7 +32,7 @@ describe('End-to-end ORPC with Hono integration', () => {
 
       class UserRouter extends OrpcRouter({
         path: 'users',
-        inject: [['userService', UserService]] as const,
+        inject: [['userService', UserService]],
       }) {
         list = this.orpc
           .input(z.object({}))
@@ -117,7 +117,7 @@ describe('End-to-end ORPC with Hono integration', () => {
 
       class ApiRouter extends OrpcRouter({
         path: 'api',
-        inject: [['apiService', ApiService]] as const,
+        inject: [['apiService', ApiService]],
       }) {
         getData = this.orpc
           .input(z.object({}))

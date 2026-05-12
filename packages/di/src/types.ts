@@ -1,4 +1,3 @@
-import type { LogLevel } from './log-level.ts';
 import type { Scope } from './scope.ts';
 
 export type Simplify<T> = { [KeyType in keyof T]: T[KeyType] } & {};
