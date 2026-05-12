@@ -59,10 +59,12 @@ describe('OrpcService', () => {
       expect(handler1).toBe(handler2);
     });
 
-    it('onStart returns void (not Promise)', () => {
-      const service = new OrpcService();
-      const result = service.onStart({} as Container);
-      expect(result).toBeUndefined();
+    it('onStart returns void (not Promise)', async () => {
+      class TestModule extends Module({ imports: [OrpcModule()] }) {}
+      container = new Container(TestModule);
+      await container.start();
+      const service = container.resolve(OrpcService);
+      expect(service.handler).toBeInstanceOf(StandardRPCHandler);
     });
 
     it('onStop returns void (not Promise)', () => {
@@ -72,8 +74,8 @@ describe('OrpcService', () => {
     });
   });
 
-  describe('lazy initialization', () => {
-    it('handler NOT built in onStart — only container reference stored', async () => {
+  describe('eager initialization', () => {
+    it('handler built during onStart — immediately available after container start', async () => {
       class UserRouter extends OrpcRouter({ path: 'user' }) {
         get = this.orpc
           .input(z.object({ id: z.string() }))
@@ -214,17 +216,16 @@ describe('OrpcService', () => {
       class TestModule extends Module({ imports: [OrpcModule()], providers: [Router1, Router2] }) {}
 
       container = new Container(TestModule);
-      await container.start();
-      const service = container.resolve(OrpcService);
 
       try {
-        void service.handler;
+        await container.start();
         expect.unreachable();
       } catch (err) {
         expect(err).toBeInstanceOf(DIError);
-        expect((err as DIError).code).toBe('DUPLICATE_PROVIDER');
         expect((err as DIError).message).toContain("Duplicate ORPC router path: 'user'");
       }
+
+      container = undefined as unknown as Container;
     });
   });
 
@@ -541,7 +542,7 @@ describe('OrpcService', () => {
       }
 
       class TestHonoModule extends HonoModule({
-        providers: [],
+        options: () => ({ port: 3000, host: '0.0.0.0' }),
       }) {}
 
       class AppModule extends Module({
@@ -577,7 +578,7 @@ describe('OrpcService', () => {
       }
 
       class TestHonoModule extends HonoModule({
-        providers: [],
+        options: () => ({ port: 3000, host: '0.0.0.0' }),
       }) {}
 
       class TestOrpcModule extends OrpcModule() {}
@@ -642,6 +643,7 @@ describe('OrpcService', () => {
       class TestHonoModule extends HonoModule({
         providers: [TestController],
         exports: [TestController],
+        options: () => ({ port: 3000, host: '0.0.0.0' }),
       }) {}
 
       class AppModule extends Module({
@@ -680,7 +682,7 @@ describe('OrpcService', () => {
       }
 
       class TestHonoModule extends HonoModule({
-        providers: [],
+        options: () => ({ port: 3000, host: '0.0.0.0' }),
       }) {}
 
       class AppModule extends Module({

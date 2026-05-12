@@ -14,6 +14,7 @@
     "access": "public"
   },
   "scripts": {
+    "start:dev": "node --watch ./examples/with-hono.ts",
     "build": "vp pack",
     "dev": "vp pack --watch",
     "test": "vp test",

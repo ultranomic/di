@@ -14,7 +14,7 @@ import { OrpcModule, OrpcRouter } from '../src/index.ts';
 // ---------------------------------------------------------------------------
 // 1. Define a Hono controller for REST endpoints
 // ---------------------------------------------------------------------------
-class HealthController extends Controller({ path: '/health' }) {
+class UserController extends Controller({ path: '/user' }) {
   public check = this.route({
     method: 'GET',
     path: '/',
@@ -29,17 +29,21 @@ class UserRouter extends OrpcRouter({ path: 'user' }) {
   public list = this.orpc.input(z.object({})).handler(() => [{ id: '1', name: 'Alice' }]);
 }
 
+class UserModule extends Module({
+  providers: [UserController, UserRouter],
+  exports: [UserController, UserRouter],
+}) {}
+
 // ---------------------------------------------------------------------------
 // 3. Compose modules — AppModule extends Module, imports HttpModule + OrpcModule
 // ---------------------------------------------------------------------------
 class HttpModule extends HonoModule({
-  providers: [HealthController],
+  imports: [OrpcModule({ prefix: '/rpc' })],
   options: () => ({ port: 3000, host: '0.0.0.0' }),
 }) {}
 
 class AppModule extends Module({
-  imports: [HttpModule, OrpcModule()],
-  providers: [UserRouter],
+  imports: [HttpModule, UserModule],
 }) {}
 
 // ---------------------------------------------------------------------------
@@ -49,9 +53,8 @@ async function main(): Promise<void> {
   const container = new Container(AppModule);
   await container.start();
   console.log('Server running at http://localhost:3000');
-  console.log('REST: GET /health');
-  console.log('ORPC: POST /rpc/user/list');
-  await container.stop();
+
+  // await container.stop();
 }
 
 main().catch(console.error);
