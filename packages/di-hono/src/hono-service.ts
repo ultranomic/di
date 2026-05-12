@@ -37,7 +37,7 @@ const isHonoModuleClass = (moduleClass: ModuleClass): moduleClass is HonoModuleC
 const isRequestContextClass = (cls: InjectableClass): cls is RequestContextClass =>
   '_isRequestContext' in cls && cls._isRequestContext === true;
 
-const isNode = () =>
+const isNode = (): boolean =>
   typeof process !== 'undefined' && !process?.versions?.bun && !!process?.versions?.node;
 
 const getRouteProperties = (instance: object): RouteDefinition[] => {
@@ -51,7 +51,10 @@ const getRouteProperties = (instance: object): RouteDefinition[] => {
   return routes;
 };
 
-const createValidationMiddleware = (target: ValidateTarget, schema: StandardSchema) => {
+const createValidationMiddleware = (
+  target: ValidateTarget,
+  schema: StandardSchema,
+): MiddlewareHandler => {
   return validator(target, async (value, c) => {
     const result = await schema['~standard'].validate(value);
     if (result.issues) {
@@ -63,7 +66,11 @@ const createValidationMiddleware = (target: ValidateTarget, schema: StandardSche
 
 type NodeServer = HttpServer | Http2Server | Http2SecureServer | HttpsServer;
 
-export class HonoService extends Injectable({ scope: SCOPE.SINGLETON }) {
+const HonoServiceBase: InjectableClass<object, readonly [], typeof SCOPE.SINGLETON> = Injectable({
+  scope: SCOPE.SINGLETON,
+});
+
+export class HonoService extends HonoServiceBase {
   public static readonly _isHonoService = true as const;
   #app = new Hono();
   #port: number | undefined;
