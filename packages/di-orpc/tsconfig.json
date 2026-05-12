@@ -2,9 +2,6 @@
   "extends": ["@ultranomic/tsconfig/base.json"],
   "compilerOptions": {
     "noEmit": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
     "types": ["node"]
   },
   "include": ["src/**/*.ts", "examples/**/*.ts"],
