@@ -57,8 +57,7 @@ describe('End-to-end HTTP lifecycle', () => {
 
       class AppModule extends HonoModule({
         imports: [UserModule],
-        options: () => ({ port: 0, host: "0.0.0.0" }),
-
+        options: () => ({ port: 0, host: '0.0.0.0' }),
       }) {}
 
       container = new Container(AppModule);
@@ -108,8 +107,7 @@ describe('End-to-end HTTP lifecycle', () => {
 
       class AppModule extends HonoModule({
         providers: [RequestId, TestController],
-        options: () => ({ port: 0, host: "0.0.0.0" }),
-
+        options: () => ({ port: 0, host: '0.0.0.0' }),
       }) {}
 
       const result = await setupModule(AppModule);
@@ -159,8 +157,7 @@ describe('End-to-end HTTP lifecycle', () => {
 
       class AppModule extends HonoModule({
         providers: [UserController, ProductController, OrderController],
-        options: () => ({ port: 0, host: "0.0.0.0" }),
-
+        options: () => ({ port: 0, host: '0.0.0.0' }),
       }) {}
 
       container = new Container(AppModule);
@@ -211,8 +208,7 @@ describe('End-to-end HTTP lifecycle', () => {
 
       class AppModule extends HonoModule({
         providers: [TestController],
-        options: () => ({ port: 0, host: "0.0.0.0" }),
-
+        options: () => ({ port: 0, host: '0.0.0.0' }),
       }) {}
 
       container = new Container(AppModule);
@@ -254,8 +250,7 @@ describe('End-to-end HTTP lifecycle', () => {
 
       class AppModule extends HonoModule({
         providers: [TestController],
-        options: () => ({ port: 0, host: "0.0.0.0" }),
-
+        options: () => ({ port: 0, host: '0.0.0.0' }),
       }) {}
 
       container = new Container(AppModule);
@@ -309,8 +304,7 @@ describe('End-to-end HTTP lifecycle', () => {
 
       class AppModule extends HonoModule({
         providers: [TestController],
-        options: () => ({ port: 0, host: "0.0.0.0" }),
-
+        options: () => ({ port: 0, host: '0.0.0.0' }),
       }) {}
 
       container = new Container(AppModule);

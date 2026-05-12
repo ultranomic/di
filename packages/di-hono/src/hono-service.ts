@@ -118,7 +118,9 @@ export class HonoService extends Injectable({ scope: SCOPE.SINGLETON }) {
       opts.createServer = this.#serverOptions.createServer as NonNullable<typeof opts.createServer>;
     }
     if (this.#serverOptions?.serverOptions) {
-      opts.serverOptions = this.#serverOptions.serverOptions as NonNullable<typeof opts.serverOptions>;
+      opts.serverOptions = this.#serverOptions.serverOptions as NonNullable<
+        typeof opts.serverOptions
+      >;
     }
     this.#server = await new Promise<NodeServer>((resolve) => {
       const server = serve(opts, (info) => {

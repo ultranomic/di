@@ -25,7 +25,7 @@ const ERROR_CODES: DIErrorCode[] = [
 
 describe('errorHandler', () => {
   describe('DIError', () => {
-    it('returns 500 JSON with code and message for each DIErrorCode', async () => {
+    it('returns 500 JSON with code for each DIErrorCode', async () => {
       for (const code of ERROR_CODES) {
         const app = createApp();
         app.get('/test', () => {
@@ -35,11 +35,11 @@ describe('errorHandler', () => {
         const res = await app.fetch(new Request('http://localhost/test'));
         expect(res.status).toBe(500);
         const body = await res.json();
-        expect(body).toEqual({ error: { code, message: `${code} occurred` } });
+        expect(body).toEqual({ error: { code } });
       }
     });
 
-    it('preserves original DIError message', async () => {
+    it('does not leak internal DIError message', async () => {
       const app = createApp();
       app.get('/test', () => {
         throw new DIError('MISSING_PROVIDER', 'Service "UserService" not found');
@@ -47,9 +47,8 @@ describe('errorHandler', () => {
 
       const res = await app.fetch(new Request('http://localhost/test'));
       const body = await res.json();
-      expect(body).toEqual({
-        error: { code: 'MISSING_PROVIDER', message: 'Service "UserService" not found' },
-      });
+      expect(body).toEqual({ error: { code: 'MISSING_PROVIDER' } });
+      expect(JSON.stringify(body)).not.toContain('UserService');
     });
 
     it('returns Content-Type: application/json header for DIError', async () => {

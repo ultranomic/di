@@ -60,6 +60,10 @@ const createLazyProxy = <T>(
       Object.defineProperty(lazyTarget() as object, prop, descriptor);
       return true;
     },
+    deleteProperty(_target, prop) {
+      const target = lazyTarget() as object;
+      return Reflect.deleteProperty(target, prop);
+    },
   }) as T;
 };
 

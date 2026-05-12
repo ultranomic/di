@@ -1,6 +1,9 @@
 import type { InjectableClass, InjectEntry, ModuleClass } from '@ultranomic/di';
 import type { Context, MiddlewareHandler } from 'hono';
-import type { ServerOptions as Http2ServerOptions, SecureServerOptions as Http2SecureServerOptions } from 'node:http2';
+import type {
+  ServerOptions as Http2ServerOptions,
+  SecureServerOptions as Http2SecureServerOptions,
+} from 'node:http2';
 import type { ServerOptions as HttpsServerOptions } from 'node:https';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';

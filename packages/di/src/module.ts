@@ -65,8 +65,13 @@ export const Module = <
     }
   }
 
-  const combinedProviders = [...providers, ...imports.flatMap((m) => m._combinedExports)];
-  const combinedExports = exports.flatMap((e) => (isModuleClass(e) ? e._combinedExports : [e]));
+  const combinedProviders = [
+    ...providers,
+    ...(imports.flatMap((m) => m._combinedExports) as unknown as FlattenExports<TImports>),
+  ] as const;
+  const combinedExports = exports.flatMap((e) =>
+    isModuleClass(e) ? e._combinedExports : [e],
+  ) as unknown as FlattenExports<TExports>;
 
   return class {
     public static readonly _isModule = true as const;
@@ -77,3 +82,13 @@ export const Module = <
     public static readonly _combinedExports = combinedExports;
   };
 };
+type FlattenExports<T extends readonly unknown[]> = T extends readonly [
+  infer First,
+  ...infer Rest extends readonly unknown[],
+]
+  ? First extends ModuleClass
+    ? readonly [...First['_combinedExports'], ...FlattenExports<Rest>]
+    : First extends InjectableClass
+      ? readonly [First, ...FlattenExports<Rest>]
+      : never
+  : readonly [];

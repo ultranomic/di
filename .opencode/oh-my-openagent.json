@@ -25,99 +25,99 @@
   },
   "agents": {
     "sisyphus": {
-      "model": "zai-coding-plan/glm-5.1",
+      "model": "wafer.ai/GLM-5.1",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0,
       "prompt_append": "Always update related README.md files"
     },
     "oracle": {
-      "model": "zai-coding-plan/glm-5.1",
+      "model": "wafer.ai/GLM-5.1",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "librarian": {
-      "model": "zai-coding-plan/glm-5.1",
+      "model": "wafer.ai/GLM-5.1",
       "temperature": 0
     },
     "explore": {
-      "model": "zai-coding-plan/glm-5.1",
+      "model": "wafer.ai/GLM-5.1",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "multimodal-looker": {
-      "model": "zai-coding-plan/glm-5.1",
+      "model": "wafer.ai/GLM-5.1",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "prometheus": {
-      "model": "zai-coding-plan/glm-5.1",
+      "model": "wafer.ai/GLM-5.1",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "metis": {
-      "model": "zai-coding-plan/glm-5.1",
+      "model": "wafer.ai/GLM-5.1",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "momus": {
-      "model": "zai-coding-plan/glm-5.1",
+      "model": "wafer.ai/GLM-5.1",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "atlas": {
-      "model": "zai-coding-plan/glm-5.1",
+      "model": "wafer.ai/GLM-5.1",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "pr-review": {
-      "model": "zai-coding-plan/glm-5.1",
+      "model": "wafer.ai/GLM-5.1",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "sisyphus-junior": {
-      "model": "zai-coding-plan/glm-5.1",
+      "model": "wafer.ai/GLM-5.1",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     }
   },
   "categories": {
     "visual-engineering": {
-      "model": "zai-coding-plan/glm-5.1",
+      "model": "wafer.ai/GLM-5.1",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "ultrabrain": {
-      "model": "zai-coding-plan/glm-5.1",
+      "model": "wafer.ai/GLM-5.1",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "deep": {
-      "model": "zai-coding-plan/glm-5.1",
+      "model": "wafer.ai/GLM-5.1",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "artistry": {
-      "model": "zai-coding-plan/glm-5.1",
+      "model": "wafer.ai/GLM-5.1",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "quick": {
-      "model": "zai-coding-plan/glm-5.1",
+      "model": "wafer.ai/GLM-5.1",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "unspecified-low": {
-      "model": "zai-coding-plan/glm-5.1",
+      "model": "wafer.ai/GLM-5.1",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "unspecified-high": {
-      "model": "zai-coding-plan/glm-5.1",
+      "model": "wafer.ai/GLM-5.1",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     },
     "writing": {
-      "model": "zai-coding-plan/glm-5.1",
+      "model": "wafer.ai/GLM-5.1",
       "fallback_models": [{ "model": "zai-coding-plan/glm-5.1" }],
       "temperature": 0
     }
