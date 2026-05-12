@@ -31,6 +31,12 @@ Dependency injection framework for Ultranomic. Zero runtime dependencies, no dec
 2. Update `Container.#resolveInternal()` in `src/container.ts` to handle the new scope's caching/instantiation strategy.
 3. Update `validateScope()` in `src/graph.ts` if the new scope has constraints on what it can depend on.
 
+### Adding a new log level
+
+1. Add the key-value pair to the `LOG_LEVEL` object in `src/log-level.ts`.
+2. Update `LOG_LEVEL_PRIORITY` in `src/logger.ts` to assign a priority number to the new level.
+3. Add a corresponding instance method on the Logger class in `src/logger.ts` if the new level needs a dedicated method.
+
 ## Testing
 
 ```bash
