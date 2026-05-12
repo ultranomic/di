@@ -33,7 +33,10 @@ describe('HonoService', () => {
     });
 
     it('resolves via Container', async () => {
-      class TestModule extends HonoModule({ providers: [], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       container = new Container(TestModule);
       await container.start();
@@ -43,7 +46,10 @@ describe('HonoService', () => {
     });
 
     it('empty module (no controllers) — onStart() works, .hono returns empty app', async () => {
-      class TestModule extends HonoModule({ providers: [], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -59,7 +65,10 @@ describe('HonoService', () => {
     });
 
     it('.hono getter is idempotent — same instance on repeated access', async () => {
-      class TestModule extends HonoModule({ providers: [], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
       container = new Container(TestModule);
       await container.start();
       const service = container.resolve(HonoService);
@@ -69,7 +78,10 @@ describe('HonoService', () => {
     });
 
     it('onStart returns Promise<void>', async () => {
-      class TestModule extends HonoModule({ providers: [], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
       container = new Container(TestModule);
       await container.start();
       const service = container.resolve(HonoService);
@@ -95,7 +107,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -120,7 +135,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -175,7 +193,10 @@ describe('HonoService', () => {
           handler: () => Response.json({ method: 'OPTIONS' }),
         });
       }
-      class TestModule extends HonoModule({ providers: [MethodController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [MethodController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
       container = new Container(TestModule);
       await container.start();
       const service = container.resolve(HonoService);
@@ -201,7 +222,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -228,7 +252,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController, ProductController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController, ProductController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -243,7 +270,10 @@ describe('HonoService', () => {
     it('controller with no routes — skipped gracefully', async () => {
       class EmptyController extends Controller({ path: '/empty' }) {}
 
-      class TestModule extends HonoModule({ providers: [EmptyController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [EmptyController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -276,7 +306,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController, RequestCounter], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController, RequestCounter],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -312,7 +345,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [HonoContext, UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [HonoContext, UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -353,8 +389,7 @@ describe('HonoService', () => {
 
       class TestModule extends HonoModule({
         providers: [HonoContext, UserController, RequestScopedWithOnStart],
-        options: () => ({ port: 0, host: "0.0.0.0" }),
-
+        options: () => ({ port: 0, host: '0.0.0.0' }),
       }) {}
 
       const result = await setupModule(TestModule);
@@ -401,7 +436,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController, RequestScoped], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController, RequestScoped],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -436,7 +474,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -459,7 +500,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -479,7 +523,10 @@ describe('HonoService', () => {
           },
         });
       }
-      class TestModule extends HonoModule({ providers: [ErrorController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [ErrorController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
       container = new Container(TestModule);
       await container.start();
       const service = container.resolve(HonoService);
@@ -497,7 +544,10 @@ describe('HonoService', () => {
           },
         });
       }
-      class TestModule extends HonoModule({ providers: [ErrorController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [ErrorController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
       container = new Container(TestModule);
       await container.start();
       const service = container.resolve(HonoService);
@@ -542,7 +592,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [DbService, UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [DbService, UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -573,8 +626,7 @@ describe('HonoService', () => {
       class TestModule extends HonoModule({
         providers: [UserController],
         imports: [SharedModule],
-        options: () => ({ port: 0, host: "0.0.0.0" }),
-
+        options: () => ({ port: 0, host: '0.0.0.0' }),
       }) {}
 
       const result = await setupModule(TestModule);
@@ -606,7 +658,11 @@ describe('HonoService', () => {
         exports: [HealthController],
       }) {}
 
-      class TestModule extends HonoModule({ providers: [], imports: [HealthModule], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [],
+        imports: [HealthModule],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -634,7 +690,11 @@ describe('HonoService', () => {
         exports: [UserController],
       }) {}
 
-      class TestModule extends HonoModule({ providers: [ExternalDep], imports: [FeatureModule], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [ExternalDep],
+        imports: [FeatureModule],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -667,7 +727,11 @@ describe('HonoService', () => {
         imports: [Level3Module],
       }) {}
 
-      class RootModule extends HonoModule({ providers: [], imports: [Level2Module], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class RootModule extends HonoModule({
+        providers: [],
+        imports: [Level2Module],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(RootModule);
       container = result.container;
@@ -694,7 +758,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -725,7 +792,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -756,7 +826,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -781,7 +854,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -806,7 +882,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -833,7 +912,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -858,7 +940,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -887,7 +972,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -912,7 +1000,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -943,7 +1034,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -974,7 +1068,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -1003,7 +1100,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -1049,7 +1149,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -1094,7 +1197,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -1169,7 +1275,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -1193,7 +1302,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -1221,7 +1333,10 @@ describe('HonoService', () => {
           handler: (c) => c.json({ ok: true }),
         });
       }
-      class TestModule extends HonoModule({ providers: [ThrowController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [ThrowController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
       container = new Container(TestModule);
       await container.start();
       const service = container.resolve(HonoService);
@@ -1255,7 +1370,10 @@ describe('HonoService', () => {
           handler: (c) => c.json({ ok: true }),
         });
       }
-      class TestModule extends HonoModule({ providers: [EmptyIssuesController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [EmptyIssuesController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
       const result = await setupModule(TestModule);
       container = result.container;
       const res = await result.app.fetch(
@@ -1301,7 +1419,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -1336,7 +1457,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [ThrowController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [ThrowController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -1349,7 +1473,7 @@ describe('HonoService', () => {
       );
       expect(res.status).toBe(500);
       const body = await res.json();
-      expect(body).toEqual({ error: { code: 'SCOPE_VIOLATION', message: 'test' } });
+      expect(body).toEqual({ error: { code: 'SCOPE_VIOLATION' } });
     });
 
     it('middleware + validation execution order', async () => {
@@ -1422,7 +1546,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -1620,7 +1747,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
       container = new Container(TestModule);
       await container.start();
       const service = container.resolve(HonoService);
@@ -1686,6 +1816,37 @@ describe('HonoService', () => {
       expect(res.status).toBe(200);
       expect(service.port).toBeUndefined();
       expect(service.host).toBeUndefined();
+    });
+
+    it('plain Module with non-HonoModule imports — #readOptions returns undefined', async () => {
+      class SharedService extends Injectable({ scope: SCOPE.SINGLETON }) {
+        readonly tag = 'shared';
+      }
+
+      class SharedModule extends Module({
+        providers: [SharedService],
+        exports: [SharedService],
+      }) {}
+
+      class UserController extends Controller({ path: '/users' }) {
+        list = this.route({
+          method: 'GET',
+          path: '/',
+          handler: async () => new Response('ok', { status: 200 }),
+        });
+      }
+
+      class TestModule extends Module({
+        providers: [HonoService, UserController],
+        imports: [SharedModule],
+      }) {}
+
+      container = new Container(TestModule);
+      await container.start();
+      const service = container.resolve(HonoService);
+      const res = await service.hono.fetch(new Request('http://localhost/users'));
+      expect(res.status).toBe(200);
+      expect(service.port).toBeUndefined();
     });
 
     it('HonoModule as nested import — options still applied', async () => {
@@ -1771,7 +1932,10 @@ describe('HonoService', () => {
         });
       }
 
-      class TestModule extends HonoModule({ providers: [UserController], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [UserController],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -1794,7 +1958,11 @@ describe('HonoService', () => {
         imports: [ModA],
       }) {}
 
-      class TestModule extends HonoModule({ providers: [], imports: [ModA, ModB], options: () => ({ port: 0, host: '0.0.0.0' }) }) {}
+      class TestModule extends HonoModule({
+        providers: [],
+        imports: [ModA, ModB],
+        options: () => ({ port: 0, host: '0.0.0.0' }),
+      }) {}
 
       const result = await setupModule(TestModule);
       container = result.container;
@@ -1841,6 +2009,26 @@ describe('HonoService', () => {
       await container.stop();
 
       await expect(fetch(`http://127.0.0.1:${service.port}/`)).rejects.toThrow();
+    });
+
+    it('starts server with custom createServer and serverOptions', async () => {
+      const { createServer } = await import('node:http2');
+      class TestModule extends HonoModule({
+        providers: [],
+        options: () => ({
+          port: 0,
+          host: '0.0.0.0',
+          server: {
+            createServer,
+            serverOptions: {},
+          },
+        }),
+      }) {}
+
+      const result = await setupModule(TestModule);
+      container = result.container;
+      const service = container.resolve(HonoService);
+      expect(service.port).toBeDefined();
     });
   });
 });

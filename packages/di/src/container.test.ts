@@ -2614,8 +2614,48 @@ describe('Container — proxy Object.defineProperty', () => {
 });
 
 // ---------------------------------------------------------------------------
-// onStart hook (post-bootstrap phase)
+// Proxy: delete operator
 // ---------------------------------------------------------------------------
+describe('Container — proxy delete operator', () => {
+  it('deletes property on real target via proxy', async () => {
+    class _Fwd extends Injectable({ scope: SCOPE.SINGLETON }) {}
+    class ServiceA extends Injectable({
+      scope: SCOPE.SINGLETON,
+      inject: [['serviceB', _Fwd]],
+    }) {
+      public getValue() {
+        return 'A';
+      }
+    }
+    class ServiceB extends Injectable({
+      scope: SCOPE.SINGLETON,
+      inject: [['serviceA', ServiceA]],
+    }) {
+      public deletableProp = 'here';
+    }
+    (ServiceA as any)._injectClasses = [ServiceB];
+
+    class AppModule extends Module({
+      providers: [ServiceA, ServiceB],
+    }) {}
+
+    const container = new Container(AppModule);
+    await container.start();
+
+    const a = container.resolve(ServiceA);
+    const proxyB = a.inject.serviceB;
+
+    expect('deletableProp' in proxyB).toBe(true);
+    expect((proxyB as any).deletableProp).toBe('here');
+
+    delete (proxyB as any).deletableProp;
+
+    expect('deletableProp' in proxyB).toBe(false);
+    expect((proxyB as any).deletableProp).toBeUndefined();
+
+    await container.stop();
+  });
+});
 describe('Container — onStart hook', () => {
   it('calls onStart after onApplicationBootstrap, resolve() is available', async () => {
     let bootstrapCalled = false;

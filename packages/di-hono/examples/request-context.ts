@@ -54,7 +54,11 @@ class DemoModule extends Module({
   exports: [AuditService, DemoController],
 }) {}
 
-class HttpModule extends HonoModule({ providers: [AppContext], options: () => ({ port: 3000, host: '0.0.0.0' }) }) {}
+class HttpModule extends HonoModule({
+  providers: [AppContext],
+  options: () => ({ port: 3000, host: '0.0.0.0' }),
+  exports: [AppContext],
+}) {}
 
 class AppModule extends Module({
   imports: [HttpModule, DemoModule],
