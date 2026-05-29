@@ -28,6 +28,6 @@
     "@ultranomic/tsconfig": "workspace:*",
     "type-fest": "5.6.0",
     "typescript": "6.0.3",
-    "vite-plus": "0.1.20"
+    "vite-plus": "0.1.23"
   }
 }
